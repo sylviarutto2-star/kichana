@@ -7,7 +7,7 @@ import { mockStylists } from "@/data/mockData";
 const pageTransition = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: [0.2, 0, 0, 1] },
+  transition: { duration: 0.4, ease: [0.2, 0, 0, 1] as const },
 };
 
 const timeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"];
