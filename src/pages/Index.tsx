@@ -51,7 +51,7 @@ const Index = () => {
           Find your <span className="text-primary">stylist</span>
         </h1>
         <p className="text-[15px] text-muted-foreground mt-1.5 leading-[1.6]">
-          Hand-picked stylists in Kilimani and beyond
+          Hand-picked stylists across Nairobi & beyond
         </p>
       </div>
 
