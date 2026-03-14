@@ -2,12 +2,12 @@ import { motion } from "framer-motion";
 
 interface CategoryChipProps {
   label: string;
-  icon: string;
+  icon?: string;
   active?: boolean;
   onClick?: () => void;
 }
 
-const CategoryChip = ({ label, icon, active, onClick }: CategoryChipProps) => {
+const CategoryChip = ({ label, active, onClick }: CategoryChipProps) => {
   return (
     <motion.button
       whileTap={{ scale: 0.96 }}
@@ -18,7 +18,6 @@ const CategoryChip = ({ label, icon, active, onClick }: CategoryChipProps) => {
           : "bg-card text-foreground border-border hover:border-primary/30"
       }`}
     >
-      <span>{icon}</span>
       <span>{label}</span>
     </motion.button>
   );

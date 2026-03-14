@@ -36,14 +36,14 @@ export interface Service {
 }
 
 export const categories = [
-  { label: "All", icon: "✨" },
-  { label: "Braids", icon: "🪢" },
-  { label: "Wig Install", icon: "💇‍♀️" },
-  { label: "Natural Hair", icon: "🌿" },
-  { label: "Barber", icon: "💈" },
-  { label: "Nails", icon: "💅" },
-  { label: "Hair Products", icon: "🧴" },
-  { label: "Makeup", icon: "💄" },
+  { label: "All", icon: "" },
+  { label: "Braids", icon: "" },
+  { label: "Wig Install", icon: "" },
+  { label: "Natural Hair", icon: "" },
+  { label: "Barber", icon: "" },
+  { label: "Nails", icon: "" },
+  { label: "Hair Products", icon: "" },
+  { label: "Makeup", icon: "" },
 ];
 
 export const mockStylists: Stylist[] = [
