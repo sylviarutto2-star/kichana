@@ -36,7 +36,7 @@ const Index = () => {
           <KichanaLogo size="sm" />
           <div className="flex items-center gap-1 mt-1 text-muted-foreground">
             <MapPin className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium">Nairobi, Kenya</span>
+            <span className="text-xs font-medium">Nairobi, Kenya 🇰🇪</span>
           </div>
         </div>
         <button className="relative h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
@@ -51,7 +51,7 @@ const Index = () => {
           Find your <span className="text-primary">stylist</span>
         </h1>
         <p className="text-[15px] text-muted-foreground mt-1.5 leading-[1.6]">
-          Hand-picked stylists in Kilimani and beyond
+          Hand-picked stylists across Nairobi & beyond
         </p>
       </div>
 
