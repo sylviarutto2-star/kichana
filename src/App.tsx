@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
 import BottomNav from "@/components/BottomNav";
 import Index from "./pages/Index";
 import Welcome from "./pages/Welcome";
@@ -13,7 +14,9 @@ import Payment from "./pages/Payment";
 import Bookings from "./pages/Bookings";
 import Explore from "./pages/Explore";
 import Chat from "./pages/Chat";
+import ChatConversation from "./pages/ChatConversation";
 import Profile from "./pages/Profile";
+import StylistDashboard from "./pages/StylistDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,20 +27,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/welcome" element={<Welcome />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<Index />} />
-          <Route path="/explore" element={<Explore />} />
-          <Route path="/stylist/:id" element={<StylistProfile />} />
-          <Route path="/booking/:stylistId/:serviceId" element={<Booking />} />
-          <Route path="/payment/:stylistId/:serviceId" element={<Payment />} />
-          <Route path="/bookings" element={<Bookings />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <BottomNav />
+        <AuthProvider>
+          <Routes>
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/stylist/:id" element={<StylistProfile />} />
+            <Route path="/booking/:stylistId/:serviceId" element={<Booking />} />
+            <Route path="/payment/:stylistId/:serviceId" element={<Payment />} />
+            <Route path="/bookings" element={<Bookings />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/chat/:recipientId" element={<ChatConversation />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/dashboard" element={<StylistDashboard />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <BottomNav />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
