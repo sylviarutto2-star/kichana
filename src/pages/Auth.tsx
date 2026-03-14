@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Phone, Mail } from "lucide-react";
 import KichanaLogo from "@/components/KichanaLogo";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const pageTransition = {
   initial: { opacity: 0, y: 10 },
@@ -12,8 +14,37 @@ const pageTransition = {
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { signUp, signIn } = useAuth();
+  const { toast } = useToast();
   const [mode, setMode] = useState<"login" | "signup">("login");
-  const [method, setMethod] = useState<"phone" | "email">("phone");
+  const [method, setMethod] = useState<"email">("email");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<"customer" | "stylist">("customer");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      if (mode === "signup") {
+        await signUp(email, password, name, role);
+        toast({ title: "Account created!", description: "Check your email to verify your account." });
+      } else {
+        await signIn(email, password);
+        toast({ title: "Welcome back!" });
+        navigate("/");
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <motion.div {...pageTransition} className="min-h-screen bg-background page-container">
@@ -32,68 +63,37 @@ const Auth = () => {
           : "Join Kichana to discover amazing stylists"}
       </p>
 
-      {/* Method Tabs */}
-      <div className="flex gap-2 mt-8">
-        <button
-          onClick={() => setMethod("phone")}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-inner border text-sm font-medium transition-colors ${
-            method === "phone" ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"
-          }`}
-        >
-          <Phone className="h-4 w-4" /> Phone
-        </button>
-        <button
-          onClick={() => setMethod("email")}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-inner border text-sm font-medium transition-colors ${
-            method === "email" ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"
-          }`}
-        >
-          <Mail className="h-4 w-4" /> Email
-        </button>
-      </div>
-
-      {/* Form */}
-      <div className="mt-6 space-y-4">
+      <div className="mt-8 space-y-4">
         {mode === "signup" && (
           <div>
             <label className="label-text">Full Name</label>
             <input
               type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Amina Wanjiku"
               className="w-full mt-1.5 h-12 px-4 rounded-inner border border-border bg-card text-foreground text-[15px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             />
           </div>
         )}
 
-        {method === "phone" ? (
-          <div>
-            <label className="label-text">{mode === "signup" ? "Phone Number" : "Phone"}</label>
-            <div className="flex mt-1.5">
-              <span className="h-12 px-3 flex items-center rounded-l-inner border border-r-0 border-border bg-secondary text-sm font-medium text-muted-foreground">
-                +254
-              </span>
-              <input
-                type="tel"
-                placeholder="712 345 678"
-                className="flex-1 h-12 px-4 rounded-r-inner border border-border bg-card text-foreground text-[15px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              />
-            </div>
-          </div>
-        ) : (
-          <div>
-            <label className="label-text">Email</label>
-            <input
-              type="email"
-              placeholder="amina@email.com"
-              className="w-full mt-1.5 h-12 px-4 rounded-inner border border-border bg-card text-foreground text-[15px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            />
-          </div>
-        )}
+        <div>
+          <label className="label-text">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="amina@email.com"
+            className="w-full mt-1.5 h-12 px-4 rounded-inner border border-border bg-card text-foreground text-[15px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        </div>
 
         <div>
           <label className="label-text">Password</label>
           <input
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             className="w-full mt-1.5 h-12 px-4 rounded-inner border border-border bg-card text-foreground text-[15px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
           />
@@ -103,10 +103,20 @@ const Auth = () => {
           <div>
             <label className="label-text">I want to</label>
             <div className="flex gap-2 mt-1.5">
-              <button className="flex-1 py-3 rounded-inner border border-primary bg-primary/5 text-sm font-medium text-primary">
+              <button
+                onClick={() => setRole("customer")}
+                className={`flex-1 py-3 rounded-inner border text-sm font-medium transition-colors ${
+                  role === "customer" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"
+                }`}
+              >
                 Book services
               </button>
-              <button className="flex-1 py-3 rounded-inner border border-border text-sm font-medium text-muted-foreground">
+              <button
+                onClick={() => setRole("stylist")}
+                className={`flex-1 py-3 rounded-inner border text-sm font-medium transition-colors ${
+                  role === "stylist" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"
+                }`}
+              >
                 Offer services
               </button>
             </div>
@@ -116,10 +126,11 @@ const Auth = () => {
 
       <motion.button
         whileTap={{ scale: 0.96 }}
-        onClick={() => navigate("/")}
-        className="w-full h-14 mt-8 rounded-outer bg-primary text-primary-foreground font-display font-semibold text-base"
+        onClick={handleSubmit}
+        disabled={isLoading}
+        className="w-full h-14 mt-8 rounded-outer bg-primary text-primary-foreground font-display font-semibold text-base disabled:opacity-50"
       >
-        {mode === "login" ? "Sign In" : "Create Account"}
+        {isLoading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
       </motion.button>
 
       <p className="text-center text-sm text-muted-foreground mt-4">
