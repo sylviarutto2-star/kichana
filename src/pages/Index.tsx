@@ -36,7 +36,7 @@ const Index = () => {
           <KichanaLogo size="sm" />
           <div className="flex items-center gap-1 mt-1 text-muted-foreground">
             <MapPin className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium">Nairobi, Kenya</span>
+            <span className="text-xs font-medium">Nairobi, Kenya 🇰🇪</span>
           </div>
         </div>
         <button className="relative h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
