@@ -2,15 +2,11 @@ import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Star, MapPin, Navigation, X } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { mockStylists, type Stylist } from "@/data/mockData";
 
-// Fix Leaflet default icon issue
-import iconUrl from "leaflet/dist/images/marker-icon.png";
-import iconShadow from "leaflet/dist/images/marker-shadow.png";
-L.Marker.prototype.options.icon = L.icon({ iconUrl, shadowUrl: iconShadow, iconSize: [25, 41], iconAnchor: [12, 41] });
+// Lazy load map to avoid SSR/hydration issues
+import { lazy, Suspense } from "react";
+const MapContent = lazy(() => import("@/components/MapContent"));
 
 const DEFAULT_CENTER: [number, number] = [-1.2921, 36.8219]; // Nairobi
 

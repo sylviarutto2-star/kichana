@@ -40,7 +40,7 @@ const Welcome = () => {
         <div className="mt-auto pb-8 space-y-3">
           <motion.button
             whileTap={{ scale: 0.96 }}
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/auth")}
             className="w-full h-14 rounded-outer bg-primary text-primary-foreground font-display font-semibold text-base"
           >
             Get Started
