@@ -65,8 +65,8 @@ const Profile = () => {
       )}
 
       <div className="px-5 mt-6 space-y-1">
-        {menuItems.map(({ icon: Icon, label }) => (
-          <button key={label} className="w-full flex items-center gap-3 py-3.5 px-1 border-b border-border">
+        {menuItems.map(({ icon: Icon, label, path }) => (
+          <button key={label} onClick={() => navigate(path)} className="w-full flex items-center gap-3 py-3.5 px-1 border-b border-border">
             <Icon className="h-5 w-5 text-muted-foreground" />
             <span className="flex-1 text-left text-[15px] font-medium">{label}</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
