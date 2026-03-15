@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Home, MapPin, Camera, AlertCircle } from "lucide-react";
+import { ArrowLeft, Home, MapPin, Camera, AlertCircle, Check } from "lucide-react";
 import { mockStylists } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+const LocationPickerMap = lazy(() => import("@/components/LocationPickerMap"));
 
 const pageTransition = {
   initial: { opacity: 0, y: 10 },
