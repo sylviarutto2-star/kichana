@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Star } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
 
 interface StylistCardProps {
   name: string;
@@ -8,10 +8,11 @@ interface StylistCardProps {
   reviews: number;
   category: string;
   startingPrice: number;
+  distance?: number;
   onClick?: () => void;
 }
 
-const StylistCard = ({ name, image, rating, reviews, category, startingPrice, onClick }: StylistCardProps) => {
+const StylistCard = ({ name, image, rating, reviews, category, startingPrice, distance, onClick }: StylistCardProps) => {
   return (
     <motion.div
       whileTap={{ scale: 0.97 }}
@@ -30,7 +31,15 @@ const StylistCard = ({ name, image, rating, reviews, category, startingPrice, on
           </div>
           <span className="text-sm font-medium text-primary-foreground/80">{category}</span>
         </div>
-        <p className="text-xs text-primary-foreground/70 mt-1">From KES {startingPrice.toLocaleString()}</p>
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-xs text-primary-foreground/70">From KES {startingPrice.toLocaleString()}</p>
+          {distance !== undefined && (
+            <div className="flex items-center gap-0.5 text-primary-foreground/70">
+              <MapPin className="h-3 w-3" />
+              <span className="text-xs tabular-nums">{distance.toFixed(1)} km</span>
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );
