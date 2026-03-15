@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Bell } from "lucide-react";
+import { MapPin, Bell, Map } from "lucide-react";
 import KichanaLogo from "@/components/KichanaLogo";
 import CategoryChip from "@/components/CategoryChip";
 import StylistCard from "@/components/StylistCard";
