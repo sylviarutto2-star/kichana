@@ -18,6 +18,7 @@ import Chat from "./pages/Chat";
 import ChatConversation from "./pages/ChatConversation";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
+import PaymentMethods from "./pages/PaymentMethods";
 import ProfilePlaceholder from "./pages/ProfilePlaceholder";
 import StylistDashboard from "./pages/StylistDashboard";
 import HomeServiceTracking from "./pages/HomeServiceTracking";
@@ -47,7 +48,7 @@ const App = () => (
             <Route path="/chat/:recipientId" element={<ChatConversation />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/edit" element={<EditProfile />} />
-            <Route path="/profile/payments" element={<ProfilePlaceholder />} />
+            <Route path="/profile/payments" element={<PaymentMethods />} />
             <Route path="/profile/reviews" element={<ProfilePlaceholder />} />
             <Route path="/profile/settings" element={<ProfilePlaceholder />} />
             <Route path="/profile/help" element={<ProfilePlaceholder />} />

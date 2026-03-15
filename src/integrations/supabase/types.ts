@@ -127,6 +127,33 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          phone_number: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          phone_number: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          phone_number?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       portfolio_images: {
         Row: {
           created_at: string
