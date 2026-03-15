@@ -17,6 +17,8 @@ import MapView from "./pages/MapView";
 import Chat from "./pages/Chat";
 import ChatConversation from "./pages/ChatConversation";
 import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
+import ProfilePlaceholder from "./pages/ProfilePlaceholder";
 import StylistDashboard from "./pages/StylistDashboard";
 import HomeServiceTracking from "./pages/HomeServiceTracking";
 import NotFound from "./pages/NotFound";
@@ -44,6 +46,11 @@ const App = () => (
             <Route path="/chat" element={<Chat />} />
             <Route path="/chat/:recipientId" element={<ChatConversation />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/edit" element={<EditProfile />} />
+            <Route path="/profile/payments" element={<ProfilePlaceholder />} />
+            <Route path="/profile/reviews" element={<ProfilePlaceholder />} />
+            <Route path="/profile/settings" element={<ProfilePlaceholder />} />
+            <Route path="/profile/help" element={<ProfilePlaceholder />} />
             <Route path="/dashboard" element={<StylistDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
