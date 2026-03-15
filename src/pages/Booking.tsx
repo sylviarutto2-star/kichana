@@ -28,6 +28,32 @@ const Booking = () => {
 
   const stylist = mockStylists.find((s) => s.id === stylistId);
   const service = stylist?.services.find((s) => s.id === serviceId);
+
+  // Fetch booked slots when date changes
+  useEffect(() => {
+    if (!selectedDate || !stylistId) return;
+    const fetchBookedSlots = async () => {
+      const { data } = await supabase
+        .from("bookings")
+        .select("appointment_time")
+        .eq("stylist_id", stylistId)
+        .eq("appointment_date", selectedDate)
+        .in("status", ["pending", "accepted", "confirmed"]);
+
+      if (data) {
+        const slots = data.map((b) => {
+          const [h, m] = b.appointment_time.split(":");
+          const hour = parseInt(h);
+          const ampm = hour >= 12 ? "PM" : "AM";
+          const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+          return `${displayHour}:${m} ${ampm}`;
+        });
+        setBookedSlots(slots);
+      }
+    };
+    fetchBookedSlots();
+  }, [selectedDate, stylistId]);
+
   if (!stylist || !service) return <div className="page-container">Not found</div>;
 
   const homeEligible = stylist.homeServiceEnabled && stylist.completedBookings >= 3;
