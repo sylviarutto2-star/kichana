@@ -169,6 +169,34 @@ const Booking = () => {
           )}
         </div>
 
+        {/* Home Location Picker */}
+        {locationType === "home" && homeEligible && (
+          <div>
+            <label className="label-text">Your Location</label>
+            <p className="text-xs text-muted-foreground mt-1 mb-2">Select where the stylist should come</p>
+            {homeLocation ? (
+              <div className="bg-card border border-accent rounded-inner p-3 flex items-center gap-2">
+                <Check className="h-4 w-4 text-accent flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{homeLocation.address || "Location selected"}</p>
+                </div>
+                <button
+                  onClick={() => setHomeLocation(null)}
+                  className="text-xs text-primary font-medium flex-shrink-0"
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <Suspense fallback={<div className="h-[50vh] rounded-inner bg-secondary animate-pulse" />}>
+                <LocationPickerMap
+                  onLocationSelect={(lat, lng, address) => setHomeLocation({ lat, lng, address })}
+                />
+              </Suspense>
+            )}
+          </div>
+        )}
+
         {/* Date Selection */}
         <div>
           <label className="label-text">Pick a Date</label>
