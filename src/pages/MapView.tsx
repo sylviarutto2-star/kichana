@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Star, MapPin, Navigation, X } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { mockStylists, type Stylist } from "@/data/mockData";
