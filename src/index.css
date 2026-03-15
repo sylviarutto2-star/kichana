@@ -94,3 +94,25 @@
     @apply fixed bottom-0 left-0 right-0 bg-card border-t border-border px-5 py-4 z-50;
   }
 }
+
+/* Leaflet overrides */
+.leaflet-container {
+  font-family: inherit;
+}
+
+.stylist-map-marker,
+.user-map-marker,
+.location-pin-marker,
+.client-location-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-inner);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
