@@ -76,31 +76,7 @@ const Booking = () => {
     };
   });
 
-  // Fetch booked slots when date changes
-  useEffect(() => {
-    if (!selectedDate) return;
-    const fetchBookedSlots = async () => {
-      const { data } = await supabase
-        .from("bookings")
-        .select("appointment_time")
-        .eq("stylist_id", stylistId!)
-        .eq("appointment_date", selectedDate)
-        .in("status", ["pending", "accepted", "confirmed"]);
 
-      if (data) {
-        const slots = data.map((b) => {
-          // Convert "HH:MM:SS" to display format
-          const [h, m] = b.appointment_time.split(":");
-          const hour = parseInt(h);
-          const ampm = hour >= 12 ? "PM" : "AM";
-          const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-          return `${displayHour}:${m} ${ampm}`;
-        });
-        setBookedSlots(slots);
-      }
-    };
-    fetchBookedSlots();
-  }, [selectedDate, stylistId]);
 
   const handleProceed = async () => {
     if (!user) {
