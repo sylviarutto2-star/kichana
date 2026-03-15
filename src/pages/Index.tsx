@@ -55,6 +55,23 @@ const Index = () => {
         </p>
       </div>
 
+      {/* Map CTA */}
+      <div className="px-5 mt-5">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => navigate("/map")}
+          className="w-full flex items-center gap-3 p-4 rounded-inner border border-primary/20 bg-primary/5"
+        >
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Map className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Find stylists on map</p>
+            <p className="text-xs text-muted-foreground">Discover nearby stylists around you</p>
+          </div>
+        </motion.button>
+      </div>
+
       {/* Categories */}
       <div className="mt-6 px-5 overflow-x-auto scrollbar-hide">
         <div className="flex gap-2">
