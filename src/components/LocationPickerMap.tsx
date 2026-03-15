@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { useState, useEffect, useCallback, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapPin, Navigation, Check } from "lucide-react";
@@ -19,34 +18,19 @@ const pinIcon = L.divIcon({
   </div>`,
 });
 
-function LocationMarker({ position, onMove }: { position: [number, number]; onMove: (pos: [number, number]) => void }) {
-  useMapEvents({
-    click(e) {
-      onMove([e.latlng.lat, e.latlng.lng]);
-    },
-  });
-  return <Marker position={position} icon={pinIcon} />;
-}
-
-function RecenterMap({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, 15, { animate: true });
-  }, [center, map]);
-  return null;
-}
-
 interface LocationPickerMapProps {
   onLocationSelect: (lat: number, lng: number, address?: string) => void;
   initialLocation?: [number, number];
 }
 
 const LocationPickerMap = ({ onLocationSelect, initialLocation }: LocationPickerMapProps) => {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   const [position, setPosition] = useState<[number, number]>(initialLocation || DEFAULT_CENTER);
   const [address, setAddress] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  // Reverse geocode
   const fetchAddress = useCallback(async (lat: number, lng: number) => {
     try {
       const res = await fetch(
@@ -62,7 +46,44 @@ const LocationPickerMap = ({ onLocationSelect, initialLocation }: LocationPicker
     }
   }, []);
 
+  // Initialize map
   useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: position,
+      zoom: 15,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    const marker = L.marker(position, { icon: pinIcon }).addTo(map);
+    markerRef.current = marker;
+
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      const newPos: [number, number] = [e.latlng.lat, e.latlng.lng];
+      setPosition(newPos);
+      marker.setLatLng(newPos);
+    });
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Update marker when position changes externally
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.setLatLng(position);
+    }
+    if (mapRef.current) {
+      mapRef.current.setView(position, 15, { animate: true });
+    }
     fetchAddress(position[0], position[1]);
   }, [position, fetchAddress]);
 
@@ -71,8 +92,7 @@ const LocationPickerMap = ({ onLocationSelect, initialLocation }: LocationPicker
       setLoading(true);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-          setPosition(newPos);
+          setPosition([pos.coords.latitude, pos.coords.longitude]);
           setLoading(false);
         },
         () => setLoading(false),
@@ -87,19 +107,8 @@ const LocationPickerMap = ({ onLocationSelect, initialLocation }: LocationPicker
 
   return (
     <div className="relative w-full h-[50vh] rounded-inner overflow-hidden border border-border">
-      <MapContainer
-        center={position}
-        zoom={15}
-        className="h-full w-full"
-        zoomControl={false}
-        attributionControl={false}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <RecenterMap center={position} />
-        <LocationMarker position={position} onMove={setPosition} />
-      </MapContainer>
+      <div ref={mapContainerRef} className="h-full w-full" />
 
-      {/* Locate me button */}
       <button
         onClick={handleLocateMe}
         className="absolute top-3 right-3 z-[1000] h-10 w-10 rounded-full bg-card border border-border shadow-md flex items-center justify-center"
@@ -107,7 +116,6 @@ const LocationPickerMap = ({ onLocationSelect, initialLocation }: LocationPicker
         <Navigation className={`h-4 w-4 ${loading ? "text-primary animate-pulse" : "text-foreground"}`} />
       </button>
 
-      {/* Address bar */}
       <div className="absolute bottom-0 left-0 right-0 z-[1000] p-3">
         <div className="bg-card/95 backdrop-blur-sm border border-border rounded-inner p-3 shadow-lg">
           <div className="flex items-start gap-2">
@@ -127,7 +135,6 @@ const LocationPickerMap = ({ onLocationSelect, initialLocation }: LocationPicker
         </div>
       </div>
 
-      {/* Instruction overlay */}
       <div className="absolute top-3 left-3 z-[1000]">
         <div className="bg-card/90 backdrop-blur-sm border border-border rounded-full px-3 py-1.5 shadow-sm">
           <p className="text-xs text-muted-foreground">Tap the map to set your location</p>

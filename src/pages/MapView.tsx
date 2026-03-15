@@ -1,8 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Star, MapPin, Navigation, X } from "lucide-react";
-import { MapContainer, TileLayer, Marker, useMap, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { mockStylists, type Stylist } from "@/data/mockData";
@@ -22,7 +21,6 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Custom stylist marker icon
 function createStylistIcon(image: string, rating: number) {
   return L.divIcon({
     className: "stylist-map-marker",
@@ -42,22 +40,12 @@ function createStylistIcon(image: string, rating: number) {
   });
 }
 
-// User location marker
 const userIcon = L.divIcon({
   className: "user-map-marker",
   iconSize: [20, 20],
   iconAnchor: [10, 10],
   html: `<div style="width:20px;height:20px;border-radius:50%;background:hsl(217,91%,60%);border:3px solid #fff;box-shadow:0 0 8px rgba(59,130,246,0.5);"></div>`,
 });
-
-// Map view controller
-function MapController({ center, zoom }: { center: [number, number]; zoom: number }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, zoom, { animate: true });
-  }, [center, zoom, map]);
-  return null;
-}
 
 const distanceOptions = [
   { label: "1 km", value: 1, zoom: 15 },
@@ -68,14 +56,38 @@ const distanceOptions = [
 
 const MapView = () => {
   const navigate = useNavigate();
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+  const circleRef = useRef<L.Circle | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
+
   const [maxDistance, setMaxDistance] = useState(10);
-  const [mapZoom, setMapZoom] = useState(12);
   const [userLocation, setUserLocation] = useState<[number, number]>(DEFAULT_CENTER);
   const [selectedStylist, setSelectedStylist] = useState<Stylist | null>(null);
   const [locating, setLocating] = useState(false);
 
-  // Try to get user's real location
+  const filtered = useMemo(() => {
+    return mockStylists.filter(
+      (s) => getDistanceKm(userLocation[0], userLocation[1], s.latitude, s.longitude) <= maxDistance
+    );
+  }, [maxDistance, userLocation]);
+
+  // Initialize map
   useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: DEFAULT_CENTER,
+      zoom: 12,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    mapRef.current = map;
+
+    // Get user location
     if ("geolocation" in navigator) {
       setLocating(true);
       navigator.geolocation.getCurrentPosition(
@@ -87,61 +99,85 @@ const MapView = () => {
         { timeout: 5000 }
       );
     }
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
   }, []);
 
-  const filtered = useMemo(() => {
-    return mockStylists.filter(
-      (s) => getDistanceKm(userLocation[0], userLocation[1], s.latitude, s.longitude) <= maxDistance
-    );
-  }, [maxDistance, userLocation]);
+  // Update map view, user marker, and circle when location/distance changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const opt = distanceOptions.find((d) => d.value === maxDistance);
+    map.setView(userLocation, opt?.zoom ?? 12, { animate: true });
+
+    // User marker
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng(userLocation);
+    } else {
+      userMarkerRef.current = L.marker(userLocation, { icon: userIcon }).addTo(map);
+    }
+
+    // Distance circle
+    if (circleRef.current) {
+      circleRef.current.setLatLng(userLocation);
+      circleRef.current.setRadius(maxDistance * 1000);
+    } else {
+      circleRef.current = L.circle(userLocation, {
+        radius: maxDistance * 1000,
+        color: "hsl(12,75%,55%)",
+        fillColor: "hsl(12,75%,55%)",
+        fillOpacity: 0.06,
+        weight: 1.5,
+        dashArray: "6 4",
+      }).addTo(map);
+    }
+  }, [userLocation, maxDistance]);
+
+  // Update stylist markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove old markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    // Add new markers
+    filtered.forEach((stylist) => {
+      const marker = L.marker([stylist.latitude, stylist.longitude], {
+        icon: createStylistIcon(stylist.image, stylist.rating),
+      })
+        .on("click", () => setSelectedStylist(stylist))
+        .addTo(map);
+      markersRef.current.push(marker);
+    });
+  }, [filtered]);
 
   const handleDistanceChange = (value: number) => {
     setMaxDistance(value);
-    const opt = distanceOptions.find((d) => d.value === value);
-    if (opt) setMapZoom(opt.zoom);
   };
+
+  const handleLocate = useCallback(() => {
+    if ("geolocation" in navigator) {
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+          setLocating(false);
+        },
+        () => setLocating(false)
+      );
+    }
+  }, []);
 
   return (
     <div className="h-screen w-full relative">
-      {/* Map */}
-      <MapContainer
-        center={userLocation}
-        zoom={mapZoom}
-        className="h-full w-full z-0"
-        zoomControl={false}
-        attributionControl={false}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <MapController center={userLocation} zoom={mapZoom} />
-
-        {/* User location marker */}
-        <Marker position={userLocation} icon={userIcon} />
-
-        {/* Distance circle */}
-        <Circle
-          center={userLocation}
-          radius={maxDistance * 1000}
-          pathOptions={{
-            color: "hsl(12,75%,55%)",
-            fillColor: "hsl(12,75%,55%)",
-            fillOpacity: 0.06,
-            weight: 1.5,
-            dashArray: "6 4",
-          }}
-        />
-
-        {/* Stylist markers */}
-        {filtered.map((stylist) => (
-          <Marker
-            key={stylist.id}
-            position={[stylist.latitude, stylist.longitude]}
-            icon={createStylistIcon(stylist.image, stylist.rating)}
-            eventHandlers={{
-              click: () => setSelectedStylist(stylist),
-            }}
-          />
-        ))}
-      </MapContainer>
+      {/* Map container */}
+      <div ref={mapContainerRef} className="h-full w-full z-0" />
 
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-[1000] safe-area-top">
@@ -159,18 +195,7 @@ const MapView = () => {
             </span>
           </div>
           <button
-            onClick={() => {
-              if ("geolocation" in navigator) {
-                setLocating(true);
-                navigator.geolocation.getCurrentPosition(
-                  (pos) => {
-                    setUserLocation([pos.coords.latitude, pos.coords.longitude]);
-                    setLocating(false);
-                  },
-                  () => setLocating(false)
-                );
-              }
-            }}
+            onClick={handleLocate}
             className="h-10 w-10 rounded-full bg-card/90 backdrop-blur-sm border border-border flex items-center justify-center shadow-sm"
           >
             <Navigation className={`h-4 w-4 ${locating ? "text-primary animate-pulse" : "text-foreground"}`} />

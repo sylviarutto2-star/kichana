@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Navigation2 } from "lucide-react";
@@ -20,28 +20,41 @@ interface ClientLocationMapProps {
 }
 
 const ClientLocationMap = ({ latitude, longitude, customerName, address }: ClientLocationMapProps) => {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: [latitude, longitude],
+      zoom: 15,
+      zoomControl: false,
+      attributionControl: false,
+      scrollWheelZoom: false,
+      dragging: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    L.marker([latitude, longitude], { icon: clientIcon })
+      .bindPopup(customerName || "Client location")
+      .addTo(map);
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [latitude, longitude, customerName]);
+
   const handleNavigate = () => {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`, "_blank");
   };
 
   return (
     <div className="w-full rounded-inner overflow-hidden border border-border">
-      <div className="h-[200px] relative">
-        <MapContainer
-          center={[latitude, longitude]}
-          zoom={15}
-          className="h-full w-full"
-          zoomControl={false}
-          attributionControl={false}
-          scrollWheelZoom={false}
-          dragging={false}
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <Marker position={[latitude, longitude]} icon={clientIcon}>
-            <Popup>{customerName || "Client location"}</Popup>
-          </Marker>
-        </MapContainer>
-      </div>
+      <div ref={mapContainerRef} className="h-[200px] w-full" />
       <div className="p-3 bg-card flex items-center justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">Client location</p>
