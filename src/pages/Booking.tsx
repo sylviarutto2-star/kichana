@@ -26,6 +26,7 @@ const Booking = () => {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [homeLocation, setHomeLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
 
   const stylist = mockStylists.find((s) => s.id === stylistId);
   const service = stylist?.services.find((s) => s.id === serviceId);
