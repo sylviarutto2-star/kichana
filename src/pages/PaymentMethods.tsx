@@ -34,7 +34,10 @@ const PaymentMethods = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchMethods = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("payment_methods")
       .select("*")
