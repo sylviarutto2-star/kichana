@@ -20,11 +20,14 @@ export type Database = {
           appointment_time: string
           created_at: string
           customer_id: string
+          deposit_amount: number
           deposit_paid: boolean | null
           id: string
           inspiration_photo: string | null
           location_type: string
           notes: string | null
+          platform_fee: number
+          remaining_balance: number
           service_id: string
           status: string
           stylist_id: string
@@ -36,11 +39,14 @@ export type Database = {
           appointment_time: string
           created_at?: string
           customer_id: string
+          deposit_amount?: number
           deposit_paid?: boolean | null
           id?: string
           inspiration_photo?: string | null
           location_type: string
           notes?: string | null
+          platform_fee?: number
+          remaining_balance?: number
           service_id: string
           status?: string
           stylist_id: string
@@ -52,11 +58,14 @@ export type Database = {
           appointment_time?: string
           created_at?: string
           customer_id?: string
+          deposit_amount?: number
           deposit_paid?: boolean | null
           id?: string
           inspiration_photo?: string | null
           location_type?: string
           notes?: string | null
+          platform_fee?: number
+          remaining_balance?: number
           service_id?: string
           status?: string
           stylist_id?: string
@@ -123,18 +132,21 @@ export type Database = {
           created_at: string
           id: string
           image_url: string
+          media_type: string
           stylist_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           image_url: string
+          media_type?: string
           stylist_id: string
         }
         Update: {
           created_at?: string
           id?: string
           image_url?: string
+          media_type?: string
           stylist_id?: string
         }
         Relationships: [
@@ -152,7 +164,9 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          latitude: number | null
           location: string | null
+          longitude: number | null
           name: string
           phone: string | null
           profile_photo: string | null
@@ -164,7 +178,9 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           name?: string
           phone?: string | null
           profile_photo?: string | null
@@ -176,7 +192,9 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           name?: string
           phone?: string | null
           profile_photo?: string | null
@@ -238,6 +256,7 @@ export type Database = {
           description: string | null
           duration: string | null
           id: string
+          images: string[] | null
           name: string
           price: number
           stylist_id: string
@@ -248,6 +267,7 @@ export type Database = {
           description?: string | null
           duration?: string | null
           id?: string
+          images?: string[] | null
           name: string
           price: number
           stylist_id: string
@@ -258,6 +278,7 @@ export type Database = {
           description?: string | null
           duration?: string | null
           id?: string
+          images?: string[] | null
           name?: string
           price?: number
           stylist_id?: string
@@ -275,11 +296,20 @@ export type Database = {
       stylists: {
         Row: {
           bio: string | null
+          buffer_minutes: number
+          completed_bookings_count: number
           created_at: string
+          deposit_percentage: number
+          early_program: boolean
+          early_program_start: string | null
+          home_service_enabled: boolean
           id: string
+          latitude: number | null
+          longitude: number | null
           rating: number | null
           review_count: number | null
           service_areas: string[] | null
+          transport_fee: number
           updated_at: string
           user_id: string
           verified: boolean | null
@@ -287,11 +317,20 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          buffer_minutes?: number
+          completed_bookings_count?: number
           created_at?: string
+          deposit_percentage?: number
+          early_program?: boolean
+          early_program_start?: string | null
+          home_service_enabled?: boolean
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           rating?: number | null
           review_count?: number | null
           service_areas?: string[] | null
+          transport_fee?: number
           updated_at?: string
           user_id: string
           verified?: boolean | null
@@ -299,11 +338,20 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          buffer_minutes?: number
+          completed_bookings_count?: number
           created_at?: string
+          deposit_percentage?: number
+          early_program?: boolean
+          early_program_start?: string | null
+          home_service_enabled?: boolean
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           rating?: number | null
           review_count?: number | null
           service_areas?: string[] | null
+          transport_fee?: number
           updated_at?: string
           user_id?: string
           verified?: boolean | null
@@ -378,6 +426,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_booking_conflict: {
+        Args: {
+          p_date: string
+          p_duration_minutes?: number
+          p_stylist_id: string
+          p_time: string
+        }
+        Returns: boolean
+      }
+      get_available_slots: {
+        Args: { p_date: string; p_stylist_id: string }
+        Returns: {
+          time_slot: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
