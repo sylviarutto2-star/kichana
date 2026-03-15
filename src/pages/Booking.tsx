@@ -98,11 +98,12 @@ const Booking = () => {
         remaining,
         transportFee,
         depositPercent,
+        homeLocation: locationType === "home" ? homeLocation : null,
       },
     });
   };
 
-  const canProceed = selectedDate && selectedTime;
+  const canProceed = selectedDate && selectedTime && (locationType === "salon" || homeLocation);
   const isSlotBooked = (slot: string) => bookedSlots.includes(slot);
 
   return (
