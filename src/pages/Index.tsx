@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Bell } from "lucide-react";
+import { MapPin, Bell, Map } from "lucide-react";
 import KichanaLogo from "@/components/KichanaLogo";
 import CategoryChip from "@/components/CategoryChip";
 import StylistCard from "@/components/StylistCard";
@@ -53,6 +53,23 @@ const Index = () => {
         <p className="text-[15px] text-muted-foreground mt-1.5 leading-[1.6]">
           Hand-picked stylists across Nairobi & beyond
         </p>
+      </div>
+
+      {/* Map CTA */}
+      <div className="px-5 mt-5">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => navigate("/map")}
+          className="w-full flex items-center gap-3 p-4 rounded-inner border border-primary/20 bg-primary/5"
+        >
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Map className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Find stylists on map</p>
+            <p className="text-xs text-muted-foreground">Discover nearby stylists around you</p>
+          </div>
+        </motion.button>
       </div>
 
       {/* Categories */}

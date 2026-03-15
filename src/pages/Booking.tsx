@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Home, MapPin, Camera, AlertCircle } from "lucide-react";
+import { ArrowLeft, Home, MapPin, Camera, AlertCircle, Check } from "lucide-react";
 import { mockStylists } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+const LocationPickerMap = lazy(() => import("@/components/LocationPickerMap"));
 
 const pageTransition = {
   initial: { opacity: 0, y: 10 },
@@ -25,6 +26,7 @@ const Booking = () => {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [homeLocation, setHomeLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
 
   const stylist = mockStylists.find((s) => s.id === stylistId);
   const service = stylist?.services.find((s) => s.id === serviceId);
@@ -96,11 +98,12 @@ const Booking = () => {
         remaining,
         transportFee,
         depositPercent,
+        homeLocation: locationType === "home" ? homeLocation : null,
       },
     });
   };
 
-  const canProceed = selectedDate && selectedTime;
+  const canProceed = selectedDate && selectedTime && (locationType === "salon" || homeLocation);
   const isSlotBooked = (slot: string) => bookedSlots.includes(slot);
 
   return (
@@ -165,6 +168,34 @@ const Booking = () => {
             </p>
           )}
         </div>
+
+        {/* Home Location Picker */}
+        {locationType === "home" && homeEligible && (
+          <div>
+            <label className="label-text">Your Location</label>
+            <p className="text-xs text-muted-foreground mt-1 mb-2">Select where the stylist should come</p>
+            {homeLocation ? (
+              <div className="bg-card border border-accent rounded-inner p-3 flex items-center gap-2">
+                <Check className="h-4 w-4 text-accent flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{homeLocation.address || "Location selected"}</p>
+                </div>
+                <button
+                  onClick={() => setHomeLocation(null)}
+                  className="text-xs text-primary font-medium flex-shrink-0"
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <Suspense fallback={<div className="h-[50vh] rounded-inner bg-secondary animate-pulse" />}>
+                <LocationPickerMap
+                  onLocationSelect={(lat, lng, address) => setHomeLocation({ lat, lng, address })}
+                />
+              </Suspense>
+            )}
+          </div>
+        )}
 
         {/* Date Selection */}
         <div>
