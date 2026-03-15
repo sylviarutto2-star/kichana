@@ -48,7 +48,7 @@ const App = () => (
             <Route path="/chat/:recipientId" element={<ChatConversation />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/edit" element={<EditProfile />} />
-            <Route path="/profile/payments" element={<ProfilePlaceholder />} />
+            <Route path="/profile/payments" element={<PaymentMethods />} />
             <Route path="/profile/reviews" element={<ProfilePlaceholder />} />
             <Route path="/profile/settings" element={<ProfilePlaceholder />} />
             <Route path="/profile/help" element={<ProfilePlaceholder />} />
