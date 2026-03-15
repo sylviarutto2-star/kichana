@@ -18,6 +18,7 @@ import Chat from "./pages/Chat";
 import ChatConversation from "./pages/ChatConversation";
 import Profile from "./pages/Profile";
 import EditProfile from "./pages/EditProfile";
+import PaymentMethods from "./pages/PaymentMethods";
 import ProfilePlaceholder from "./pages/ProfilePlaceholder";
 import StylistDashboard from "./pages/StylistDashboard";
 import HomeServiceTracking from "./pages/HomeServiceTracking";
