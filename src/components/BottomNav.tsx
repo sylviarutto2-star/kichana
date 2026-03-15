@@ -1,9 +1,10 @@
-import { Home, Search, Calendar, MessageCircle, User } from "lucide-react";
+import { Home, Search, MapPin, Calendar, MessageCircle, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const tabs = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Search, label: "Explore", path: "/explore" },
+  { icon: MapPin, label: "Map", path: "/map" },
   { icon: Calendar, label: "Bookings", path: "/bookings" },
   { icon: MessageCircle, label: "Chat", path: "/chat" },
   { icon: User, label: "Profile", path: "/profile" },
@@ -13,8 +14,8 @@ const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Hide on welcome/auth screens
-  if (location.pathname === "/welcome" || location.pathname === "/auth") return null;
+  // Hide on welcome/auth screens and map (map is fullscreen)
+  if (location.pathname === "/welcome" || location.pathname === "/auth" || location.pathname === "/map") return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 pb-safe">
@@ -25,7 +26,7 @@ const BottomNav = () => {
             <button
               key={path}
               onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-colors ${
+              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 transition-colors ${
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >

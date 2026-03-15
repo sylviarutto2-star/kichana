@@ -13,6 +13,7 @@ import Booking from "./pages/Booking";
 import Payment from "./pages/Payment";
 import Bookings from "./pages/Bookings";
 import Explore from "./pages/Explore";
+import MapView from "./pages/MapView";
 import Chat from "./pages/Chat";
 import ChatConversation from "./pages/ChatConversation";
 import Profile from "./pages/Profile";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Index />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/map" element={<MapView />} />
             <Route path="/stylist/:id" element={<StylistProfile />} />
             <Route path="/booking/:stylistId/:serviceId" element={<Booking />} />
             <Route path="/payment/:stylistId/:serviceId" element={<Payment />} />
