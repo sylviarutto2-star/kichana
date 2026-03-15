@@ -40,7 +40,8 @@ const Auth = () => {
         navigate("/");
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const msg = error?.message || "Something went wrong";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
