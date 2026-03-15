@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Calendar, DollarSign, Clock, Check, X, ChevronRight, TrendingUp } from "lucide-react";
+import { TrendingUp, Clock, Check, X, Plus, Settings, Image, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import DashboardBookings from "@/components/dashboard/DashboardBookings";
+import DashboardServices from "@/components/dashboard/DashboardServices";
+import DashboardSettings from "@/components/dashboard/DashboardSettings";
+import DashboardPortfolio from "@/components/dashboard/DashboardPortfolio";
 
 const pageTransition = {
   initial: { opacity: 0, y: 10 },
@@ -11,13 +15,27 @@ const pageTransition = {
   transition: { duration: 0.4, ease: [0.2, 0, 0, 1] as const },
 };
 
-interface Booking {
+export interface StylistData {
+  id: string;
+  buffer_minutes: number;
+  transport_fee: number;
+  deposit_percentage: number;
+  home_service_enabled: boolean;
+  completed_bookings_count: number;
+  early_program: boolean;
+  early_program_start: string | null;
+}
+
+export interface BookingData {
   id: string;
   appointment_date: string;
   appointment_time: string;
   status: string;
   total_price: number;
   location_type: string;
+  deposit_amount: number;
+  platform_fee: number;
+  remaining_balance: number;
   customer_name?: string;
   service_name?: string;
 }
@@ -25,24 +43,24 @@ interface Booking {
 const StylistDashboard = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [stylistData, setStylistData] = useState<StylistData | null>(null);
+  const [bookings, setBookings] = useState<BookingData[]>([]);
   const [earnings, setEarnings] = useState({ total: 0, pending: 0, completed: 0 });
-  const [activeTab, setActiveTab] = useState<"upcoming" | "completed" | "earnings">("upcoming");
+  const [activeTab, setActiveTab] = useState<"bookings" | "services" | "portfolio" | "settings">("bookings");
 
   useEffect(() => {
     if (!user) return;
 
     const fetchData = async () => {
-      // Get stylist record
       const { data: stylist } = await supabase
         .from("stylists")
-        .select("id")
+        .select("*")
         .eq("user_id", user.id)
         .single();
 
       if (!stylist) return;
+      setStylistData(stylist as unknown as StylistData);
 
-      // Get bookings
       const { data: bookingsData } = await supabase
         .from("bookings")
         .select("*")
@@ -50,9 +68,8 @@ const StylistDashboard = () => {
         .order("appointment_date", { ascending: true });
 
       if (bookingsData) {
-        // Enrich with customer names and service names
         const enriched = await Promise.all(
-          bookingsData.map(async (b) => {
+          bookingsData.map(async (b: any) => {
             const { data: customerProfile } = await supabase
               .from("profiles")
               .select("name")
@@ -83,17 +100,22 @@ const StylistDashboard = () => {
     };
 
     fetchData();
+
+    // Real-time booking updates
+    const channel = supabase
+      .channel("dashboard-bookings")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const updateBookingStatus = async (bookingId: string, status: string) => {
     await supabase.from("bookings").update({ status }).eq("id", bookingId);
-    setBookings((prev) =>
-      prev.map((b) => (b.id === bookingId ? { ...b, status } : b))
-    );
+    setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status } : b)));
   };
-
-  const upcoming = bookings.filter((b) => b.status === "pending" || b.status === "accepted");
-  const completed = bookings.filter((b) => b.status === "completed");
 
   if (!user) {
     return (
@@ -104,12 +126,28 @@ const StylistDashboard = () => {
     );
   }
 
+  const upcoming = bookings.filter((b) => b.status === "pending" || b.status === "accepted");
+  const isEarlyProgram = stylistData?.early_program && stylistData?.early_program_start;
+
   return (
     <motion.div {...pageTransition} className="min-h-screen bg-background pb-24">
       <div className="px-5 pt-6 pb-4">
         <h1 className="font-display text-[24px] font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">Welcome, {profile?.name || "Stylist"}</p>
       </div>
+
+      {/* Early Program Banner */}
+      {isEarlyProgram && (
+        <div className="px-5 mb-4">
+          <div className="bg-accent/10 border border-accent/20 rounded-inner p-3 flex items-center gap-3">
+            <Gift className="h-5 w-5 text-accent flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-accent">Early Stylist Program</p>
+              <p className="text-xs text-muted-foreground">0% commission for 2 months — thank you for joining early!</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="px-5 grid grid-cols-3 gap-3">
@@ -132,12 +170,12 @@ const StylistDashboard = () => {
 
       {/* Tabs */}
       <div className="px-5 mt-6">
-        <div className="flex gap-1 bg-secondary rounded-inner p-1">
-          {(["upcoming", "completed", "earnings"] as const).map((tab) => (
+        <div className="flex gap-1 bg-secondary rounded-inner p-1 overflow-x-auto scrollbar-hide">
+          {(["bookings", "services", "portfolio", "settings"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 rounded-sm text-sm font-medium capitalize transition-colors ${
+              className={`flex-1 py-2.5 rounded-sm text-sm font-medium capitalize transition-colors whitespace-nowrap px-3 ${
                 activeTab === tab ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
               }`}
             >
@@ -148,115 +186,21 @@ const StylistDashboard = () => {
       </div>
 
       <div className="px-5 mt-4">
-        {activeTab === "upcoming" && (
-          <div className="space-y-3">
-            {upcoming.length === 0 ? (
-              <p className="text-center py-12 text-muted-foreground">No upcoming bookings</p>
-            ) : (
-              upcoming.map((booking) => (
-                <div key={booking.id} className="bg-card border border-border rounded-inner p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-display font-medium">{booking.customer_name}</p>
-                      <p className="text-sm text-muted-foreground">{booking.service_name}</p>
-                    </div>
-                    <p className="font-display font-bold tabular-nums text-sm">
-                      KES {booking.total_price.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                    <span>{new Date(booking.appointment_date).toLocaleDateString()}</span>
-                    <span>{booking.appointment_time}</span>
-                    <span className="capitalize">{booking.location_type}</span>
-                  </div>
-                  {booking.status === "pending" && (
-                    <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-                      <motion.button
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => updateBookingStatus(booking.id, "accepted")}
-                        className="flex-1 py-2 rounded-sm bg-accent text-accent-foreground text-sm font-medium flex items-center justify-center gap-1"
-                      >
-                        <Check className="h-4 w-4" /> Accept
-                      </motion.button>
-                      <motion.button
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => updateBookingStatus(booking.id, "cancelled")}
-                        className="flex-1 py-2 rounded-sm bg-destructive/10 text-destructive text-sm font-medium flex items-center justify-center gap-1"
-                      >
-                        <X className="h-4 w-4" /> Decline
-                      </motion.button>
-                    </div>
-                  )}
-                  {booking.status === "accepted" && (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <motion.button
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => updateBookingStatus(booking.id, "completed")}
-                        className="w-full py-2 rounded-sm bg-primary text-primary-foreground text-sm font-medium"
-                      >
-                        Mark Complete
-                      </motion.button>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+        {activeTab === "bookings" && (
+          <DashboardBookings
+            bookings={bookings}
+            earnings={earnings}
+            onUpdateStatus={updateBookingStatus}
+          />
         )}
-
-        {activeTab === "completed" && (
-          <div className="space-y-3">
-            {completed.length === 0 ? (
-              <p className="text-center py-12 text-muted-foreground">No completed bookings yet</p>
-            ) : (
-              completed.map((booking) => (
-                <div key={booking.id} className="bg-card border border-border rounded-inner p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-display font-medium">{booking.customer_name}</p>
-                      <p className="text-sm text-muted-foreground">{booking.service_name}</p>
-                    </div>
-                    <span className="text-xs font-medium px-2 py-1 rounded-full text-accent bg-accent/10">
-                      Completed
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(booking.appointment_date).toLocaleDateString()}
-                    </span>
-                    <span className="font-display font-bold tabular-nums text-sm">
-                      KES {Math.ceil(booking.total_price * 0.95).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+        {activeTab === "services" && stylistData && (
+          <DashboardServices stylistId={stylistData.id} />
         )}
-
-        {activeTab === "earnings" && (
-          <div className="space-y-4">
-            <div className="bg-card border border-border rounded-inner p-5">
-              <p className="text-sm text-muted-foreground">Total Earnings</p>
-              <p className="font-display text-[32px] font-bold tracking-tight tabular-nums mt-1">
-                KES {earnings.total.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">After 5% platform commission</p>
-            </div>
-            <div className="bg-card border border-border rounded-inner p-5">
-              <p className="text-sm text-muted-foreground">Pending Earnings</p>
-              <p className="font-display text-xl font-bold tracking-tight tabular-nums mt-1">
-                KES {earnings.pending.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">From {upcoming.length} upcoming bookings</p>
-            </div>
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              className="w-full h-14 rounded-outer bg-primary text-primary-foreground font-display font-semibold text-base"
-            >
-              Request Payout
-            </motion.button>
-          </div>
+        {activeTab === "portfolio" && stylistData && (
+          <DashboardPortfolio stylistId={stylistData.id} />
+        )}
+        {activeTab === "settings" && stylistData && (
+          <DashboardSettings stylistData={stylistData} onUpdate={setStylistData} />
         )}
       </div>
     </motion.div>

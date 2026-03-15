@@ -17,6 +17,7 @@ import Chat from "./pages/Chat";
 import ChatConversation from "./pages/ChatConversation";
 import Profile from "./pages/Profile";
 import StylistDashboard from "./pages/StylistDashboard";
+import HomeServiceTracking from "./pages/HomeServiceTracking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/booking/:stylistId/:serviceId" element={<Booking />} />
             <Route path="/payment/:stylistId/:serviceId" element={<Payment />} />
             <Route path="/bookings" element={<Bookings />} />
+            <Route path="/home-services" element={<HomeServiceTracking />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/chat/:recipientId" element={<ChatConversation />} />
             <Route path="/profile" element={<Profile />} />

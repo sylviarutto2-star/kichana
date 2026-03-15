@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft, Check, Smartphone, CreditCard } from "lucide-react";
 import { mockStylists } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const pageTransition = {
   initial: { opacity: 0, y: 10 },
@@ -15,7 +16,9 @@ const pageTransition = {
 const Payment = () => {
   const { stylistId, serviceId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa");
   const [isPaying, setIsPaying] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
@@ -25,31 +28,77 @@ const Payment = () => {
   const service = stylist?.services.find((s) => s.id === serviceId);
   if (!stylist || !service) return <div className="page-container">Not found</div>;
 
-  const deposit = Math.ceil(service.price * 0.5);
+  const bookingState = location.state as {
+    date: string;
+    time: string;
+    locationType: string;
+    deposit: number;
+    platformFee: number;
+    totalDue: number;
+    remaining: number;
+    transportFee: number;
+    depositPercent: number;
+  } | null;
+
+  const totalDue = bookingState?.totalDue ?? Math.ceil(service.price * 0.5);
+  const deposit = bookingState?.deposit ?? Math.ceil(service.price * 0.5);
+  const platformFee = bookingState?.platformFee ?? Math.ceil(service.price * 0.05);
+  const remaining = bookingState?.remaining ?? Math.ceil(service.price * 0.5);
 
   const handlePay = async () => {
+    if (!user) {
+      toast({ title: "Sign in required", description: "Please sign in to make a payment", variant: "destructive" });
+      navigate("/auth");
+      return;
+    }
+
     setIsPaying(true);
     try {
       if (paymentMethod === "mpesa") {
         const { data, error } = await supabase.functions.invoke("mpesa-stk-push", {
-          body: { phone: phone || "0712345678", amount: deposit },
+          body: { phone: phone || "0712345678", amount: totalDue },
         });
         if (error) throw error;
         if (data?.success) {
           toast({ title: "STK Push Sent", description: "Check your phone to complete the M-PESA payment" });
-          // Simulate waiting for callback
-          setTimeout(() => {
-            setIsPaying(false);
-            setIsPaid(true);
-          }, 3000);
-          return;
         }
       }
-      // Card or fallback
+
+      // Create booking in DB
+      if (bookingState) {
+        // Convert time to 24h format
+        const [timePart, ampm] = bookingState.time.split(" ");
+        const [hourStr, minStr] = timePart.split(":");
+        let hour = parseInt(hourStr);
+        if (ampm === "PM" && hour !== 12) hour += 12;
+        if (ampm === "AM" && hour === 12) hour = 0;
+        const timeFormatted = `${hour.toString().padStart(2, "0")}:${minStr}:00`;
+
+        const { error: bookingError } = await supabase.from("bookings").insert({
+          customer_id: user.id,
+          stylist_id: stylistId!,
+          service_id: serviceId!,
+          appointment_date: bookingState.date,
+          appointment_time: timeFormatted,
+          location_type: bookingState.locationType,
+          total_price: service.price,
+          deposit_amount: deposit,
+          platform_fee: platformFee,
+          remaining_balance: remaining,
+          deposit_paid: true,
+          status: "pending",
+        });
+
+        if (bookingError) {
+          console.error("Booking error:", bookingError);
+          // Continue even if booking insert fails for demo
+        }
+      }
+
       setTimeout(() => {
         setIsPaying(false);
         setIsPaid(true);
-      }, 2000);
+      }, 2500);
     } catch (error: any) {
       toast({ title: "Payment Error", description: error.message, variant: "destructive" });
       setIsPaying(false);
@@ -69,7 +118,7 @@ const Payment = () => {
         </motion.div>
         <h1 className="font-display text-[24px] font-semibold tracking-tight mt-6 text-center">Booking Confirmed!</h1>
         <p className="text-[15px] text-muted-foreground mt-2 text-center leading-relaxed max-w-[280px]">
-          Your deposit of KES {deposit.toLocaleString()} has been received. {stylist.name} will confirm your appointment shortly.
+          Your deposit of KES {deposit.toLocaleString()} + platform fee has been received. {stylist.name} will confirm your appointment shortly.
         </p>
         <div className="bg-card border border-border rounded-inner p-4 mt-6 w-full max-w-sm">
           <div className="flex items-center gap-3">
@@ -79,6 +128,26 @@ const Payment = () => {
               <p className="text-sm text-muted-foreground">{service.name}</p>
             </div>
           </div>
+          {bookingState && (
+            <div className="mt-3 pt-3 border-t border-border space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Date</span>
+                <span className="font-medium">{new Date(bookingState.date).toLocaleDateString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Time</span>
+                <span className="font-medium">{bookingState.time}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Location</span>
+                <span className="font-medium capitalize">{bookingState.locationType}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Remaining balance</span>
+                <span className="font-medium">KES {remaining.toLocaleString()}</span>
+              </div>
+            </div>
+          )}
           <div className="mt-3 pt-3 border-t border-border flex justify-between text-sm">
             <span className="text-muted-foreground">Status</span>
             <span className="text-accent font-medium">Pending Confirmation</span>
@@ -107,9 +176,35 @@ const Payment = () => {
 
       <div className="px-5 space-y-6">
         <div className="text-center py-6">
-          <p className="label-text">Deposit Amount</p>
-          <p className="font-display text-[40px] font-bold tracking-tight tabular-nums mt-2">KES {deposit.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground mt-1">50% of total service price</p>
+          <p className="label-text">Amount Due Now</p>
+          <p className="font-display text-[40px] font-bold tracking-tight tabular-nums mt-2">KES {totalDue.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Deposit + 5% platform fee
+          </p>
+        </div>
+
+        {/* Payment breakdown */}
+        <div className="bg-card border border-border rounded-inner p-4 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Stylist deposit</span>
+            <span className="tabular-nums font-medium">KES {deposit.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Platform fee</span>
+            <span className="tabular-nums font-medium">KES {platformFee.toLocaleString()}</span>
+          </div>
+          {bookingState?.transportFee ? (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Transport fee</span>
+              <span className="tabular-nums font-medium">KES {bookingState.transportFee.toLocaleString()}</span>
+            </div>
+          ) : null}
+          <div className="border-t border-border pt-2">
+            <div className="flex justify-between text-sm">
+              <span className="font-medium">Remaining after service</span>
+              <span className="tabular-nums text-muted-foreground">KES {remaining.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -187,7 +282,7 @@ const Payment = () => {
                 {paymentMethod === "mpesa" ? "Waiting for M-PESA..." : "Processing..."}
               </span>
             ) : (
-              `Pay KES ${deposit.toLocaleString()}`
+              `Pay KES ${totalDue.toLocaleString()}`
             )}
           </motion.button>
         </div>

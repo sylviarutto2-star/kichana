@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Star, MapPin, Clock, Shield, Heart, Share2 } from "lucide-react";
+import { ArrowLeft, Star, MapPin, Clock, Shield, Heart, Share2, Home } from "lucide-react";
 import { mockStylists } from "@/data/mockData";
 
 const pageTransition = {
@@ -24,7 +24,6 @@ const StylistProfile = () => {
       <div className="relative h-[45vh]">
         <img src={stylist.image} alt={stylist.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/10 to-transparent" />
-
         <div className="absolute top-4 left-4 right-4 flex justify-between">
           <button onClick={() => navigate(-1)} className="h-10 w-10 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center">
             <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -46,9 +45,7 @@ const StylistProfile = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display text-[24px] font-semibold tracking-tight">{stylist.name}</h1>
-              {stylist.verified && (
-                <Shield className="h-5 w-5 text-accent fill-accent" />
-              )}
+              {stylist.verified && <Shield className="h-5 w-5 text-accent fill-accent" />}
             </div>
             <div className="flex items-center gap-3 mt-1">
               <div className="flex items-center gap-1 text-foreground">
@@ -65,6 +62,23 @@ const StylistProfile = () => {
         </div>
 
         <p className="text-[15px] leading-[1.6] text-muted-foreground mt-4">{stylist.bio}</p>
+
+        {/* Badges */}
+        <div className="flex gap-2 mt-3 flex-wrap">
+          {stylist.homeServiceEnabled && stylist.completedBookings >= 3 && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-accent/10 text-accent">
+              <Home className="h-3 w-3" /> Home service available
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+            {stylist.depositPercentage}% deposit required
+          </span>
+          {stylist.transportFee > 0 && stylist.homeServiceEnabled && (
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
+              Transport fee: KES {stylist.transportFee.toLocaleString()}
+            </span>
+          )}
+        </div>
 
         {/* Stats */}
         <div className="flex gap-4 mt-4">
@@ -89,9 +103,7 @@ const StylistProfile = () => {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex-1 py-2.5 rounded-sm text-sm font-medium capitalize transition-colors ${
-                activeTab === tab
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground"
+                activeTab === tab ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
               }`}
             >
               {tab}
@@ -110,6 +122,14 @@ const StylistProfile = () => {
                   onClick={() => navigate(`/booking/${stylist.id}/${service.id}`)}
                   className="bg-card border border-border rounded-inner p-4 cursor-pointer"
                 >
+                  {/* Service images preview */}
+                  {service.images && service.images.length > 0 && (
+                    <div className="flex gap-1.5 mb-3 overflow-x-auto scrollbar-hide">
+                      {service.images.slice(0, 3).map((img, i) => (
+                        <img key={i} src={img} alt="" className="h-16 w-16 rounded-sm object-cover flex-shrink-0" />
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <p className="font-display font-medium text-[15px]">{service.name}</p>
@@ -117,6 +137,9 @@ const StylistProfile = () => {
                       <div className="flex items-center gap-2 mt-2 text-muted-foreground">
                         <Clock className="h-3.5 w-3.5" />
                         <span className="text-xs">{service.duration}</span>
+                        {service.category && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-secondary">{service.category}</span>
+                        )}
                       </div>
                     </div>
                     <p className="font-display font-bold text-[15px] tabular-nums">
@@ -138,10 +161,7 @@ const StylistProfile = () => {
               {stylist.portfolio.map((img, i) => (
                 <motion.div
                   key={i}
-                  variants={{
-                    initial: { opacity: 0, y: 10 },
-                    animate: { opacity: 1, y: 0 },
-                  }}
+                  variants={{ initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } }}
                   className="aspect-[4/5] rounded-inner overflow-hidden"
                 >
                   <img src={img} alt={`Portfolio ${i + 1}`} className="w-full h-full object-cover" />
@@ -153,9 +173,9 @@ const StylistProfile = () => {
           {activeTab === "reviews" && (
             <div className="space-y-4">
               {[
-                { name: "Sarah M.", rating: 5, text: "Amina did the most beautiful knotless braids! Will definitely rebook.", date: "2 weeks ago" },
-                { name: "Grace W.", rating: 5, text: "Professional, on time, and amazing results. My go-to stylist!", date: "1 month ago" },
-                { name: "Joy K.", rating: 4, text: "Great work, took a little longer than expected but the results were worth it.", date: "2 months ago" },
+                { name: "Sarah M.", rating: 5, text: "Amazing work! Will definitely rebook.", date: "2 weeks ago" },
+                { name: "Grace W.", rating: 5, text: "Professional, on time, and amazing results.", date: "1 month ago" },
+                { name: "Joy K.", rating: 4, text: "Great work, took a little longer but worth it.", date: "2 months ago" },
               ].map((review, i) => (
                 <div key={i} className="bg-card border border-border rounded-inner p-4">
                   <div className="flex items-center justify-between">
