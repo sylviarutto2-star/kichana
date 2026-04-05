@@ -1,3 +1,5 @@
+// Check M-Pesa payment status by checkout_request_id
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {

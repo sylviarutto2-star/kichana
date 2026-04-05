@@ -1,9 +1,28 @@
+// M-Pesa Buy Goods STK Push — initiate-payment
+// TransactionType: CustomerBuyGoodsOnline (Buy Goods / Till Number)
+// NEVER use CustomerPayBillOnline — this app uses Buy Goods ONLY.
+//
+// Going live checklist (do not change code — update secrets only):
+//   MPESA_ENVIRONMENT → production
+//   MPESA_TILL_NUMBER → real Buy Goods till number
+//   MPESA_PASSKEY → production passkey from Daraja portal
+//   MPESA_CALLBACK_URL → production Edge Function URL if changed
+//   MPESA_CONSUMER_KEY / MPESA_CONSUMER_SECRET → production credentials
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+function formatPhone(raw: string): string {
+  let p = raw.replace(/[\s\-\(\)]/g, '').replace(/[^0-9+]/g, '');
+  if (p.startsWith('+')) p = p.substring(1);
+  if (p.startsWith('0')) p = '254' + p.substring(1);
+  if (!p.startsWith('254')) p = '254' + p;
+  return p;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -20,31 +39,30 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Read secrets — never hardcode
     const consumerKey = Deno.env.get('MPESA_CONSUMER_KEY');
     const consumerSecret = Deno.env.get('MPESA_CONSUMER_SECRET');
-    const tillNumber = Deno.env.get('MPESA_TILL_NUMBER') || '174379';
-    const passkey = Deno.env.get('MPESA_PASSKEY') || '';
+    const tillNumber = Deno.env.get('MPESA_TILL_NUMBER');
+    const passkey = Deno.env.get('MPESA_PASSKEY');
     const environment = Deno.env.get('MPESA_ENVIRONMENT') || 'sandbox';
     const callbackUrl = Deno.env.get('MPESA_CALLBACK_URL') ||
       `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-callback`;
 
-    const baseUrl = environment === 'production'
-      ? 'https://api.safaricom.co.ke'
-      : 'https://sandbox.safaricom.co.ke';
-
-    // Format phone number to 2547XXXXXXXX or 2541XXXXXXXX
-    let formattedPhone = phone_number.replace(/[\s\-]/g, '').replace(/[^0-9+]/g, '');
-    if (formattedPhone.startsWith('+')) {
-      formattedPhone = formattedPhone.substring(1);
+    if (!consumerKey || !consumerSecret) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'M-PESA API credentials not configured. Set MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = '254' + formattedPhone.substring(1);
-    }
-    if (!formattedPhone.startsWith('254')) {
-      formattedPhone = '254' + formattedPhone;
+    if (!tillNumber || !passkey) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'M-PESA till number or passkey not configured. Set MPESA_TILL_NUMBER and MPESA_PASSKEY.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Validate phone format
+    // Format phone to 254XXXXXXXXX
+    const formattedPhone = formatPhone(phone_number);
     if (!/^254[17]\d{8}$/.test(formattedPhone)) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid Kenyan phone number. Use format 07XXXXXXXX or 01XXXXXXXX' }),
@@ -52,14 +70,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!consumerKey || !consumerSecret) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'M-PESA API credentials not configured. Please add MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET secrets.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Base URL based on environment
+    const baseUrl = environment === 'production'
+      ? 'https://api.safaricom.co.ke'
+      : 'https://sandbox.safaricom.co.ke';
 
-    // Step 1: Get OAuth token
+    // Step 1: OAuth token
     const authResponse = await fetch(
       `${baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
       {
@@ -72,14 +88,14 @@ Deno.serve(async (req) => {
     const accessToken = authData.access_token;
 
     if (!accessToken) {
-      console.error('OAuth error:', JSON.stringify(authData));
+      console.error('Daraja OAuth error:', JSON.stringify(authData));
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to get Daraja access token' }),
+        JSON.stringify({ success: false, error: `Failed to get Daraja access token: ${JSON.stringify(authData)}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Step 2: Generate timestamp and password
+    // Step 2: Timestamp + Password
     const now = new Date();
     const timestamp =
       now.getFullYear().toString() +
@@ -91,26 +107,30 @@ Deno.serve(async (req) => {
 
     const password = btoa(`${tillNumber}${passkey}${timestamp}`);
 
-    // Step 3: Send STK Push (Buy Goods)
+    // Step 3: STK Push — Buy Goods (CustomerBuyGoodsOnline)
+    const stkBody = {
+      BusinessShortCode: tillNumber,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: 'CustomerBuyGoodsOnline',
+      Amount: Math.round(amount),
+      PartyA: formattedPhone,
+      PartyB: tillNumber,
+      PhoneNumber: formattedPhone,
+      CallBackURL: callbackUrl,
+      AccountReference: booking_id,
+      TransactionDesc: 'Salon booking payment',
+    };
+
+    console.log('STK Push request body:', JSON.stringify(stkBody));
+
     const stkResponse = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        BusinessShortCode: tillNumber,
-        Password: password,
-        Timestamp: timestamp,
-        TransactionType: 'CustomerPayBillOnline',
-        Amount: Math.round(amount),
-        PartyA: formattedPhone,
-        PartyB: tillNumber,
-        PhoneNumber: formattedPhone,
-        CallBackURL: callbackUrl,
-        AccountReference: booking_id,
-        TransactionDesc: 'Salon booking payment',
-      }),
+      body: JSON.stringify(stkBody),
     });
 
     const stkData = await stkResponse.json();
@@ -118,12 +138,16 @@ Deno.serve(async (req) => {
 
     if (stkData.ResponseCode !== '0' && stkData.ResponseCode !== 0) {
       return new Response(
-        JSON.stringify({ success: false, error: stkData.errorMessage || stkData.ResponseDescription || 'STK Push failed' }),
+        JSON.stringify({
+          success: false,
+          error: stkData.errorMessage || stkData.ResponseDescription || 'STK Push failed',
+          daraja_response: stkData,
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Step 4: Save to payments table
+    // Step 4: Save pending payment
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!

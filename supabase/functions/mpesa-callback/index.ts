@@ -1,3 +1,6 @@
+// M-Pesa Buy Goods callback — receives Safaricom STK Push result
+// Always returns HTTP 200 with { ResultCode: 0, ResultDesc: "Accepted" }
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -24,11 +27,11 @@ Deno.serve(async (req) => {
       console.error('No stkCallback in body');
       return new Response(
         JSON.stringify({ ResultCode: 0, ResultDesc: 'Accepted' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { ResultCode, ResultDesc, CheckoutRequestID } = callback;
+    const { ResultCode, ResultDesc, CheckoutRequestID, MerchantRequestID } = callback;
 
     if (ResultCode === 0) {
       // Payment successful — extract metadata
@@ -37,7 +40,7 @@ Deno.serve(async (req) => {
       const amount = items.find((i: any) => i.Name === 'Amount')?.Value;
       const phone = items.find((i: any) => i.Name === 'PhoneNumber')?.Value;
 
-      console.log('Payment success:', { receipt, amount, phone, CheckoutRequestID });
+      console.log('Payment success:', { receipt, amount, phone, CheckoutRequestID, MerchantRequestID });
 
       // Update payment record
       const { data: payment, error: updateError } = await supabase
@@ -56,7 +59,7 @@ Deno.serve(async (req) => {
         console.error('Update payment error:', updateError);
       }
 
-      // Update booking status to confirmed/paid
+      // Update booking status to paid
       if (payment?.booking_id) {
         const { error: bookingError } = await supabase
           .from('bookings')
@@ -85,13 +88,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Always return success to Safaricom
+    // Always return success to Safaricom — mandatory
     return new Response(
-      JSON.stringify({ ResultCode: 0, ResultDesc: 'Success' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ ResultCode: 0, ResultDesc: 'Accepted' }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Callback error:', error);
+    // Still return 200 to Safaricom to prevent retries
     return new Response(
       JSON.stringify({ ResultCode: 0, ResultDesc: 'Accepted' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
