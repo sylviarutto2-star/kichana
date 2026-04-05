@@ -33,7 +33,7 @@ const ChatConversation = () => {
     if (!user || !recipientId) return;
 
     // Fetch recipient name
-    supabase.from("profiles").select("name").eq("user_id", recipientId).single()
+    supabase.from("profiles_public").select("name").eq("user_id", recipientId).single()
       .then(({ data }) => setRecipientName(data?.name || "Stylist"));
 
     // Fetch messages

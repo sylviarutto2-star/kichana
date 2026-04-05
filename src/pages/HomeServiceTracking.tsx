@@ -60,7 +60,7 @@ const HomeServiceTracking = () => {
         const enriched = await Promise.all(
           data.map(async (b: any) => {
             const { data: stylistProfile } = await supabase
-              .from("profiles")
+              .from("profiles_public")
               .select("name")
               .eq("user_id", b.customer_id)
               .single();

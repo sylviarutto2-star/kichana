@@ -51,7 +51,7 @@ const Chat = () => {
       const convList: Conversation[] = [];
       for (const [recipientId, { lastMsg, unread }] of convMap) {
         const { data: profile } = await supabase
-          .from("profiles")
+          .from("profiles_public")
           .select("name")
           .eq("user_id", recipientId)
           .single();
