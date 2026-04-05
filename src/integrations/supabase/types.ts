@@ -154,6 +154,56 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          checkout_request_id: string | null
+          created_at: string
+          id: string
+          merchant_request_id: string | null
+          mpesa_receipt_number: string | null
+          phone_number: string
+          result_description: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          checkout_request_id?: string | null
+          created_at?: string
+          id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          phone_number: string
+          result_description?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          checkout_request_id?: string | null
+          created_at?: string
+          id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          phone_number?: string
+          result_description?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_images: {
         Row: {
           created_at: string
