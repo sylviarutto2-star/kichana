@@ -33,7 +33,9 @@ const Auth = () => {
     try {
       if (mode === "signup") {
         await signUp(email, password, name, role);
-        toast({ title: "Account created!", description: "Check your email to verify your account." });
+        toast({ title: "Account created!", description: "Please check your email and click the verification link to activate your account." });
+        setMode("login");
+        setPassword("");
       } else {
         await signIn(email, password);
         toast({ title: "Welcome back!" });
