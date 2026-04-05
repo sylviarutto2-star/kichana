@@ -1,13 +1,7 @@
 // M-Pesa Buy Goods STK Push — initiate-payment
 // TransactionType: CustomerBuyGoodsOnline (Buy Goods / Till Number)
-// NEVER use CustomerPayBillOnline — this app uses Buy Goods ONLY.
-//
-// Going live checklist (do not change code — update secrets only):
-//   MPESA_ENVIRONMENT → production
-//   MPESA_TILL_NUMBER → real Buy Goods till number
-//   MPESA_PASSKEY → production passkey from Daraja portal
-//   MPESA_CALLBACK_URL → production Edge Function URL if changed
-//   MPESA_CONSUMER_KEY / MPESA_CONSUMER_SECRET → production credentials
+// Going live checklist: update MPESA_ENVIRONMENT, MPESA_TILL_NUMBER, MPESA_PASSKEY,
+// MPESA_CALLBACK_URL, MPESA_CONSUMER_KEY, and MPESA_CONSUMER_SECRET secrets only.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -22,6 +16,18 @@ function formatPhone(raw: string): string {
   if (p.startsWith('0')) p = '254' + p.substring(1);
   if (!p.startsWith('254')) p = '254' + p;
   return p;
+}
+
+function getUtcTimestamp() {
+  const now = new Date();
+  return (
+    now.getUTCFullYear().toString() +
+    String(now.getUTCMonth() + 1).padStart(2, '0') +
+    String(now.getUTCDate()).padStart(2, '0') +
+    String(now.getUTCHours()).padStart(2, '0') +
+    String(now.getUTCMinutes()).padStart(2, '0') +
+    String(now.getUTCSeconds()).padStart(2, '0')
+  );
 }
 
 Deno.serve(async (req) => {
@@ -39,14 +45,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Read secrets — never hardcode
     const consumerKey = Deno.env.get('MPESA_CONSUMER_KEY');
     const consumerSecret = Deno.env.get('MPESA_CONSUMER_SECRET');
     const tillNumber = Deno.env.get('MPESA_TILL_NUMBER');
     const passkey = Deno.env.get('MPESA_PASSKEY');
     const environment = Deno.env.get('MPESA_ENVIRONMENT') || 'sandbox';
-    const callbackUrl = Deno.env.get('MPESA_CALLBACK_URL') ||
-      `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-callback`;
+    const fallbackCallbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/mpesa-callback`;
+    const configuredCallbackUrl = Deno.env.get('MPESA_CALLBACK_URL');
+    const callbackUrl = configuredCallbackUrl && /^https?:\/\//i.test(configuredCallbackUrl)
+      ? configuredCallbackUrl
+      : fallbackCallbackUrl;
+
+    if (configuredCallbackUrl && callbackUrl === fallbackCallbackUrl) {
+      console.warn(`Invalid MPESA_CALLBACK_URL secret detected: ${configuredCallbackUrl}. Falling back to ${fallbackCallbackUrl}`);
+    }
 
     if (!consumerKey || !consumerSecret) {
       return new Response(
@@ -54,6 +66,7 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
     if (!tillNumber || !passkey) {
       return new Response(
         JSON.stringify({ success: false, error: 'M-PESA till number or passkey not configured. Set MPESA_TILL_NUMBER and MPESA_PASSKEY.' }),
@@ -61,7 +74,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Format phone to 254XXXXXXXXX
     const formattedPhone = formatPhone(phone_number);
     if (!/^254[17]\d{8}$/.test(formattedPhone)) {
       return new Response(
@@ -70,20 +82,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Base URL based on environment
     const baseUrl = environment === 'production'
       ? 'https://api.safaricom.co.ke'
       : 'https://sandbox.safaricom.co.ke';
 
-    // Step 1: OAuth token
-    const authResponse = await fetch(
-      `${baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
-      {
-        headers: {
-          Authorization: `Basic ${btoa(`${consumerKey}:${consumerSecret}`)}`,
-        },
-      }
-    );
+    const authResponse = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, {
+      headers: {
+        Authorization: `Basic ${btoa(`${consumerKey}:${consumerSecret}`)}`,
+      },
+    });
     const authData = await authResponse.json();
     const accessToken = authData.access_token;
 
@@ -95,25 +102,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 2: Timestamp + Password
-    const now = new Date();
-    const timestamp =
-      now.getFullYear().toString() +
-      String(now.getMonth() + 1).padStart(2, '0') +
-      String(now.getDate()).padStart(2, '0') +
-      String(now.getHours()).padStart(2, '0') +
-      String(now.getMinutes()).padStart(2, '0') +
-      String(now.getSeconds()).padStart(2, '0');
-
+    const timestamp = getUtcTimestamp();
     const password = btoa(`${tillNumber}${passkey}${timestamp}`);
 
-    // Step 3: STK Push — Buy Goods (CustomerBuyGoodsOnline)
     const stkBody = {
       BusinessShortCode: tillNumber,
       Password: password,
       Timestamp: timestamp,
       TransactionType: 'CustomerBuyGoodsOnline',
-      Amount: Math.round(amount),
+      Amount: Math.round(Number(amount)),
       PartyA: formattedPhone,
       PartyB: tillNumber,
       PhoneNumber: formattedPhone,
@@ -140,14 +137,12 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: stkData.errorMessage || stkData.ResponseDescription || 'STK Push failed',
-          daraja_response: stkData,
+          error: `${stkData.errorMessage || stkData.ResponseDescription || 'STK Push failed'} | ${JSON.stringify(stkData)}`,
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Step 4: Save pending payment
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -156,7 +151,7 @@ Deno.serve(async (req) => {
     const { error: insertError } = await supabase.from('payments').insert({
       booking_id,
       phone_number: formattedPhone,
-      amount: Math.round(amount),
+      amount: Math.round(Number(amount)),
       merchant_request_id: stkData.MerchantRequestID,
       checkout_request_id: stkData.CheckoutRequestID,
       status: 'pending',
@@ -164,19 +159,20 @@ Deno.serve(async (req) => {
 
     if (insertError) {
       console.error('Insert payment error:', insertError);
+      return new Response(
+        JSON.stringify({ success: false, error: `Payment request created but failed to store locally: ${insertError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        checkout_request_id: stkData.CheckoutRequestID,
-      }),
+      JSON.stringify({ success: true, checkout_request_id: stkData.CheckoutRequestID }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('initiate-payment error:', error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -117,11 +117,16 @@ const Payment = () => {
       return;
     }
 
+    const normalizedPhone = phone.replace(/[\s-]/g, "");
+    if (!/^(0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(normalizedPhone)) {
+      toast({ title: "Invalid number", description: "Use a valid Kenyan M-Pesa number in the format 07XXXXXXXX", variant: "destructive" });
+      return;
+    }
+
     setPaymentStatus("sending");
     setErrorMessage("");
 
     try {
-      // Create booking first if we have booking state
       let bookingId = "demo-booking";
       if (bookingState) {
         const [timePart, ampm] = bookingState.time.split(" ");
@@ -147,27 +152,35 @@ const Payment = () => {
 
         if (bookingError) {
           console.error("Booking error:", bookingError);
-        } else if (booking) {
+          throw new Error(bookingError.message || "Failed to create booking before payment");
+        }
+
+        if (booking) {
           bookingId = booking.id;
         }
       }
 
-      // Initiate M-PESA STK Push
       const { data, error } = await supabase.functions.invoke("initiate-payment", {
         body: {
-          phone_number: phone,
+          phone_number: normalizedPhone,
           amount: totalDue,
           booking_id: bookingId,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        try {
+          const details = await (error as any).context?.json?.();
+          throw new Error(details?.error || error.message || "Failed to initiate payment");
+        } catch {
+          throw new Error(error.message || "Failed to initiate payment");
+        }
+      }
+
       if (!data?.success) throw new Error(data?.error || "Failed to initiate payment");
 
       setCheckoutRequestId(data.checkout_request_id);
       setPaymentStatus("waiting");
-
-      // Start polling
       pollPaymentStatus(data.checkout_request_id);
     } catch (error: any) {
       setErrorMessage(error.message || "Something went wrong");
