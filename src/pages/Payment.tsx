@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { ArrowLeft, Check, Smartphone, CreditCard } from "lucide-react";
+import { ArrowLeft, Check, Smartphone, CreditCard, AlertCircle, RefreshCw } from "lucide-react";
 import { mockStylists } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,8 @@ const pageTransition = {
   transition: { duration: 0.4, ease: [0.2, 0, 0, 1] as const },
 };
 
+type PaymentStatus = "idle" | "sending" | "waiting" | "success" | "failed" | "timeout";
+
 const Payment = () => {
   const { stylistId, serviceId } = useParams();
   const navigate = useNavigate();
@@ -20,13 +22,16 @@ const Payment = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa");
-  const [isPaying, setIsPaying] = useState(false);
-  const [isPaid, setIsPaid] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle");
   const [phone, setPhone] = useState("");
+  const [checkoutRequestId, setCheckoutRequestId] = useState("");
+  const [receiptNumber, setReceiptNumber] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stylist = mockStylists.find((s) => s.id === stylistId);
   const service = stylist?.services.find((s) => s.id === serviceId);
-  if (!stylist || !service) return <div className="page-container">Not found</div>;
 
   const bookingState = location.state as {
     date: string;
@@ -40,10 +45,66 @@ const Payment = () => {
     depositPercent: number;
   } | null;
 
-  const totalDue = bookingState?.totalDue ?? Math.ceil(service.price * 0.5);
-  const deposit = bookingState?.deposit ?? Math.ceil(service.price * 0.5);
-  const platformFee = bookingState?.platformFee ?? Math.ceil(service.price * 0.05);
-  const remaining = bookingState?.remaining ?? Math.ceil(service.price * 0.5);
+  const totalDue = bookingState?.totalDue ?? Math.ceil((service?.price ?? 0) * 0.5);
+  const deposit = bookingState?.deposit ?? Math.ceil((service?.price ?? 0) * 0.5);
+  const platformFee = bookingState?.platformFee ?? Math.ceil((service?.price ?? 0) * 0.05);
+  const remaining = bookingState?.remaining ?? Math.ceil((service?.price ?? 0) * 0.5);
+
+  // Load user phone from profile
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from("profiles")
+        .select("phone")
+        .eq("user_id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.phone) setPhone(data.phone);
+        });
+    }
+  }, [user]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
+    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+  }, []);
+
+  const pollPaymentStatus = useCallback((checkoutId: string) => {
+    // Poll every 3 seconds
+    pollingRef.current = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("check-payment-status", {
+          body: { checkout_request_id: checkoutId },
+        });
+        if (error) return;
+        if (data?.status === "success") {
+          stopPolling();
+          setReceiptNumber(data.mpesa_receipt_number || "");
+          setPaymentStatus("success");
+        } else if (data?.status === "failed") {
+          stopPolling();
+          setErrorMessage(data.result_description || "Payment was cancelled or failed");
+          setPaymentStatus("failed");
+        }
+      } catch (e) {
+        console.error("Poll error:", e);
+      }
+    }, 3000);
+
+    // Timeout after 2 minutes
+    timeoutRef.current = setTimeout(() => {
+      stopPolling();
+      setPaymentStatus("timeout");
+    }, 120000);
+  }, [stopPolling]);
 
   const handlePay = async () => {
     if (!user) {
@@ -51,22 +112,18 @@ const Payment = () => {
       navigate("/auth");
       return;
     }
+    if (!phone.trim()) {
+      toast({ title: "Phone required", description: "Enter your M-PESA phone number", variant: "destructive" });
+      return;
+    }
 
-    setIsPaying(true);
+    setPaymentStatus("sending");
+    setErrorMessage("");
+
     try {
-      if (paymentMethod === "mpesa") {
-        const { data, error } = await supabase.functions.invoke("mpesa-stk-push", {
-          body: { phone: phone || "0712345678", amount: totalDue },
-        });
-        if (error) throw error;
-        if (data?.success) {
-          toast({ title: "STK Push Sent", description: "Check your phone to complete the M-PESA payment" });
-        }
-      }
-
-      // Create booking in DB
+      // Create booking first if we have booking state
+      let bookingId = "demo-booking";
       if (bookingState) {
-        // Convert time to 24h format
         const [timePart, ampm] = bookingState.time.split(" ");
         const [hourStr, minStr] = timePart.split(":");
         let hour = parseInt(hourStr);
@@ -74,38 +131,62 @@ const Payment = () => {
         if (ampm === "AM" && hour === 12) hour = 0;
         const timeFormatted = `${hour.toString().padStart(2, "0")}:${minStr}:00`;
 
-        const { error: bookingError } = await supabase.from("bookings").insert({
+        const { data: booking, error: bookingError } = await supabase.from("bookings").insert({
           customer_id: user.id,
           stylist_id: stylistId!,
           service_id: serviceId!,
           appointment_date: bookingState.date,
           appointment_time: timeFormatted,
           location_type: bookingState.locationType,
-          total_price: service.price,
+          total_price: service?.price ?? 0,
           deposit_amount: deposit,
           platform_fee: platformFee,
           remaining_balance: remaining,
-          deposit_paid: true,
           status: "pending",
-        });
+        }).select("id").single();
 
         if (bookingError) {
           console.error("Booking error:", bookingError);
-          // Continue even if booking insert fails for demo
+        } else if (booking) {
+          bookingId = booking.id;
         }
       }
 
-      setTimeout(() => {
-        setIsPaying(false);
-        setIsPaid(true);
-      }, 2500);
+      // Initiate M-PESA STK Push
+      const { data, error } = await supabase.functions.invoke("initiate-payment", {
+        body: {
+          phone_number: phone,
+          amount: totalDue,
+          booking_id: bookingId,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to initiate payment");
+
+      setCheckoutRequestId(data.checkout_request_id);
+      setPaymentStatus("waiting");
+
+      // Start polling
+      pollPaymentStatus(data.checkout_request_id);
     } catch (error: any) {
-      toast({ title: "Payment Error", description: error.message, variant: "destructive" });
-      setIsPaying(false);
+      setErrorMessage(error.message || "Something went wrong");
+      setPaymentStatus("failed");
     }
   };
 
-  if (isPaid) {
+  const handleRetry = () => {
+    stopPolling();
+    setPaymentStatus("idle");
+    setErrorMessage("");
+    setCheckoutRequestId("");
+    setReceiptNumber("");
+  };
+
+  if (!stylist || !service) return <div className="page-container">Not found</div>;
+
+  // SUCCESS SCREEN
+  if (paymentStatus === "success") {
     return (
       <motion.div {...pageTransition} className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
         <motion.div
@@ -116,10 +197,16 @@ const Payment = () => {
         >
           <Check className="h-10 w-10 text-accent-foreground" />
         </motion.div>
-        <h1 className="font-display text-[24px] font-semibold tracking-tight mt-6 text-center">Booking Confirmed!</h1>
+        <h1 className="font-display text-[24px] font-semibold tracking-tight mt-6 text-center">Payment Confirmed!</h1>
         <p className="text-[15px] text-muted-foreground mt-2 text-center leading-relaxed max-w-[280px]">
-          Your deposit of KES {deposit.toLocaleString()} + platform fee has been received. {stylist.name} will confirm your appointment shortly.
+          Your M-PESA payment of KES {totalDue.toLocaleString()} has been received.
         </p>
+        {receiptNumber && (
+          <div className="mt-4 bg-accent/10 border border-accent/20 rounded-inner px-4 py-2">
+            <p className="text-xs text-muted-foreground">M-PESA Receipt</p>
+            <p className="font-display font-bold text-lg tracking-wider">{receiptNumber}</p>
+          </div>
+        )}
         <div className="bg-card border border-border rounded-inner p-4 mt-6 w-full max-w-sm">
           <div className="flex items-center gap-3">
             <img src={stylist.image} alt={stylist.name} className="h-12 w-12 rounded-inner object-cover" />
@@ -150,7 +237,7 @@ const Payment = () => {
           )}
           <div className="mt-3 pt-3 border-t border-border flex justify-between text-sm">
             <span className="text-muted-foreground">Status</span>
-            <span className="text-accent font-medium">Pending Confirmation</span>
+            <span className="text-accent font-medium">Confirmed & Paid</span>
           </div>
         </div>
         <div className="mt-8 w-full max-w-sm space-y-3">
@@ -165,6 +252,73 @@ const Payment = () => {
     );
   }
 
+  // WAITING / SENDING SCREEN
+  if (paymentStatus === "sending" || paymentStatus === "waiting") {
+    return (
+      <motion.div {...pageTransition} className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+          className="h-16 w-16 border-4 border-muted border-t-accent rounded-full"
+        />
+        <h1 className="font-display text-[20px] font-semibold tracking-tight mt-6 text-center">
+          {paymentStatus === "sending" ? "Sending payment request..." : "Check your phone"}
+        </h1>
+        <p className="text-[15px] text-muted-foreground mt-2 text-center leading-relaxed max-w-[280px]">
+          {paymentStatus === "sending"
+            ? "Connecting to M-PESA..."
+            : "Enter your M-PESA PIN on your phone to complete the payment"}
+        </p>
+        <div className="mt-6 bg-card border border-border rounded-inner p-4 w-full max-w-sm">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Amount</span>
+            <span className="font-bold">KES {totalDue.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-sm mt-2">
+            <span className="text-muted-foreground">Phone</span>
+            <span className="font-medium">{phone}</span>
+          </div>
+        </div>
+        <button onClick={handleRetry} className="mt-6 text-sm text-muted-foreground underline">
+          Cancel
+        </button>
+      </motion.div>
+    );
+  }
+
+  // FAILED / TIMEOUT SCREEN
+  if (paymentStatus === "failed" || paymentStatus === "timeout") {
+    return (
+      <motion.div {...pageTransition} className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
+        <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+          <AlertCircle className="h-10 w-10 text-destructive" />
+        </div>
+        <h1 className="font-display text-[20px] font-semibold tracking-tight mt-6 text-center">
+          {paymentStatus === "timeout" ? "Payment Timed Out" : "Payment Failed"}
+        </h1>
+        <p className="text-[15px] text-muted-foreground mt-2 text-center leading-relaxed max-w-[280px]">
+          {paymentStatus === "timeout"
+            ? "We didn't receive a response from M-PESA in time. Please try again."
+            : errorMessage || "The payment could not be completed. Please try again."}
+        </p>
+        <div className="mt-8 w-full max-w-sm space-y-3">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={handleRetry}
+            className="w-full h-14 rounded-outer mpesa-gradient text-primary-foreground font-display font-semibold text-base flex items-center justify-center gap-2"
+          >
+            <RefreshCw className="h-5 w-5" />
+            Try Again
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.96 }} onClick={() => navigate(-1)} className="w-full h-14 rounded-outer bg-secondary text-secondary-foreground font-display font-medium text-base">
+            Go Back
+          </motion.button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // DEFAULT: PAYMENT FORM
   return (
     <motion.div {...pageTransition} className="min-h-screen bg-background pb-36">
       <div className="px-5 pt-6 pb-4 flex items-center gap-3">
@@ -178,9 +332,7 @@ const Payment = () => {
         <div className="text-center py-6">
           <p className="label-text">Amount Due Now</p>
           <p className="font-display text-[40px] font-bold tracking-tight tabular-nums mt-2">KES {totalDue.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Deposit + 5% platform fee
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Deposit + 5% platform fee</p>
         </div>
 
         {/* Payment breakdown */}
@@ -207,6 +359,7 @@ const Payment = () => {
           </div>
         </div>
 
+        {/* Payment method selector */}
         <div>
           <label className="label-text">Payment Method</label>
           <div className="space-y-2 mt-2">
@@ -248,6 +401,7 @@ const Payment = () => {
           </div>
         </div>
 
+        {/* M-PESA phone input */}
         {paymentMethod === "mpesa" && (
           <div>
             <label className="label-text">M-PESA Phone Number</label>
@@ -271,19 +425,12 @@ const Payment = () => {
           <motion.button
             whileTap={{ scale: 0.96 }}
             onClick={handlePay}
-            disabled={isPaying}
+            disabled={paymentStatus !== "idle"}
             className={`w-full h-14 rounded-outer font-display font-semibold text-base text-primary-foreground ${
               paymentMethod === "mpesa" ? "mpesa-gradient" : "bg-primary"
             }`}
           >
-            {isPaying ? (
-              <span className="flex items-center justify-center gap-2">
-                <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="inline-block h-5 w-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
-                {paymentMethod === "mpesa" ? "Waiting for M-PESA..." : "Processing..."}
-              </span>
-            ) : (
-              `Pay KES ${totalDue.toLocaleString()}`
-            )}
+            Pay KES {totalDue.toLocaleString()} with {paymentMethod === "mpesa" ? "M-PESA" : "Card"}
           </motion.button>
         </div>
       </div>
