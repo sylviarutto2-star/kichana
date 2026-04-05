@@ -71,7 +71,7 @@ const StylistDashboard = () => {
         const enriched = await Promise.all(
           bookingsData.map(async (b: any) => {
             const { data: customerProfile } = await supabase
-              .from("profiles_public")
+              .from("profiles")
               .select("name")
               .eq("user_id", b.customer_id)
               .single();
