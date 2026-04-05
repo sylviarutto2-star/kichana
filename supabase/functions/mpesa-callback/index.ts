@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { ResultCode, ResultDesc, CheckoutRequestID, MerchantRequestID } = callback;
+    const { ResultCode, ResultDesc, CheckoutRequestID } = callback;
 
     if (ResultCode === 0) {
       // Payment successful — extract metadata
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
         console.error('Update payment error:', updateError);
       }
 
-      // Update booking status
+      // Update booking status to confirmed/paid
       if (payment?.booking_id) {
         const { error: bookingError } = await supabase
           .from('bookings')
