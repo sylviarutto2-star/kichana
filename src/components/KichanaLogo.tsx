@@ -1,7 +1,5 @@
 import { motion } from "framer-motion";
 import kichanaLogo from "@/assets/kichana-logo.png";
-import kichanaAfro from "@/assets/kichana-afro.png";
-import kichanaComb from "@/assets/kichana-comb.png";
 
 const KichanaLogo = ({ size = "md", animate = true }: { size?: "sm" | "md" | "lg"; animate?: boolean }) => {
   const sizeMap = {
@@ -10,66 +8,74 @@ const KichanaLogo = ({ size = "md", animate = true }: { size?: "sm" | "md" | "lg
     lg: { img: "h-16 w-16", text: "text-[32px]" },
   };
 
-  // Soft, premium ease-in-out curve
+  // Soft, premium ease-in-out
   const softEase = [0.45, 0, 0.25, 1] as [number, number, number, number];
-  // Total combing animation duration
   const combDuration = 2.4;
+
+  // The comb in the source image occupies roughly the center 32%–58% horizontally.
+  // We use clip-paths to isolate two regions of the SAME source image:
+  //   - afroClip: hides the comb column (shows only the afro halves)
+  //   - combClip: shows only the comb column (this layer animates upward)
+  const combClip = "inset(0 42% 0 32%)";
+  const afroClip = "polygon(0 0, 32% 0, 32% 100%, 58% 100%, 58% 0, 100% 0, 100% 100%, 0 100%)";
 
   return (
     <div className="flex items-center gap-2.5">
       <motion.div
-        initial={animate ? { scale: 0.92, opacity: 0 } : false}
+        initial={animate ? { scale: 0.94, opacity: 0 } : false}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, ease: softEase }}
         className={`relative shrink-0 ${sizeMap[size].img}`}
       >
         {animate ? (
           <>
-            {/* Afro layer — gently sways/parts as the comb passes through */}
+            {/* Afro layer — comb column hidden, gently parts as the comb moves through */}
             <motion.img
-              src={kichanaAfro}
+              src={kichanaLogo}
               alt=""
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-contain"
-              initial={{ scaleX: 1, scaleY: 1 }}
+              style={{ clipPath: afroClip, WebkitClipPath: afroClip, transformOrigin: "50% 60%" }}
+              initial={{ scaleX: 1, scaleY: 1, opacity: 1 }}
               animate={{
                 scaleX: [1, 1.015, 0.99, 1.01, 1],
                 scaleY: [1, 0.99, 1.015, 0.995, 1],
+                opacity: [1, 1, 1, 0],
               }}
               transition={{
                 duration: combDuration,
                 ease: softEase,
-                times: [0, 0.3, 0.55, 0.8, 1],
+                times: [0, 0.3, 0.85, 1],
               }}
-              style={{ transformOrigin: "50% 60%" }}
             />
 
-            {/* Comb layer — starts below, slowly travels up through the afro */}
+            {/* Comb layer — isolated comb column, travels up from below through the afro */}
             <motion.img
-              src={kichanaComb}
+              src={kichanaLogo}
               alt=""
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-contain"
+              style={{ clipPath: combClip, WebkitClipPath: combClip }}
               initial={{ y: "55%", opacity: 0 }}
               animate={{
-                y: ["55%", "10%", "-30%", "-55%"],
+                y: ["55%", "10%", "0%", "-10%"],
                 opacity: [0, 1, 1, 0],
               }}
               transition={{
                 duration: combDuration,
                 ease: softEase,
-                times: [0, 0.2, 0.75, 1],
+                times: [0, 0.25, 0.8, 1],
               }}
             />
 
-            {/* Final static logo — fades in once the combing finishes */}
+            {/* Final intact logo — fades in as the animated layers fade out */}
             <motion.img
               src={kichanaLogo}
               alt="Kichana Logo"
               className="absolute inset-0 w-full h-full object-contain"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.45, delay: combDuration - 0.15, ease: softEase }}
+              transition={{ duration: 0.5, delay: combDuration - 0.2, ease: softEase }}
             />
           </>
         ) : (
