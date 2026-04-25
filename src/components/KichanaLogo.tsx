@@ -34,8 +34,13 @@ const KichanaLogo = ({
   const combClip = "inset(0 42% 0 32%)";
   const afroClip = "polygon(0 0, 32% 0, 32% 100%, 58% 100%, 58% 0, 100% 0, 100% 100%, 0 100%)";
 
+  const containerClass =
+    layout === "stack"
+      ? "flex flex-col items-center gap-4"
+      : "flex items-center gap-2.5";
+
   return (
-    <div className="flex items-center gap-2.5">
+    <div className={containerClass}>
       <motion.div
         initial={animate ? { scale: 0.94, opacity: 0 } : false}
         animate={{ scale: 1, opacity: 1 }}
@@ -102,14 +107,16 @@ const KichanaLogo = ({
         )}
       </motion.div>
 
-      <motion.span
-        initial={animate ? { opacity: 0 } : false}
-        animate={{ opacity: 1 }}
-        transition={{ delay: animate ? combDuration - 0.2 : 0, duration: 0.5, ease: softEase }}
-        className={`font-display font-bold tracking-tight lowercase leading-none ${sizeMap[size].text}`}
-      >
-        kichana
-      </motion.span>
+      {showWordmark && (
+        <motion.span
+          initial={animate ? { opacity: 0 } : false}
+          animate={{ opacity: 1 }}
+          transition={{ delay: animate ? combDuration - 0.2 : 0, duration: 0.5, ease: softEase }}
+          className={`font-display font-bold tracking-tight lowercase leading-none ${sizeMap[size].text}`}
+        >
+          kichana
+        </motion.span>
+      )}
     </div>
   );
 };
