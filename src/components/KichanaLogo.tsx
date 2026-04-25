@@ -82,10 +82,10 @@ const KichanaLogo = ({ size = "md", animate = true }: { size?: "sm" | "md" | "lg
       </motion.div>
 
       <motion.span
-        initial={animate ? { x: -10, opacity: 0 } : false}
-        animate={{ x: 0, opacity: 1 }}
+        initial={animate ? { opacity: 0 } : false}
+        animate={{ opacity: 1 }}
         transition={{ delay: animate ? combDuration - 0.2 : 0, duration: 0.5, ease: softEase }}
-        className={`font-display font-bold tracking-tight lowercase ${sizeMap[size].text}`}
+        className={`font-display font-bold tracking-tight lowercase leading-none ${sizeMap[size].text}`}
       >
         kichana
       </motion.span>
