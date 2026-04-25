@@ -1,11 +1,26 @@
 import { motion } from "framer-motion";
 import kichanaLogo from "@/assets/kichana-logo.png";
 
-const KichanaLogo = ({ size = "md", animate = true }: { size?: "sm" | "md" | "lg"; animate?: boolean }) => {
+const KichanaLogo = ({
+  size = "md",
+  animate = true,
+  showWordmark = true,
+  layout = "row",
+}: {
+  size?: "sm" | "md" | "lg" | "splash";
+  animate?: boolean;
+  showWordmark?: boolean;
+  layout?: "row" | "stack";
+}) => {
   const sizeMap = {
     sm: { img: "h-9 w-9", text: "text-xl" },
     md: { img: "h-11 w-11", text: "text-2xl" },
     lg: { img: "h-16 w-16", text: "text-[32px]" },
+    // Responsive splash: ~65% of viewport width, capped on larger screens
+    splash: {
+      img: "w-[65vw] max-w-[420px] aspect-square h-auto",
+      text: "text-4xl sm:text-5xl",
+    },
   };
 
   // Soft, premium ease-in-out
