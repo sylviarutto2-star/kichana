@@ -1,11 +1,10 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import heroBraids from "@/assets/hero-braids.jpg";
 import KichanaLogo from "@/components/KichanaLogo";
 
 const pageTransition = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
   transition: { duration: 0.4, ease: [0.2, 0, 0, 1] as const },
 };
 
@@ -13,31 +12,32 @@ const Welcome = () => {
   const navigate = useNavigate();
 
   return (
-    <motion.div {...pageTransition} className="min-h-screen flex flex-col bg-background">
-      {/* Hero Image */}
-      <div className="relative h-[60vh] overflow-hidden">
-        <img
-          src={heroBraids}
-          alt="Beautiful braids hairstyle"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+    <motion.div
+      {...pageTransition}
+      className="min-h-screen flex flex-col bg-background relative overflow-hidden"
+    >
+      {/* Centered splash logo — fills ~65% of viewport width */}
+      <div className="flex-1 flex items-center justify-center px-5">
+        <KichanaLogo size="splash" layout="stack" />
       </div>
 
-      {/* Content */}
-      <div className="flex-1 px-5 -mt-16 relative z-10 flex flex-col">
-        <KichanaLogo size="lg" />
-
-        <h1 className="font-display text-[32px] font-semibold tracking-tight leading-[1.1] mt-4">
-          Your style,{" "}
-          <span className="text-primary">delivered.</span>
-        </h1>
-
-        <p className="text-[15px] leading-[1.6] text-muted-foreground mt-3">
+      {/* Tagline + CTAs */}
+      <div className="px-5 pb-8 space-y-5">
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.4, duration: 0.5, ease: [0.2, 0, 0, 1] as const }}
+          className="text-center text-[15px] leading-[1.6] text-muted-foreground max-w-sm mx-auto"
+        >
           Hand-picked stylists in Nairobi. Book braids, wigs, natural hair & more — at home or at the salon.
-        </p>
+        </motion.p>
 
-        <div className="mt-auto pb-8 space-y-3">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2.6, duration: 0.5, ease: [0.2, 0, 0, 1] as const }}
+          className="space-y-3"
+        >
           <motion.button
             whileTap={{ scale: 0.96 }}
             onClick={() => navigate("/auth")}
@@ -52,7 +52,7 @@ const Welcome = () => {
           >
             I already have an account
           </motion.button>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   );
