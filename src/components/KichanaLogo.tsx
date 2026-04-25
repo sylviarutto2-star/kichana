@@ -21,7 +21,7 @@ const KichanaLogo = ({ size = "md", animate = true }: { size?: "sm" | "md" | "lg
         initial={animate ? { scale: 0.92, opacity: 0 } : false}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, ease: softEase }}
-        className={`relative ${sizeMap[size].img}`}
+        className={`relative shrink-0 ${sizeMap[size].img}`}
       >
         {animate ? (
           <>
