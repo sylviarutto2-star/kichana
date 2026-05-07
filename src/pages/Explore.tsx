@@ -1,10 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, MapPin, SlidersHorizontal, Star, X } from "lucide-react";
 import CategoryChip from "@/components/CategoryChip";
 import StylistCard from "@/components/StylistCard";
 import { categories, mockStylists } from "@/data/mockData";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 const pageTransition = {
   initial: { opacity: 0, y: 10 },
