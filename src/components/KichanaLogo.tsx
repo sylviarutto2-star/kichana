@@ -1,17 +1,27 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import kichanaLogo from "@/assets/kichana-logo.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 const KichanaLogo = ({
   size = "md",
   animate = true,
   showWordmark = true,
   layout = "row",
+  asLink = true,
 }: {
   size?: "sm" | "md" | "lg" | "splash";
   animate?: boolean;
   showWordmark?: boolean;
   layout?: "row" | "stack";
+  asLink?: boolean;
 }) => {
+  const { user, profile } = useAuth();
+  const href = !user
+    ? "/"
+    : profile?.role === "stylist"
+    ? "/dashboard"
+    : "/";
   const sizeMap = {
     sm: { img: "h-9 w-9", text: "text-xl" },
     md: { img: "h-11 w-11", text: "text-2xl" },
@@ -39,8 +49,11 @@ const KichanaLogo = ({
       ? "flex flex-col items-center gap-4"
       : "flex items-center gap-2.5";
 
+  const Wrapper: any = asLink ? Link : "div";
+  const wrapperProps = asLink ? { to: href, "aria-label": "Go to home" } : {};
+
   return (
-    <div className={containerClass}>
+    <Wrapper {...wrapperProps} className={`${containerClass} ${asLink ? "cursor-pointer select-none" : ""}`}>
       <motion.div
         initial={animate ? { scale: 0.94, opacity: 0 } : false}
         animate={{ scale: 1, opacity: 1 }}
@@ -117,7 +130,7 @@ const KichanaLogo = ({
           kichana
         </motion.span>
       )}
-    </div>
+    </Wrapper>
   );
 };
 

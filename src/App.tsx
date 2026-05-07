@@ -22,6 +22,7 @@ import PaymentMethods from "./pages/PaymentMethods";
 import ProfilePlaceholder from "./pages/ProfilePlaceholder";
 import StylistDashboard from "./pages/StylistDashboard";
 import HomeServiceTracking from "./pages/HomeServiceTracking";
+import Sos from "./pages/Sos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<Index />} />
             <Route path="/explore" element={<Explore />} />
+            <Route path="/sos" element={<Sos />} />
             <Route path="/map" element={<MapView />} />
             <Route path="/stylist/:id" element={<StylistProfile />} />
             <Route path="/booking/:stylistId/:serviceId" element={<Booking />} />

@@ -1,10 +1,10 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Search, MapPin, SlidersHorizontal, Star, X } from "lucide-react";
 import CategoryChip from "@/components/CategoryChip";
 import StylistCard from "@/components/StylistCard";
 import { categories, mockStylists } from "@/data/mockData";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 const pageTransition = {
   initial: { opacity: 0, y: 10 },
@@ -44,13 +44,21 @@ const DEFAULT_LNG = 36.8219;
 
 const Explore = () => {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [params] = useSearchParams();
+  const [search, setSearch] = useState(params.get("q") ?? "");
+  const [activeCategory, setActiveCategory] = useState(params.get("cat") ?? "All");
   const [showFilters, setShowFilters] = useState(false);
   const [maxDistance, setMaxDistance] = useState(0);
   const [minRating, setMinRating] = useState(0);
   const [userLat] = useState(DEFAULT_LAT);
   const [userLng] = useState(DEFAULT_LNG);
+
+  useEffect(() => {
+    const q = params.get("q");
+    const cat = params.get("cat");
+    if (q !== null) setSearch(q);
+    if (cat !== null) setActiveCategory(cat);
+  }, [params]);
 
   const filtered = useMemo(() => {
     return mockStylists.filter((s) => {
@@ -192,10 +200,11 @@ const Explore = () => {
       </div>
 
       {/* Results */}
-      <div className="px-5 mt-4 grid grid-cols-2 gap-3">
+      <div className="px-5 mt-4 grid grid-cols-3 gap-3">
         {filtered.map((stylist) => (
           <StylistCard
             key={stylist.id}
+            compact
             name={stylist.name}
             image={stylist.image}
             rating={stylist.rating}
