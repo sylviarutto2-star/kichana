@@ -128,7 +128,7 @@ const Index = () => {
             </div>
 
             <div className="rounded-[28px] border border-border bg-card p-3 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.28)]">
-              <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+              <div className="grid gap-2 lg:grid-cols-[1fr_1fr_auto]">
                 <label className="flex h-14 items-center gap-3 rounded-2xl bg-secondary px-4">
                   <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <input
@@ -194,7 +194,7 @@ const Index = () => {
                 className="h-[420px] w-full object-cover object-center md:h-[560px]"
               />
             </div>
-            <div className="absolute bottom-4 left-4 right-4 rounded-[24px] border border-border bg-card/92 p-4 backdrop-blur-sm md:left-auto md:right-4 md:w-[280px]">
+            <div className="absolute bottom-4 left-4 right-4 rounded-[24px] border border-border bg-card p-4 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.3)] md:left-auto md:right-4 md:w-[280px]">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Why people switch</p>
               <div className="mt-3 space-y-3 text-sm text-foreground">
                 <div className="flex items-start justify-between gap-3">
