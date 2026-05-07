@@ -1,5 +1,6 @@
 import { Home, Search, MapPin, Calendar, MessageCircle, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const tabs = [
   { icon: Home, label: "Home", path: "/" },
@@ -13,20 +14,27 @@ const tabs = [
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Hide on welcome/auth screens and map (map is fullscreen)
-  if (location.pathname === "/welcome" || location.pathname === "/auth" || location.pathname === "/map") return null;
+  if (
+    location.pathname === "/welcome" ||
+    location.pathname === "/auth" ||
+    location.pathname === "/map" ||
+    (!user && location.pathname === "/")
+  ) {
+    return null;
+  }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 pb-safe">
-      <div className="max-w-md mx-auto flex items-center justify-around py-2">
+    <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur-sm z-50 pb-safe">
+      <div className="mx-auto flex max-w-3xl items-center justify-around px-3 py-2">
         {tabs.map(({ icon: Icon, label, path }) => {
           const active = location.pathname === path;
           return (
             <button
               key={path}
               onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 transition-colors ${
+              className={`flex min-w-[52px] flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-colors ${
                 active ? "text-primary" : "text-muted-foreground"
               }`}
             >

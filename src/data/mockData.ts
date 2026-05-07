@@ -79,12 +79,12 @@ export const mockStylists: Stylist[] = [
     completedBookings: 156,
     bufferMinutes: 30,
     services: [
-      { id: "s1", name: "Knotless Braids", price: 3500, duration: "3-4 hrs", description: "Medium-length knotless box braids", category: "Braids", images: [portfolio1, portfolio2] },
-      { id: "s2", name: "Box Braids", price: 2500, duration: "3-5 hrs", description: "Classic box braids, any length", category: "Braids", images: [portfolio2] },
+      { id: "s1", name: "Knotless Braids", price: 3500, duration: "3-4 hrs", description: "Medium-length knotless box braids", category: "Braids", images: [portfolio1, portfolio3] },
+      { id: "s2", name: "Box Braids", price: 2500, duration: "3-5 hrs", description: "Classic box braids, any length", category: "Braids", images: [portfolio3] },
       { id: "s3", name: "Cornrows", price: 1500, duration: "1-2 hrs", description: "Feed-in cornrows, any pattern", category: "Braids", images: [portfolio3] },
       { id: "s4", name: "Passion Twists", price: 4000, duration: "3-4 hrs", description: "Bohemian passion twists", category: "Protective Styles", images: [portfolio4] },
     ],
-    portfolio: [stylist1, portfolio1, portfolio2],
+    portfolio: [stylist1, portfolio1, portfolio3],
   },
   {
     id: "2",
@@ -138,7 +138,7 @@ export const mockStylists: Stylist[] = [
       { id: "s9", name: "Beard Trim", price: 300, duration: "15 min", description: "Shape and line-up", category: "Barber" },
       { id: "s10", name: "Full Grooming", price: 1000, duration: "1 hr", description: "Haircut + beard + hot towel", category: "Barber" },
     ],
-    portfolio: [stylist3, portfolio1, portfolio3],
+    portfolio: [stylist3, portfolio3, portfolio1],
   },
   {
     id: "4",

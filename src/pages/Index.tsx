@@ -1,59 +1,79 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Bell, Search, Navigation2, Sparkles, ShieldCheck, Siren, Repeat, ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Brush,
+  Clock3,
+  MapPin,
+  Navigation2,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Syringe,
+  Scissors,
+  CalendarCheck,
+} from "lucide-react";
 import KichanaLogo from "@/components/KichanaLogo";
 import StylistCard from "@/components/StylistCard";
 import { categories, mockStylists } from "@/data/mockData";
-import heroHome from "@/assets/hero-home.jpg";
+import { useAuth } from "@/contexts/AuthContext";
+import heroBraids from "@/assets/hero-braids.jpg";
 import personaLoyal from "@/assets/persona-loyal.jpg";
 import personaShopper from "@/assets/persona-shopper.jpg";
 import personaRescue from "@/assets/persona-rescue.jpg";
 
 const fadeUp = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.2, 0, 0, 1] as const } },
+  initial: { opacity: 0, y: 18 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.2 },
+  transition: { duration: 0.55, ease: [0.2, 0, 0, 1] as const },
 };
 
-const trendingServices = [
-  "Knotless Braids",
-  "Silk Press",
-  "Frontal Install",
-  "Cornrows",
-  "Gel Manicure",
-  "Loc Retwist",
-];
+const serviceIcons: Record<string, typeof Scissors> = {
+  Braids: Scissors,
+  "Wig Install": Sparkles,
+  "Natural Hair": Brush,
+  "Protective Styles": ShieldCheck,
+  Treatments: Syringe,
+  Nails: Star,
+  Makeup: Sparkles,
+};
 
 const personas = [
   {
-    key: "loyal",
-    icon: Repeat,
-    title: "Already have a stylist?",
-    body: "Compare side-by-side and rebook in a tap when she's away.",
+    title: "Switch only if she’s clearly better",
+    body: "Compare proof of work, price, punctuality and review quality in seconds.",
     image: personaLoyal,
+    href: "/explore?sort=top",
   },
   {
-    key: "shopper",
-    icon: Sparkles,
-    title: "Tired of inconsistent results?",
-    body: "Vetted stylists, real reviews, and photo proof — every time.",
+    title: "Stop gambling on inconsistent results",
+    body: "Shortlist specialists with repeatable outcomes, verified reviews and relevant portfolios.",
     image: personaShopper,
+    href: "/explore?cat=Braids",
   },
   {
-    key: "rescue",
-    icon: ShieldCheck,
-    title: "Recent bad experience?",
-    body: "Female specialists in hair repair & rescue, ready today.",
+    title: "Hair SOS when something went wrong",
+    body: "Reach repair-focused stylists fast with clear emergency pricing and availability.",
     image: personaRescue,
+    href: "/sos",
   },
 ];
 
+const trendingServices = ["Knotless Braids", "Silk Press", "Frontal Install", "Loc Retwist", "Gel Manicure"];
+
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [service, setService] = useState("");
   const [where, setWhere] = useState("");
 
-  const topRated = [...mockStylists].sort((a, b) => b.rating - a.rating).slice(0, 6);
+  const topRated = useMemo(
+    () => [...mockStylists].sort((a, b) => b.rating - a.rating || b.reviews - a.reviews).slice(0, 4),
+    [],
+  );
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -71,193 +91,217 @@ const Index = () => {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-background pb-28">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-        <KichanaLogo size="sm" animate={false} />
-        <button
-          aria-label="Notifications"
-          className="relative h-10 w-10 rounded-full bg-secondary flex items-center justify-center"
-        >
-          <Bell className="h-[18px] w-[18px] text-foreground" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
-        </button>
-      </div>
-
-      {/* Hero */}
-      <section className="px-5 pt-2">
-        <motion.div {...fadeUp} className="relative overflow-hidden rounded-3xl">
-          <img
-            src={heroHome}
-            alt="Premium braided look by a Kichana stylist"
-            className="w-full h-[340px] object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/70" />
-          <div className="absolute inset-x-0 bottom-0 p-5">
-            <h1 className="font-display text-[28px] font-semibold leading-[1.1] text-primary-foreground">
-              Beauty, booked beautifully.
-            </h1>
-            <p className="text-[13px] text-primary-foreground/85 mt-1.5 leading-snug">
-              Find trusted stylists across Nairobi — at the salon or your door.
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Search card — pulled up over hero */}
-        <motion.div
-          {...fadeUp}
-          className="-mt-6 mx-1 relative bg-card rounded-2xl border border-border shadow-[0_12px_32px_-12px_rgba(0,0,0,0.18)] p-3 space-y-2"
-        >
-          <label className="flex items-center gap-2.5 px-3 h-12 rounded-xl bg-secondary/60">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-            <input
-              value={service}
-              onChange={(e) => setService(e.target.value)}
-              placeholder="What service? (e.g. knotless braids)"
-              className="flex-1 bg-transparent text-[14px] placeholder:text-muted-foreground focus:outline-none"
-            />
-          </label>
-          <label className="flex items-center gap-2.5 px-3 h-12 rounded-xl bg-secondary/60">
-            <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-            <input
-              value={where}
-              onChange={(e) => setWhere(e.target.value)}
-              placeholder="Where? (Kilimani, Westlands…)"
-              className="flex-1 bg-transparent text-[14px] placeholder:text-muted-foreground focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={useMyLocation}
-              className="text-[11px] font-semibold text-primary flex items-center gap-1 shrink-0"
-            >
-              <Navigation2 className="h-3 w-3" /> Me
-            </button>
-          </label>
-          <button
-            onClick={handleSearch}
-            className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold text-[14px] tracking-tight active:scale-[0.99] transition-transform"
-          >
-            Search stylists
-          </button>
-        </motion.div>
-
-        {/* Trending services */}
-        <div className="mt-5">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Trending now
-            </span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-5 px-5">
-            {trendingServices.map((t) => (
+    <div className="min-h-screen bg-background pb-14">
+      <div className="mx-auto max-w-6xl px-5 pb-16 pt-5 md:px-8 md:pt-6">
+        <header className="flex items-center justify-between gap-4">
+          <KichanaLogo size="sm" animate={false} />
+          <div className="flex items-center gap-2">
+            {user ? (
               <button
-                key={t}
-                onClick={() => {
-                  setService(t);
-                  navigate(`/explore?q=${encodeURIComponent(t)}`);
-                }}
-                className="shrink-0 px-3.5 h-9 rounded-full bg-secondary text-[12.5px] font-medium text-foreground"
+                onClick={() => navigate("/dashboard")}
+                className="rounded-full bg-secondary px-4 py-2 text-sm font-medium text-foreground"
               >
-                {t}
+                Dashboard
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate("/auth")}
+                className="rounded-full bg-secondary px-4 py-2 text-sm font-medium text-foreground"
+              >
+                Sign in
+              </button>
+            )}
+          </div>
+        </header>
+
+        <section className="grid gap-6 pt-8 md:grid-cols-[1.05fr_0.95fr] md:items-center md:pt-10">
+          <motion.div {...fadeUp} className="space-y-6 text-left">
+            <div className="space-y-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Book beauty professionals</p>
+              <h1 className="max-w-[12ch] font-display text-4xl font-semibold leading-none text-foreground md:text-6xl">
+                Discover and book trusted stylists in Nairobi.
+              </h1>
+              <p className="max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
+                Search by service and area, compare real work, and book the right specialist for braids, wigs,
+                natural hair, nails and urgent fixes.
+              </p>
+            </div>
+
+            <div className="rounded-[28px] border border-border bg-card p-3 shadow-[0_18px_40px_-24px_rgba(0,0,0,0.28)]">
+              <div className="grid gap-2 lg:grid-cols-[1fr_1fr_auto]">
+                <label className="flex h-14 items-center gap-3 rounded-2xl bg-secondary px-4">
+                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <input
+                    value={service}
+                    onChange={(e) => setService(e.target.value)}
+                    placeholder="What service are you booking?"
+                    className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  />
+                </label>
+                <label className="flex h-14 items-center gap-3 rounded-2xl bg-secondary px-4">
+                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <input
+                    value={where}
+                    onChange={(e) => setWhere(e.target.value)}
+                    placeholder="Where in Nairobi?"
+                    className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  />
+                  <button type="button" onClick={useMyLocation} className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary">
+                    <Navigation2 className="h-3 w-3" /> Me
+                  </button>
+                </label>
+                <button
+                  onClick={handleSearch}
+                  className="h-14 rounded-2xl bg-primary px-6 text-sm font-semibold text-primary-foreground"
+                >
+                  Search
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {trendingServices.map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => navigate(`/explore?q=${encodeURIComponent(item)}`)}
+                    className="rounded-full bg-secondary px-3 py-2 text-xs font-medium text-foreground"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { label: "Rated pros", value: "4.8 average", icon: Star },
+                { label: "Response speed", value: "Same-day options", icon: Clock3 },
+                { label: "Booking confidence", value: "Verified reviews", icon: CalendarCheck },
+              ].map(({ label, value, icon: Icon }) => (
+                <div key={label} className="rounded-2xl border border-border bg-card p-4">
+                  <Icon className="h-4 w-4 text-primary" />
+                  <p className="mt-3 text-sm font-semibold text-foreground">{value}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{label}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          <motion.div {...fadeUp} className="relative">
+            <div className="overflow-hidden rounded-[32px] bg-card">
+              <img
+                src={heroBraids}
+                alt="Woman with neatly styled long braids"
+                className="h-[420px] w-full object-cover object-center md:h-[560px]"
+              />
+            </div>
+            <div className="absolute bottom-4 left-4 right-4 rounded-[24px] border border-border bg-card p-4 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.3)] md:left-auto md:right-4 md:w-[280px]">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Why people switch</p>
+              <div className="mt-3 space-y-3 text-sm text-foreground">
+                <div className="flex items-start justify-between gap-3">
+                  <span>Real photo proof</span>
+                  <span className="font-semibold">Every profile</span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span>Review quality</span>
+                  <span className="font-semibold">Shown with counts</span>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <span>Urgent fixes</span>
+                  <span className="font-semibold">SOS available</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        <motion.section {...fadeUp} className="pt-12">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div className="text-left">
+              <h2 className="font-display text-2xl font-semibold text-foreground">Find pros by service</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Cleaner browsing with tighter categories and faster routes into search.</p>
+            </div>
+            <button onClick={() => navigate("/explore")} className="hidden text-sm font-semibold text-primary md:inline-flex">
+              View all
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {categories
+              .filter((category) => category.label !== "All" && serviceIcons[category.label])
+              .slice(0, 6)
+              .map((category) => {
+                const Icon = serviceIcons[category.label];
+                return (
+                  <button
+                    key={category.label}
+                    onClick={() => navigate(`/explore?cat=${encodeURIComponent(category.label)}`)}
+                    className="flex min-h-[124px] flex-col items-start justify-between rounded-[24px] border border-border bg-card p-4 text-left transition-transform duration-200 hover:-translate-y-0.5"
+                  >
+                    <span className="rounded-2xl bg-secondary p-3">
+                      <Icon className="h-5 w-5 text-primary" />
+                    </span>
+                    <span className="text-sm font-semibold leading-snug text-foreground">{category.label}</span>
+                  </button>
+                );
+              })}
+          </div>
+        </motion.section>
+
+        <motion.section {...fadeUp} className="pt-12">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div className="text-left">
+              <h2 className="font-display text-2xl font-semibold text-foreground">Best professionals near you</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Smaller cards, clearer signals, less noise.</p>
+            </div>
+            <button onClick={() => navigate("/explore")} className="text-sm font-semibold text-primary">
+              See all
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {topRated.map((stylist) => (
+              <StylistCard
+                key={stylist.id}
+                compact
+                name={stylist.name}
+                image={stylist.image}
+                rating={stylist.rating}
+                reviews={stylist.reviews}
+                category={stylist.category}
+                startingPrice={stylist.startingPrice}
+                onClick={() => navigate(`/stylist/${stylist.id}`)}
+              />
+            ))}
+          </div>
+        </motion.section>
+
+        <motion.section {...fadeUp} className="pt-12">
+          <div className="mb-5 text-left">
+            <h2 className="font-display text-2xl font-semibold text-foreground">Choose the path that fits your situation</h2>
+            <p className="mt-1 text-sm text-muted-foreground">The landing page now separates discovery, comparison and rescue into cleaner entry points.</p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            {personas.map((persona) => (
+              <button
+                key={persona.title}
+                onClick={() => navigate(persona.href)}
+                className="overflow-hidden rounded-[28px] border border-border bg-card text-left"
+              >
+                <img src={persona.image} alt="" className="h-56 w-full object-cover" loading="lazy" />
+                <div className="space-y-3 p-5">
+                  <h3 className="font-display text-xl font-semibold leading-tight text-foreground">{persona.title}</h3>
+                  <p className="text-sm leading-6 text-muted-foreground">{persona.body}</p>
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                    Explore route <ArrowRight className="h-4 w-4" />
+                  </span>
+                </div>
               </button>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Hair SOS banner */}
-      <section className="px-5 mt-6">
-        <motion.button
-          {...fadeUp}
-          whileTap={{ scale: 0.985 }}
-          onClick={() => navigate("/sos")}
-          className="w-full flex items-center gap-3 p-4 rounded-2xl bg-foreground text-background"
-        >
-          <div className="h-11 w-11 rounded-full bg-primary/90 flex items-center justify-center shrink-0">
-            <Siren className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-[14px] font-semibold leading-tight">Hair SOS — need a stylist now?</p>
-            <p className="text-[11.5px] opacity-70 mt-0.5">
-              Broadcast to female repair & emergency specialists nearby.
-            </p>
-          </div>
-          <ArrowRight className="h-4 w-4 opacity-70" />
-        </motion.button>
-      </section>
-
-      {/* Personas — 3 entry points */}
-      <section className="px-5 mt-7">
-        <h2 className="font-display text-[20px] font-semibold tracking-tight">Find your fit</h2>
-        <p className="text-[13px] text-muted-foreground mt-0.5">However you arrived, we have a path for you.</p>
-        <div className="mt-3 space-y-3">
-          {personas.map((p) => {
-            const Icon = p.icon;
-            return (
-              <motion.button
-                key={p.key}
-                whileTap={{ scale: 0.99 }}
-                onClick={() => navigate("/explore")}
-                className="w-full flex items-stretch gap-3 rounded-2xl bg-card border border-border overflow-hidden"
-              >
-                <img src={p.image} alt="" loading="lazy" className="h-24 w-24 object-cover shrink-0" />
-                <div className="flex-1 py-3 pr-3 text-left flex flex-col justify-center">
-                  <div className="flex items-center gap-1.5">
-                    <Icon className="h-3.5 w-3.5 text-primary" />
-                    <p className="text-[14px] font-semibold leading-tight">{p.title}</p>
-                  </div>
-                  <p className="text-[12px] text-muted-foreground mt-1 leading-snug">{p.body}</p>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Browse by category — compact pills */}
-      <section className="px-5 mt-7">
-        <h2 className="font-display text-[20px] font-semibold tracking-tight">Browse by service</h2>
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {categories.filter((c) => c.label !== "All").slice(0, 9).map((c) => (
-            <button
-              key={c.label}
-              onClick={() => navigate(`/explore?cat=${encodeURIComponent(c.label)}`)}
-              className="aspect-[5/3] rounded-xl bg-secondary text-[12.5px] font-medium text-foreground flex items-center justify-center text-center px-2"
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Top rated near you */}
-      <section className="px-5 mt-7">
-        <div className="flex items-end justify-between mb-3">
-          <div>
-            <h2 className="font-display text-[20px] font-semibold tracking-tight">Top rated near you</h2>
-            <p className="text-[12px] text-muted-foreground mt-0.5">Hand-picked by Kichana</p>
-          </div>
-          <button onClick={() => navigate("/explore")} className="text-[12px] font-semibold text-primary">
-            See all
-          </button>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          {topRated.map((s) => (
-            <StylistCard
-              key={s.id}
-              compact
-              name={s.name}
-              image={s.image}
-              rating={s.rating}
-              reviews={s.reviews}
-              category={s.category}
-              startingPrice={s.startingPrice}
-              onClick={() => navigate(`/stylist/${s.id}`)}
-            />
-          ))}
-        </div>
-      </section>
-    </motion.div>
+        </motion.section>
+      </div>
+    </div>
   );
 };
 
