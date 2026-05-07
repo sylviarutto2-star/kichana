@@ -130,7 +130,7 @@ const KichanaLogo = ({
           kichana
         </motion.span>
       )}
-    </div>
+    </Wrapper>
   );
 };
 
