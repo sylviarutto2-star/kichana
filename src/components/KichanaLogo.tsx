@@ -49,8 +49,11 @@ const KichanaLogo = ({
       ? "flex flex-col items-center gap-4"
       : "flex items-center gap-2.5";
 
+  const Wrapper: any = asLink ? Link : "div";
+  const wrapperProps = asLink ? { to: href, "aria-label": "Go to home" } : {};
+
   return (
-    <div className={containerClass}>
+    <Wrapper {...wrapperProps} className={`${containerClass} ${asLink ? "cursor-pointer select-none" : ""}`}>
       <motion.div
         initial={animate ? { scale: 0.94, opacity: 0 } : false}
         animate={{ scale: 1, opacity: 1 }}
