@@ -200,10 +200,11 @@ const Explore = () => {
       </div>
 
       {/* Results */}
-      <div className="px-5 mt-4 grid grid-cols-2 gap-3">
+      <div className="px-5 mt-4 grid grid-cols-3 gap-3">
         {filtered.map((stylist) => (
           <StylistCard
             key={stylist.id}
+            compact
             name={stylist.name}
             image={stylist.image}
             rating={stylist.rating}
