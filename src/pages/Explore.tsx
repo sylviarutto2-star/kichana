@@ -44,13 +44,21 @@ const DEFAULT_LNG = 36.8219;
 
 const Explore = () => {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [params] = useSearchParams();
+  const [search, setSearch] = useState(params.get("q") ?? "");
+  const [activeCategory, setActiveCategory] = useState(params.get("cat") ?? "All");
   const [showFilters, setShowFilters] = useState(false);
   const [maxDistance, setMaxDistance] = useState(0);
   const [minRating, setMinRating] = useState(0);
   const [userLat] = useState(DEFAULT_LAT);
   const [userLng] = useState(DEFAULT_LNG);
+
+  useEffect(() => {
+    const q = params.get("q");
+    const cat = params.get("cat");
+    if (q !== null) setSearch(q);
+    if (cat !== null) setActiveCategory(cat);
+  }, [params]);
 
   const filtered = useMemo(() => {
     return mockStylists.filter((s) => {
