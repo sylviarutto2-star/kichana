@@ -2,6 +2,7 @@ import { Link, Navigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Calendar, Sparkles, Shield } from "lucide-react";
+// Sparkles import retained — used in Feature card below.
 
 export default function Landing() {
   const { session, loading } = useAuth();
@@ -39,17 +40,11 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="relative">
-          <div className="grid grid-cols-2 gap-3">
-            <Tile src="https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=600&q=70" tall />
-            <div className="space-y-3">
-              <Tile src="https://images.unsplash.com/photo-1559599101-f09722fb4948?auto=format&fit=crop&w=600&q=70" />
-              <Tile src="https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=600&q=70" />
-            </div>
-          </div>
-          <div className="absolute -bottom-6 -left-6 card p-4 max-w-[220px] hidden md:block">
-            <div className="flex items-center gap-2 text-sm font-semibold"><Sparkles className="h-4 w-4 text-terracotta-600" /> Hair Vault</div>
-            <p className="text-xs text-mute mt-1">Save inspirations. Show your stylist exactly what you want.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Tile src="https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&w=700&q=70" tall />
+          <div className="space-y-3">
+            <Tile src="https://images.unsplash.com/photo-1581252584837-9f0b1d3bf82c?auto=format&fit=crop&w=700&q=70" />
+            <Tile src="https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=700&q=70" />
           </div>
         </div>
       </main>
