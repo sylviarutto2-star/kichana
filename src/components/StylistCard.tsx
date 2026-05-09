@@ -4,18 +4,29 @@ import { Avatar } from "./Avatar";
 import type { Stylist } from "@/lib/database.types";
 import { KES } from "@/lib/utils";
 
+const GRADIENTS = [
+  "from-terracotta-700 via-terracotta-500 to-aubergine-700",
+  "from-aubergine-700 via-terracotta-600 to-gold-500",
+  "from-terracotta-300 via-terracotta-500 to-aubergine-500",
+  "from-aubergine-500 via-aubergine-700 to-terracotta-700",
+  "from-gold-400 via-terracotta-500 to-aubergine-700",
+  "from-terracotta-500 via-aubergine-500 to-aubergine-700",
+];
+const pickGradient = (key: string) => {
+  let h = 0; for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return GRADIENTS[h % GRADIENTS.length];
+};
+
 export function StylistCard({ s, fromKes }: { s: Stylist & { profile?: { full_name?: string | null; avatar_url?: string | null } }; fromKes?: number }) {
+  const grad = pickGradient(s.id);
   return (
-    <Link
-      to={`/stylist/${s.id}`}
-      className="card overflow-hidden block group"
-    >
-      <div className="relative aspect-[4/3] bg-line">
-        {s.hero_image_url ? (
-          <img src={s.hero_image_url} alt={s.display_name} className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
-        ) : (
-          <div className="h-full w-full bg-gradient-to-br from-terracotta-100 to-aubergine-500" />
-        )}
+    <Link to={`/stylist/${s.id}`} className="card overflow-hidden block group">
+      <div className={`relative aspect-[4/3] bg-gradient-to-br ${grad}`}>
+        <div className="absolute inset-0 opacity-30 [background:radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.5),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(216,168,90,0.55),transparent_50%)]" />
+        <div className="absolute inset-0 p-5 flex flex-col justify-end text-cream">
+          <div className="font-display text-2xl leading-tight drop-shadow-sm">{s.display_name}</div>
+          <div className="text-xs text-cream/85 mt-0.5">{s.specialties?.slice(0, 3).join(" · ")}</div>
+        </div>
         {s.featured_until && new Date(s.featured_until) > new Date() && (
           <span className="absolute left-3 top-3 rounded-full bg-gold-500 text-ink text-[10px] font-bold uppercase tracking-wider px-2 py-1">Featured</span>
         )}
@@ -35,13 +46,8 @@ export function StylistCard({ s, fromKes }: { s: Stylist & { profile?: { full_na
             {s.neighborhoods?.[0] || s.base_location || "Nairobi"}
             {s.travels && <span className="ml-1 text-sage">• travels</span>}
           </p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {s.specialties?.slice(0, 2).map((sp) => (
-              <span key={sp} className="text-[10px] uppercase tracking-wider text-mute">{sp}</span>
-            ))}
-          </div>
         </div>
-        {fromKes != null && (
+        {fromKes != null && Number.isFinite(fromKes) && (
           <div className="text-right">
             <div className="text-[10px] uppercase text-mute">from</div>
             <div className="font-display text-lg">{KES(fromKes)}</div>
