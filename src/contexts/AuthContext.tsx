@@ -27,8 +27,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async (userId: string) => {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-    setProfile((data as Profile) ?? null);
+    try {
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+      if (error) {
+        // DB schema not applied yet — synthesize a minimal profile so the app
+        // doesn't strand the user. They can still sign in and see public surfaces.
+        if (error.code === "42P01" || /relation .* does not exist/i.test(error.message)) {
+          setProfile({ id: userId, full_name: null, phone: null, avatar_url: null,
+            role: "customer", neighborhood: null, language: "en", loyalty_points: 0,
+            hair_type: null, allergies: null, birthday: null, onboarding_complete: false,
+            created_at: new Date().toISOString() } as Profile);
+          return;
+        }
+      }
+      setProfile((data as Profile) ?? null);
+    } catch {
+      setProfile(null);
+    }
   };
 
   useEffect(() => {

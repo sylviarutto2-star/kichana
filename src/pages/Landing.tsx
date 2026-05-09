@@ -1,5 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
+import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin } from "lucide-react";
 
@@ -48,10 +49,7 @@ export default function Landing() {
         <Feature icon={<Shield className="h-5 w-5" />} title="Safe & secure" body="ID-verified stylists. Refund-protected deposits. Your data stays yours." />
       </section>
 
-      <footer className="border-t border-line py-6 text-xs text-mute container-wide flex justify-between">
-        <span>© {new Date().getFullYear()} Kichana</span>
-        <span>Made in Nairobi 🇰🇪</span>
-      </footer>
+      <Footer />
     </div>
   );
 }
