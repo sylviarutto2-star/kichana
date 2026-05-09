@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /onboarding
+Disallow: /studio
+Disallow: /bookings
+Disallow: /vault
+Disallow: /profile
+
+Sitemap: https://kichana.vercel.app/sitemap.xml

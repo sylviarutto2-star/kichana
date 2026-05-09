@@ -1,0 +1,13 @@
+{
+  "name": "Kichana",
+  "short_name": "Kichana",
+  "description": "Hair, brilliantly booked. Discover Nairobi's best hairstylists.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBF6EE",
+  "theme_color": "#C4663F",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

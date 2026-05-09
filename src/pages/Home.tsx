@@ -4,6 +4,7 @@ import { Heart, MessageCircle, Bookmark, Scissors, Plus } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { Avatar } from "@/components/Avatar";
 import { Logo } from "@/components/Logo";
+import { SmartImage } from "@/components/SmartImage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { demoFeed } from "@/lib/demoData";
@@ -101,7 +102,7 @@ export default function Home() {
                 <Link to={`/stylist/${p.stylist_id}`} className="btn-primary !py-2 !px-3 text-xs">Book this</Link>
               )}
             </div>
-            <img src={p.image_url} alt="" className="w-full aspect-[4/5] object-cover" />
+            <SmartImage src={p.image_url} fallbackKey={p.id} fallbackLabel={p.category || "Kichana"} className="w-full aspect-[4/5]" alt={p.caption || ""} />
             <div className="p-4">
               {p.caption && <p className="text-sm">{p.caption}</p>}
               <div className="mt-3 flex items-center gap-4 text-mute">

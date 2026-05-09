@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#823C20"/>
+      <stop offset="1" stop-color="#3F2233"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#g)"/>
+  <circle cx="950" cy="180" r="220" fill="white" fill-opacity="0.10"/>
+  <circle cx="200" cy="520" r="260" fill="white" fill-opacity="0.08"/>
+  <text x="80" y="240" font-family="Georgia, serif" font-size="140" fill="#FBF6EE" font-weight="700">kichana</text>
+  <text x="80" y="320" font-family="Georgia, serif" font-size="56" font-style="italic" fill="#FBF6EE" opacity="0.95">Hair, brilliantly booked.</text>
+  <text x="80" y="380" font-family="Helvetica, sans-serif" font-size="28" fill="#FBF6EE" opacity="0.75">Nairobi's best stylists. Book in seconds. M-Pesa ready.</text>
+</svg>

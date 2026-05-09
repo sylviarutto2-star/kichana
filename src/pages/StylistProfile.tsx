@@ -4,6 +4,7 @@ import { Star, MapPin, Clock, Verified, Users, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { demoStylists, demoServices, isDemo } from "@/lib/demoData";
 import { Avatar } from "@/components/Avatar";
+import { SmartImage } from "@/components/SmartImage";
 import { KES } from "@/lib/utils";
 import type { Stylist, Service } from "@/lib/database.types";
 
@@ -42,8 +43,14 @@ export default function StylistProfile() {
 
   return (
     <div className="pb-24 min-h-screen">
-      <div className="relative h-64 md:h-80 bg-line">
-        {stylist.hero_image_url && <img src={stylist.hero_image_url} className="h-full w-full object-cover" />}
+      <div className="relative h-64 md:h-80">
+        <SmartImage
+          src={stylist.hero_image_url}
+          fallbackKey={stylist.id}
+          fallbackLabel={stylist.display_name}
+          className="absolute inset-0"
+          alt={stylist.display_name}
+        />
         <Link to="/discover" className="absolute top-4 left-4 grid h-10 w-10 place-items-center rounded-full bg-cream/95">
           <ArrowLeft className="h-5 w-5" />
         </Link>
