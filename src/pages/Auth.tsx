@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
 
 export default function Auth() {
   const { session, profile, loading } = useAuth();
@@ -16,6 +16,7 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
   const nav = useNavigate();
 
   if (loading) return null;
@@ -28,17 +29,32 @@ export default function Auth() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: name, intended_role: presetRole } },
+          options: {
+            data: { full_name: name, intended_role: presetRole },
+            emailRedirectTo: window.location.origin + "/onboarding",
+          },
         });
         if (error) throw error;
+
+        // If session is null after signup, Supabase has email confirmation ON.
+        if (!data.session) {
+          setNeedsEmailConfirm(true);
+          return;
+        }
         toast.success("Welcome to Kichana!");
         nav(`/onboarding?role=${presetRole}`);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          if (error.message.toLowerCase().includes("email not confirmed")) {
+            setNeedsEmailConfirm(true);
+            return;
+          }
+          throw error;
+        }
         toast.success("Welcome back");
         nav("/home");
       }
@@ -47,6 +63,23 @@ export default function Auth() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/onboarding",
+        queryParams: { access_type: "offline", prompt: "consent" },
+      },
+    });
+    if (error) toast.error(error.message);
+  };
+
+  const resendConfirmation = async () => {
+    const { error } = await supabase.auth.resend({ type: "signup", email });
+    if (error) return toast.error(error.message);
+    toast.success("Confirmation email re-sent");
   };
 
   return (
@@ -64,41 +97,78 @@ export default function Auth() {
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="md:hidden mb-8"><Logo /></div>
-          <h1 className="font-display text-3xl">{mode === "signup" ? "Create account" : "Welcome back"}</h1>
-          <p className="text-mute text-sm mt-1">
-            {mode === "signup" ? "Just an email and password to get started." : "Sign in to your account."}
-          </p>
 
-          <form onSubmit={submit} className="mt-8 space-y-3">
-            {mode === "signup" && (
-              <div>
-                <label className="label">Full name</label>
-                <input className="input" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Wanjiku Kamau" />
+          {needsEmailConfirm ? (
+            <div className="card p-6 text-center">
+              <MailCheck className="h-10 w-10 mx-auto text-terracotta-600" />
+              <h1 className="font-display text-2xl mt-3">Check your email</h1>
+              <p className="text-mute text-sm mt-2">
+                We've sent a confirmation link to <strong className="text-ink">{email}</strong>. Click it to finish creating your account, then come back here to sign in.
+              </p>
+              <button onClick={resendConfirmation} className="btn-outline w-full mt-4 text-sm">Resend email</button>
+              <button
+                onClick={() => { setNeedsEmailConfirm(false); setMode("signin"); }}
+                className="btn-ghost w-full mt-2 text-sm"
+              >Already confirmed? Sign in</button>
+            </div>
+          ) : (
+            <>
+              <h1 className="font-display text-3xl">{mode === "signup" ? "Create account" : "Welcome back"}</h1>
+              <p className="text-mute text-sm mt-1">
+                {mode === "signup" ? "Quickest way: continue with Google." : "Sign in to your account."}
+              </p>
+
+              <button onClick={signInWithGoogle} className="btn-outline w-full mt-5">
+                <GoogleIcon /> Continue with Google
+              </button>
+
+              <div className="my-5 flex items-center gap-3 text-xs text-mute">
+                <hr className="flex-1 border-line" /> or email <hr className="flex-1 border-line" />
               </div>
-            )}
-            <div>
-              <label className="label">Email</label>
-              <input type="email" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" />
-            </div>
-            <div>
-              <label className="label">Password</label>
-              <input type="password" required minLength={6} className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
-            </div>
-            <button disabled={busy} className="btn-primary w-full mt-2">
-              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-              {mode === "signup" ? "Create account" : "Sign in"}
-            </button>
-          </form>
 
-          <p className="mt-6 text-sm text-mute">
-            {mode === "signup" ? "Already have an account? " : "New to Kichana? "}
-            <button onClick={() => setMode(mode === "signup" ? "signin" : "signup")} className="font-semibold text-terracotta-600">
-              {mode === "signup" ? "Sign in" : "Create one"}
-            </button>
-          </p>
-          <Link to="/" className="block mt-3 text-xs text-mute">← Back home</Link>
+              <form onSubmit={submit} className="space-y-3">
+                {mode === "signup" && (
+                  <div>
+                    <label className="label">Full name</label>
+                    <input className="input" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Wanjiku Kamau" />
+                  </div>
+                )}
+                <div>
+                  <label className="label">Email</label>
+                  <input type="email" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" />
+                </div>
+                <div>
+                  <label className="label">Password</label>
+                  <input type="password" required minLength={6} className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
+                </div>
+                <button disabled={busy} className="btn-primary w-full mt-2">
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {mode === "signup" ? "Create account" : "Sign in"}
+                </button>
+              </form>
+
+              <p className="mt-6 text-sm text-mute">
+                {mode === "signup" ? "Already have an account? " : "New to Kichana? "}
+                <button onClick={() => setMode(mode === "signup" ? "signin" : "signup")} className="font-semibold text-terracotta-600">
+                  {mode === "signup" ? "Sign in" : "Create one"}
+                </button>
+              </p>
+              <Link to="/" className="block mt-3 text-xs text-mute">← Back home</Link>
+            </>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+      <path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z" fill="#EA4335"/>
+    </svg>
   );
 }
