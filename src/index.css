@@ -1,124 +1,60 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 40 30% 96%;
-    --foreground: 30 15% 12%;
-
-    --card: 40 25% 98%;
-    --card-foreground: 30 15% 12%;
-
-    --popover: 40 25% 98%;
-    --popover-foreground: 30 15% 12%;
-
-    --primary: 12 75% 55%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 40 20% 92%;
-    --secondary-foreground: 30 15% 12%;
-
-    --muted: 40 15% 94%;
-    --muted-foreground: 30 8% 46%;
-
-    --accent: 145 50% 42%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 30 10% 90%;
-    --input: 30 10% 90%;
-    --ring: 12 75% 55%;
-
-    --radius: 1rem;
-
-    /* Custom tokens */
-    --mpesa-green: 122 39% 49%;
-    --mpesa-green-dark: 122 39% 39%;
-    --warm-sand: 40 30% 96%;
-    --deep-charcoal: 30 15% 12%;
-    --radius-outer: 20px;
-    --radius-inner: 12px;
-    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
-    --brand-curve: cubic-bezier(0.2, 0, 0, 1);
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
+:root {
+  color-scheme: light;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+html, body, #root { height: 100%; }
 
-  body {
-    @apply bg-background text-foreground font-body antialiased;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
-  }
+body {
+  @apply bg-cream text-ink font-body antialiased;
+  font-feature-settings: "ss01", "cv11";
 }
+
+h1, h2, h3, h4 {
+  @apply font-display tracking-tight;
+}
+
+::selection { background: #E0A48B; color: #1B1410; }
 
 @layer components {
-  .stylist-card-shadow {
-    box-shadow:
-      0 0 0 1px rgba(0,0,0,0.04),
-      0 8px 16px -4px rgba(0,0,0,0.08);
+  .container-app { @apply mx-auto w-full max-w-md px-5; }
+  .container-wide { @apply mx-auto w-full max-w-6xl px-5; }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary { @apply btn bg-terracotta-600 text-cream hover:bg-terracotta-700; }
+  .btn-ghost { @apply btn bg-transparent text-ink hover:bg-line/60; }
+  .btn-outline { @apply btn border border-line bg-cream text-ink hover:bg-white; }
+  .btn-dark { @apply btn bg-aubergine-700 text-cream hover:bg-aubergine-500; }
+
+  .input {
+    @apply w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm placeholder:text-mute focus:outline-none focus:ring-2 focus:ring-terracotta-300 focus:border-terracotta-500;
   }
 
-  .mpesa-gradient {
-    background: linear-gradient(135deg, hsl(var(--mpesa-green)) 0%, hsl(var(--mpesa-green-dark)) 100%);
+  .card {
+    @apply rounded-3xl bg-white border border-line shadow-card;
   }
 
-  .page-container {
-    @apply px-5 py-8 max-w-md mx-auto;
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink;
   }
+  .chip-active { @apply chip bg-ink text-cream border-ink; }
 
-  .label-text {
-    @apply text-xs font-bold uppercase tracking-widest text-muted-foreground;
+  .label { @apply block text-xs font-semibold uppercase tracking-wider text-mute mb-2; }
+
+  .h-eyebrow { @apply text-xs font-semibold uppercase tracking-[0.18em] text-terracotta-600; }
+
+  .skeleton { @apply animate-pulse rounded-xl bg-line/70; }
+
+  .nav-bottom {
+    @apply fixed bottom-0 inset-x-0 z-40 mx-auto max-w-md border-t border-line bg-cream/95 backdrop-blur;
   }
-
-  .sticky-action-bar {
-    @apply fixed bottom-0 left-0 right-0 bg-card border-t border-border px-5 py-4 z-50;
-  }
 }
 
-/* Leaflet overrides */
-.leaflet-container {
-  font-family: inherit;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.leaflet-tile-pane {
-  z-index: 1;
-}
-
-.stylist-map-marker,
-.user-map-marker,
-.location-pin-marker,
-.client-location-marker {
-  background: none !important;
-  border: none !important;
-}
-
-.leaflet-popup-content-wrapper {
-  border-radius: var(--radius-inner);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-}
-
-.safe-area-top {
-  padding-top: env(safe-area-inset-top, 0px);
-}
+/* Hide scrollbars on horizontal carousels */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

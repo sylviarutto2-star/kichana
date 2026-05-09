@@ -1,96 +1,142 @@
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { User, Settings, CreditCard, Star, HelpCircle, LogOut, ChevronRight, LayoutDashboard } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { BottomNav } from "@/components/BottomNav";
+import { PageHeader } from "@/components/PageHeader";
+import { Avatar } from "@/components/Avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { LogOut, Award, Languages, Phone, MapPin, Settings, Scissors } from "lucide-react";
+import { NAIROBI_AREAS } from "@/lib/utils";
 
-const pageTransition = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: [0.2, 0, 0, 1] as const },
-};
+export default function Profile() {
+  const { profile, signOut, refreshProfile, user } = useAuth();
+  const nav = useNavigate();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    full_name: profile?.full_name || "",
+    phone: profile?.phone || "",
+    neighborhood: profile?.neighborhood || "Westlands",
+    language: profile?.language || "en",
+    hair_type: profile?.hair_type || "",
+    allergies: profile?.allergies || "",
+  });
 
-const menuItems = [
-  { icon: User, label: "Edit Profile", path: "/profile/edit" },
-  { icon: CreditCard, label: "Payment Methods", path: "/profile/payments" },
-  { icon: Star, label: "My Reviews", path: "/profile/reviews" },
-  { icon: Settings, label: "Settings", path: "/profile/settings" },
-  { icon: HelpCircle, label: "Help & Support", path: "/profile/help" },
-];
+  useEffect(() => {
+    if (profile) setForm({
+      full_name: profile.full_name || "",
+      phone: profile.phone || "",
+      neighborhood: profile.neighborhood || "Westlands",
+      language: profile.language || "en",
+      hair_type: profile.hair_type || "",
+      allergies: profile.allergies || "",
+    });
+  }, [profile]);
 
-const Profile = () => {
-  const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/welcome");
+  const save = async () => {
+    if (!user) return;
+    const { error } = await supabase.from("profiles").update(form).eq("id", user.id);
+    if (error) return toast.error(error.message);
+    await refreshProfile();
+    setEditing(false);
+    toast.success("Saved");
   };
 
-  return (
-    <motion.div {...pageTransition} className="min-h-screen bg-background pb-24">
-      <div className="px-5 pt-6 pb-4">
-        <h1 className="font-display text-[24px] font-semibold tracking-tight">Profile</h1>
-      </div>
+  if (!profile) return null;
 
-      <div className="px-5">
-        <div className="bg-card border border-border rounded-inner p-5 flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-            {profile?.profile_photo ? (
-              <img src={profile.profile_photo} className="h-16 w-16 rounded-full object-cover" alt="" />
-            ) : (
-              <User className="h-7 w-7 text-primary" />
+  return (
+    <div className="pb-28 min-h-screen">
+      <PageHeader title="Me" />
+      <div className="container-app">
+        <div className="card p-5 flex items-center gap-4">
+          <Avatar src={profile.avatar_url} name={profile.full_name} size={64} />
+          <div className="flex-1 min-w-0">
+            <div className="font-display text-xl truncate">{profile.full_name || "Unnamed"}</div>
+            <div className="text-xs text-mute capitalize">{profile.role}</div>
+          </div>
+          <button onClick={() => setEditing(!editing)} className="btn-outline !py-2 !px-3 text-xs">
+            {editing ? "Cancel" : "Edit"}
+          </button>
+        </div>
+
+        <div className="card p-5 mt-4 flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/30 text-aubergine-700"><Award className="h-5 w-5" /></div>
+          <div className="flex-1">
+            <div className="text-xs text-mute">Loyalty points</div>
+            <div className="font-display text-2xl">{profile.loyalty_points}</div>
+          </div>
+          <div className="text-xs text-mute">Earn 1 pt per KES 100 spent</div>
+        </div>
+
+        {editing ? (
+          <div className="card p-5 mt-4 space-y-3">
+            <Field label="Full name" value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} />
+            <Field label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
+            <div>
+              <label className="label">Neighborhood</label>
+              <select className="input" value={form.neighborhood} onChange={(e) => setForm({ ...form, neighborhood: e.target.value })}>
+                {NAIROBI_AREAS.map((a) => <option key={a}>{a}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Language</label>
+              <select className="input" value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value as any })}>
+                <option value="en">English</option>
+                <option value="sw">Kiswahili</option>
+              </select>
+            </div>
+            {profile.role === "customer" && (
+              <>
+                <Field label="Hair type" value={form.hair_type} onChange={(v) => setForm({ ...form, hair_type: v })} />
+                <Field label="Allergies" value={form.allergies} onChange={(v) => setForm({ ...form, allergies: v })} />
+              </>
+            )}
+            <button className="btn-primary w-full" onClick={save}>Save</button>
+          </div>
+        ) : (
+          <div className="card p-5 mt-4 space-y-3 text-sm">
+            <Info icon={<Phone className="h-4 w-4" />} k="Phone" v={profile.phone || "—"} />
+            <Info icon={<MapPin className="h-4 w-4" />} k="Area" v={profile.neighborhood || "—"} />
+            <Info icon={<Languages className="h-4 w-4" />} k="Language" v={profile.language === "sw" ? "Kiswahili" : "English"} />
+            {profile.role === "customer" && (
+              <>
+                <Info icon={<Scissors className="h-4 w-4" />} k="Hair type" v={profile.hair_type || "—"} />
+                <Info icon={<Settings className="h-4 w-4" />} k="Allergies" v={profile.allergies || "—"} />
+              </>
             )}
           </div>
-          <div>
-            <p className="font-display font-semibold text-lg">{profile?.name || "Guest User"}</p>
-            <p className="text-sm text-muted-foreground">
-              {user ? profile?.email || user.email : "Sign in to manage your account"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {profile?.role === "stylist" && (
-        <div className="px-5 mt-4">
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate("/dashboard")}
-            className="w-full flex items-center gap-3 p-4 rounded-inner border border-primary bg-primary/5"
-          >
-            <LayoutDashboard className="h-5 w-5 text-primary" />
-            <span className="flex-1 text-left text-[15px] font-medium text-primary">Stylist Dashboard</span>
-            <ChevronRight className="h-4 w-4 text-primary" />
-          </motion.button>
-        </div>
-      )}
-
-      <div className="px-5 mt-6 space-y-1">
-        {menuItems.map(({ icon: Icon, label, path }) => (
-          <button key={label} onClick={() => navigate(path)} className="w-full flex items-center gap-3 py-3.5 px-1 border-b border-border">
-            <Icon className="h-5 w-5 text-muted-foreground" />
-            <span className="flex-1 text-left text-[15px] font-medium">{label}</span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-        ))}
-      </div>
-
-      <div className="px-5 mt-6">
-        {user ? (
-          <button onClick={handleSignOut} className="w-full flex items-center gap-3 py-3.5 px-1 text-destructive">
-            <LogOut className="h-5 w-5" />
-            <span className="text-[15px] font-medium">Sign Out</span>
-          </button>
-        ) : (
-          <button onClick={() => navigate("/auth")} className="w-full flex items-center gap-3 py-3.5 px-1 text-primary">
-            <User className="h-5 w-5" />
-            <span className="text-[15px] font-medium">Sign In</span>
-          </button>
         )}
+
+        {profile.role === "stylist" && (
+          <Link to="/studio" className="btn-dark w-full mt-4">Open Studio</Link>
+        )}
+
+        <button
+          onClick={async () => { await signOut(); nav("/"); }}
+          className="mt-6 w-full btn-outline text-terracotta-600"
+        >
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
       </div>
-
-      <p className="px-5 mt-8 text-xs text-muted-foreground text-center">kichana v1.0 — Nairobi, Kenya</p>
-    </motion.div>
+      <BottomNav />
+    </div>
   );
-};
+}
 
-export default Profile;
+function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <input className="input" value={value} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+function Info({ icon, k, v }: { icon: React.ReactNode; k: string; v: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-mute">{icon}</span>
+      <span className="text-mute w-24 text-xs uppercase tracking-wider">{k}</span>
+      <span className="flex-1 text-right">{v}</span>
+    </div>
+  );
+}

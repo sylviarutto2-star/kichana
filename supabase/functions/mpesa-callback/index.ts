@@ -1,104 +1,43 @@
-// M-Pesa Buy Goods callback — receives Safaricom STK Push result
-// Always returns HTTP 200 with { ResultCode: 0, ResultDesc: "Accepted" }
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Daraja STK callback. Called by Safaricom with payment result.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   try {
     const body = await req.json();
-    console.log('M-PESA Callback received:', JSON.stringify(body));
+    const cb = body?.Body?.stkCallback;
+    if (!cb) return ok();
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const checkoutId = cb.CheckoutRequestID as string;
+    const success = cb.ResultCode === 0;
+    const items: any[] = cb.CallbackMetadata?.Item || [];
+    const receipt = items.find((i) => i.Name === "MpesaReceiptNumber")?.Value as string | undefined;
+
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const callback = body.Body?.stkCallback;
-    if (!callback) {
-      console.error('No stkCallback in body');
-      return new Response(
-        JSON.stringify({ ResultCode: 0, ResultDesc: 'Accepted' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const { data: booking } = await sb
+      .from("bookings")
+      .select("id")
+      .eq("mpesa_receipt", checkoutId)
+      .maybeSingle();
+
+    if (booking) {
+      await sb.from("bookings").update({
+        status: success ? "confirmed" : "pending",
+        payment_status: success ? "deposit_paid" : "unpaid",
+        mpesa_receipt: success ? (receipt || checkoutId) : null,
+      }).eq("id", booking.id);
     }
-
-    const { ResultCode, ResultDesc, CheckoutRequestID, MerchantRequestID } = callback;
-
-    if (ResultCode === 0) {
-      // Payment successful — extract metadata
-      const items = callback.CallbackMetadata?.Item || [];
-      const receipt = items.find((i: any) => i.Name === 'MpesaReceiptNumber')?.Value;
-      const amount = items.find((i: any) => i.Name === 'Amount')?.Value;
-      const phone = items.find((i: any) => i.Name === 'PhoneNumber')?.Value;
-
-      console.log('Payment success:', { receipt, amount, phone, CheckoutRequestID, MerchantRequestID });
-
-      // Update payment record
-      const { data: payment, error: updateError } = await supabase
-        .from('payments')
-        .update({
-          status: 'success',
-          mpesa_receipt_number: receipt?.toString() || null,
-          result_description: ResultDesc,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('checkout_request_id', CheckoutRequestID)
-        .select('booking_id')
-        .single();
-
-      if (updateError) {
-        console.error('Update payment error:', updateError);
-      }
-
-      // Update booking status to paid
-      if (payment?.booking_id) {
-        const { error: bookingError } = await supabase
-          .from('bookings')
-          .update({ deposit_paid: true, status: 'confirmed' })
-          .eq('id', payment.booking_id);
-
-        if (bookingError) {
-          console.error('Update booking error:', bookingError);
-        }
-      }
-    } else {
-      // Payment failed or cancelled
-      console.log('Payment failed:', { ResultCode, ResultDesc, CheckoutRequestID });
-
-      const { error: failError } = await supabase
-        .from('payments')
-        .update({
-          status: 'failed',
-          result_description: ResultDesc,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('checkout_request_id', CheckoutRequestID);
-
-      if (failError) {
-        console.error('Update failed payment error:', failError);
-      }
-    }
-
-    // Always return success to Safaricom — mandatory
-    return new Response(
-      JSON.stringify({ ResultCode: 0, ResultDesc: 'Accepted' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    console.error('Callback error:', error);
-    // Still return 200 to Safaricom to prevent retries
-    return new Response(
-      JSON.stringify({ ResultCode: 0, ResultDesc: 'Accepted' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return ok();
+  } catch {
+    return ok();
   }
 });
+
+function ok() {
+  return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Accepted" }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}

@@ -1,67 +1,45 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
-import BottomNav from "@/components/BottomNav";
-import Index from "./pages/Index";
-import Welcome from "./pages/Welcome";
-import Auth from "./pages/Auth";
-import StylistProfile from "./pages/StylistProfile";
-import Booking from "./pages/Booking";
-import Payment from "./pages/Payment";
-import Bookings from "./pages/Bookings";
-import Explore from "./pages/Explore";
-import MapView from "./pages/MapView";
-import Chat from "./pages/Chat";
-import ChatConversation from "./pages/ChatConversation";
-import Profile from "./pages/Profile";
-import EditProfile from "./pages/EditProfile";
-import PaymentMethods from "./pages/PaymentMethods";
-import ProfilePlaceholder from "./pages/ProfilePlaceholder";
-import StylistDashboard from "./pages/StylistDashboard";
-import HomeServiceTracking from "./pages/HomeServiceTracking";
-import Sos from "./pages/Sos";
-import NotFound from "./pages/NotFound";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import Landing from "@/pages/Landing";
+import Auth from "@/pages/Auth";
+import Onboarding from "@/pages/Onboarding";
+import Home from "@/pages/Home";
+import Discover from "@/pages/Discover";
+import StylistProfile from "@/pages/StylistProfile";
+import Booking from "@/pages/Booking";
+import Bookings from "@/pages/Bookings";
+import Vault from "@/pages/Vault";
+import Profile from "@/pages/Profile";
+import Studio from "@/pages/Studio";
+import PostCreate from "@/pages/PostCreate";
+import GroupBooking from "@/pages/GroupBooking";
+import NotFound from "@/pages/NotFound";
 
-const queryClient = new QueryClient();
+function RequireAuth({ children }: { children: JSX.Element }) {
+  const { session, loading } = useAuth();
+  const loc = useLocation();
+  if (loading) return null;
+  if (!session) return <Navigate to="/auth" state={{ from: loc.pathname }} replace />;
+  return children;
+}
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/welcome" element={<Welcome />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<Index />} />
-            <Route path="/explore" element={<Explore />} />
-            <Route path="/sos" element={<Sos />} />
-            <Route path="/map" element={<MapView />} />
-            <Route path="/stylist/:id" element={<StylistProfile />} />
-            <Route path="/booking/:stylistId/:serviceId" element={<Booking />} />
-            <Route path="/payment/:stylistId/:serviceId" element={<Payment />} />
-            <Route path="/bookings" element={<Bookings />} />
-            <Route path="/home-services" element={<HomeServiceTracking />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/chat/:recipientId" element={<ChatConversation />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/edit" element={<EditProfile />} />
-            <Route path="/profile/payments" element={<PaymentMethods />} />
-            <Route path="/profile/reviews" element={<ProfilePlaceholder />} />
-            <Route path="/profile/settings" element={<ProfilePlaceholder />} />
-            <Route path="/profile/help" element={<ProfilePlaceholder />} />
-            <Route path="/dashboard" element={<StylistDashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <BottomNav />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+      <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
+      <Route path="/discover" element={<RequireAuth><Discover /></RequireAuth>} />
+      <Route path="/stylist/:id" element={<RequireAuth><StylistProfile /></RequireAuth>} />
+      <Route path="/book/:stylistId" element={<RequireAuth><Booking /></RequireAuth>} />
+      <Route path="/bookings" element={<RequireAuth><Bookings /></RequireAuth>} />
+      <Route path="/vault" element={<RequireAuth><Vault /></RequireAuth>} />
+      <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+      <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
+      <Route path="/post" element={<RequireAuth><PostCreate /></RequireAuth>} />
+      <Route path="/group/:stylistId" element={<RequireAuth><GroupBooking /></RequireAuth>} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}

@@ -1,87 +1,96 @@
-import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Check, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { mockStylists } from "@/data/mockData";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { BottomNav } from "@/components/BottomNav";
+import { PageHeader } from "@/components/PageHeader";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { KES } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar, MapPin, Clock } from "lucide-react";
 
-const pageTransition = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: [0.2, 0, 0, 1] as const },
-};
+type Row = any;
 
-const mockBookings = [
-  { id: "b1", stylistId: "1", serviceId: "s1", date: "Mar 18, 2026", time: "10:00 AM", status: "pending" as const, locationType: "home" },
-  { id: "b2", stylistId: "4", serviceId: "s11", date: "Mar 10, 2026", time: "2:00 PM", status: "completed" as const, locationType: "salon" },
-  { id: "b3", stylistId: "2", serviceId: "s5", date: "Feb 25, 2026", time: "11:00 AM", status: "completed" as const, locationType: "home" },
-];
+export default function Bookings() {
+  const { user } = useAuth();
+  const [rows, setRows] = useState<Row[]>([]);
+  const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
+  const [loading, setLoading] = useState(true);
 
-const statusConfig = {
-  pending: { label: "Pending", icon: Clock, color: "text-amber-600 bg-amber-50" },
-  accepted: { label: "Accepted", icon: Check, color: "text-accent bg-accent/10" },
-  completed: { label: "Completed", icon: Check, color: "text-accent bg-accent/10" },
-  cancelled: { label: "Cancelled", icon: X, color: "text-destructive bg-destructive/10" },
-};
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("bookings")
+        .select("*, services(title), stylists(display_name, base_location)")
+        .eq("customer_id", user.id)
+        .order("scheduled_for", { ascending: false });
+      setRows(data || []);
+      setLoading(false);
+    })();
+  }, [user]);
 
-const Bookings = () => {
-  const navigate = useNavigate();
+  const now = Date.now();
+  const filtered = rows.filter((r) => {
+    const t = new Date(r.scheduled_for).getTime();
+    return tab === "upcoming" ? t >= now - 3600_000 : t < now - 3600_000;
+  });
 
   return (
-    <motion.div {...pageTransition} className="min-h-screen bg-background pb-24">
-      <div className="px-5 pt-6 pb-4">
-        <h1 className="font-display text-[24px] font-semibold tracking-tight">My Bookings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Track your appointments</p>
-      </div>
+    <div className="pb-28 min-h-screen">
+      <PageHeader title="My bookings" />
+      <div className="container-app">
+        <div className="flex gap-2 mb-4">
+          <button onClick={() => setTab("upcoming")} className={tab === "upcoming" ? "chip-active" : "chip"}>Upcoming</button>
+          <button onClick={() => setTab("past")} className={tab === "past" ? "chip-active" : "chip"}>Past</button>
+        </div>
 
-      <div className="px-5 space-y-3">
-        {mockBookings.map((booking) => {
-          const stylist = mockStylists.find((s) => s.id === booking.stylistId);
-          const service = stylist?.services.find((s) => s.id === booking.serviceId);
-          const status = statusConfig[booking.status];
-          if (!stylist || !service) return null;
+        {loading && <div className="skeleton h-32 rounded-2xl" />}
 
-          return (
-            <motion.div
-              key={booking.id}
-              whileTap={{ scale: 0.98 }}
-              className="bg-card border border-border rounded-inner p-4 cursor-pointer"
-              onClick={() => booking.status === "completed" ? null : navigate(`/stylist/${stylist.id}`)}
-            >
-              <div className="flex items-center gap-3">
-                <img src={stylist.image} alt={stylist.name} className="h-14 w-14 rounded-inner object-cover" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-display font-medium truncate">{stylist.name}</p>
-                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${status.color}`}>
-                      {status.label}
-                    </span>
+        {!loading && filtered.length === 0 && (
+          <div className="card p-8 text-center text-mute">
+            No bookings yet.
+            <div className="mt-4">
+              <Link to="/discover" className="btn-primary">Find a stylist</Link>
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-3">
+          {filtered.map((b) => (
+            <div key={b.id} className="card p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">{b.services?.title}</div>
+                  <div className="text-xs text-mute mt-1">with {b.stylists?.display_name}</div>
+                  <div className="mt-2 text-xs text-mute flex flex-wrap gap-3">
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {format(new Date(b.scheduled_for), "EEE d MMM")}</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {format(new Date(b.scheduled_for), "HH:mm")}</span>
+                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {b.location_type === "salon" ? b.stylists?.base_location : "Home"}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{service.name}</p>
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                    <span>{booking.date}</span>
-                    <span>{booking.time}</span>
-                    <span className="capitalize">{booking.locationType}</span>
-                  </div>
+                </div>
+                <div className="text-right">
+                  <Status s={b.status} />
+                  <div className="font-display text-lg mt-2">{KES(b.amount_kes)}</div>
+                  <div className="text-[10px] text-mute uppercase">{b.payment_status.replace("_", " ")}</div>
                 </div>
               </div>
-              {booking.status === "completed" && (
-                <div className="mt-3 pt-3 border-t border-border flex gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/stylist/${stylist.id}`); }}
-                    className="flex-1 py-2 rounded-sm bg-primary text-primary-foreground text-sm font-medium"
-                  >
-                    Rebook
-                  </button>
-                  <button className="flex-1 py-2 rounded-sm bg-secondary text-secondary-foreground text-sm font-medium">
-                    Leave Review
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          );
-        })}
+            </div>
+          ))}
+        </div>
       </div>
-    </motion.div>
+      <BottomNav />
+    </div>
   );
-};
+}
 
-export default Bookings;
+function Status({ s }: { s: string }) {
+  const map: Record<string, string> = {
+    pending: "bg-gold-400/30 text-aubergine-700",
+    confirmed: "bg-sage/20 text-aubergine-700",
+    in_progress: "bg-terracotta-100 text-terracotta-700",
+    completed: "bg-aubergine-700 text-cream",
+    cancelled: "bg-line text-mute",
+    no_show: "bg-line text-mute",
+  };
+  return <span className={`inline-block text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${map[s] || "bg-line"}`}>{s.replace("_", " ")}</span>;
+}

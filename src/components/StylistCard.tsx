@@ -1,74 +1,53 @@
-import { motion } from "framer-motion";
-import { Star, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Star, MapPin, Verified } from "lucide-react";
+import { Avatar } from "./Avatar";
+import type { Stylist } from "@/lib/database.types";
+import { KES } from "@/lib/utils";
 
-interface StylistCardProps {
-  name: string;
-  image: string;
-  rating: number;
-  reviews: number;
-  category: string;
-  startingPrice: number;
-  distance?: number;
-  onClick?: () => void;
-  compact?: boolean;
-}
-
-const StylistCard = ({
-  name,
-  image,
-  rating,
-  reviews,
-  category,
-  startingPrice,
-  distance,
-  onClick,
-  compact = false,
-}: StylistCardProps) => {
+export function StylistCard({ s, fromKes }: { s: Stylist & { profile?: { full_name?: string | null; avatar_url?: string | null } }; fromKes?: number }) {
   return (
-    <motion.button
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="group flex w-full flex-col text-left"
+    <Link
+      to={`/stylist/${s.id}`}
+      className="card overflow-hidden block group"
     >
-      <div
-        className={`relative w-full overflow-hidden bg-secondary ${
-          compact ? "aspect-[4/4.8] rounded-inner" : "aspect-[4/5] rounded-2xl"
-        }`}
-      >
-        <img
-          src={image}
-          alt={name}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-        />
-        <span className="absolute left-2 top-2 rounded-full bg-background/92 px-2 py-1 text-[10px] font-medium text-foreground backdrop-blur-sm">
-          {category}
-        </span>
-      </div>
-      <div className={`px-0.5 ${compact ? "mt-2 space-y-1" : "mt-2.5 space-y-1.5"}`}>
-        <p className={`font-display font-semibold leading-tight text-foreground ${compact ? "min-h-[2rem] text-[12.5px]" : "text-[14px]"}`}>
-          {name}
-        </p>
-        <div className={`flex flex-wrap items-center gap-x-1.5 gap-y-1 text-muted-foreground ${compact ? "text-[10.5px]" : "text-[11.5px]"}`}>
-          <div className="flex items-center gap-1">
-            <Star className={`${compact ? "h-3 w-3" : "h-3.5 w-3.5"} fill-primary text-primary`} />
-            <span className="font-medium text-foreground tabular-nums">{rating.toFixed(1)}</span>
-            <span className="tabular-nums">({reviews})</span>
-          </div>
-          {distance !== undefined && (
-            <div className="flex items-center gap-1">
-              <span>·</span>
-              <MapPin className={`${compact ? "h-2.5 w-2.5" : "h-3 w-3"}`} />
-              <span className="tabular-nums">{distance.toFixed(1)} km</span>
-            </div>
-          )}
+      <div className="relative aspect-[4/3] bg-line">
+        {s.hero_image_url ? (
+          <img src={s.hero_image_url} alt={s.display_name} className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-terracotta-100 to-aubergine-500" />
+        )}
+        {s.featured_until && new Date(s.featured_until) > new Date() && (
+          <span className="absolute left-3 top-3 rounded-full bg-gold-500 text-ink text-[10px] font-bold uppercase tracking-wider px-2 py-1">Featured</span>
+        )}
+        <div className="absolute right-3 top-3 rounded-full bg-cream/95 px-2.5 py-1 text-xs font-semibold flex items-center gap-1">
+          <Star className="h-3 w-3 fill-gold-500 text-gold-500" /> {s.rating_avg.toFixed(1)}
         </div>
-        <p className={`${compact ? "text-[10.5px]" : "text-[11.5px]"} text-muted-foreground`}>
-          From <span className="font-semibold text-foreground">KES {startingPrice.toLocaleString()}</span>
-        </p>
       </div>
-    </motion.button>
+      <div className="p-4 flex gap-3">
+        <Avatar src={s.profile?.avatar_url} name={s.display_name} size={44} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1">
+            <h3 className="font-semibold truncate">{s.display_name}</h3>
+            {s.verified && <Verified className="h-4 w-4 text-terracotta-600" />}
+          </div>
+          <p className="text-xs text-mute flex items-center gap-1 mt-0.5">
+            <MapPin className="h-3 w-3" />
+            {s.neighborhoods?.[0] || s.base_location || "Nairobi"}
+            {s.travels && <span className="ml-1 text-sage">• travels</span>}
+          </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {s.specialties?.slice(0, 2).map((sp) => (
+              <span key={sp} className="text-[10px] uppercase tracking-wider text-mute">{sp}</span>
+            ))}
+          </div>
+        </div>
+        {fromKes != null && (
+          <div className="text-right">
+            <div className="text-[10px] uppercase text-mute">from</div>
+            <div className="font-display text-lg">{KES(fromKes)}</div>
+          </div>
+        )}
+      </div>
+    </Link>
   );
-};
-
-export default StylistCard;
+}
