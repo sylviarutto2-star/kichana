@@ -1,316 +1,246 @@
-import { useState, useEffect, lazy, Suspense } from "react";
-import { motion } from "framer-motion";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Home, MapPin, Camera, AlertCircle, Check } from "lucide-react";
-import { mockStylists } from "@/data/mockData";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { demoServices, demoStylists, isDemo } from "@/lib/demoData";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-const LocationPickerMap = lazy(() => import("@/components/LocationPickerMap"));
+import { PageHeader } from "@/components/PageHeader";
+import { KES, cn } from "@/lib/utils";
+import { addDays, format, setHours, setMinutes } from "date-fns";
+import { Check, Loader2, Smartphone } from "lucide-react";
+import { toast } from "sonner";
+import type { Service, Stylist } from "@/lib/database.types";
 
-const pageTransition = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: [0.2, 0, 0, 1] as const },
-};
+export default function Booking() {
+  const { stylistId } = useParams();
+  const [params] = useSearchParams();
+  const initialServiceId = params.get("service") || undefined;
+  const nav = useNavigate();
+  const { user, profile } = useAuth();
 
-const allTimeSlots = ["9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"];
+  const [stylist, setStylist] = useState<Stylist | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [serviceId, setServiceId] = useState<string | undefined>(initialServiceId);
+  const [step, setStep] = useState(0);
+  const [date, setDate] = useState<Date>(addDays(new Date(), 1));
+  const [time, setTime] = useState<string>("10:00");
+  const [locationType, setLocationType] = useState<"salon" | "home">("salon");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState(profile?.phone || "");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
 
-const Booking = () => {
-  const { stylistId, serviceId } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [locationType, setLocationType] = useState<"home" | "salon">("salon");
-  const [selectedDate, setSelectedDate] = useState<string>("");
-  const [selectedTime, setSelectedTime] = useState<string>("");
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [homeLocation, setHomeLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
-
-  const stylist = mockStylists.find((s) => s.id === stylistId);
-  const service = stylist?.services.find((s) => s.id === serviceId);
-
-  // Fetch booked slots when date changes
   useEffect(() => {
-    if (!selectedDate || !stylistId) return;
-    const fetchBookedSlots = async () => {
-      const { data } = await supabase
-        .from("bookings")
-        .select("appointment_time")
-        .eq("stylist_id", stylistId)
-        .eq("appointment_date", selectedDate)
-        .in("status", ["pending", "accepted", "confirmed"]);
-
-      if (data) {
-        const slots = data.map((b) => {
-          const [h, m] = b.appointment_time.split(":");
-          const hour = parseInt(h);
-          const ampm = hour >= 12 ? "PM" : "AM";
-          const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-          return `${displayHour}:${m} ${ampm}`;
-        });
-        setBookedSlots(slots);
+    if (!stylistId) return;
+    (async () => {
+      if (isDemo(stylistId)) {
+        setStylist(demoStylists.find((x) => x.id === stylistId) as any);
+        setServices(demoServices[stylistId] || []);
+        return;
       }
-    };
-    fetchBookedSlots();
-  }, [selectedDate, stylistId]);
+      const [{ data: s }, { data: svc }] = await Promise.all([
+        supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
+        supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
+      ]);
+      setStylist(s as any);
+      setServices((svc as Service[]) || []);
+    })();
+  }, [stylistId]);
 
-  if (!stylist || !service) return <div className="page-container">Not found</div>;
+  const service = useMemo(() => services.find((s) => s.id === serviceId), [services, serviceId]);
+  const dates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
+  const times = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00"];
 
-  const homeEligible = stylist.homeServiceEnabled && stylist.completedBookings >= 3;
-  const depositPercent = stylist.depositPercentage;
-  const platformFee = Math.ceil(service.price * 0.05);
-  const deposit = Math.ceil(service.price * (depositPercent / 100));
-  const totalDue = deposit + platformFee;
-  const remaining = service.price - deposit;
-  const transportFee = locationType === "home" && homeEligible ? stylist.transportFee : 0;
+  const deposit = service ? Math.max(500, Math.round(service.price_kes * 0.3 / 100) * 100) : 0;
 
-  // Generate next 7 days
-  const dates = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i + 1);
-    return {
-      key: d.toISOString().split("T")[0],
-      day: d.toLocaleDateString("en-US", { weekday: "short" }),
-      date: d.getDate(),
-      month: d.toLocaleDateString("en-US", { month: "short" }),
-    };
-  });
-
-
-
-  const handleProceed = async () => {
-    if (!user) {
-      toast({ title: "Sign in required", description: "Please sign in to book an appointment", variant: "destructive" });
-      navigate("/auth");
+  const confirm = async () => {
+    if (!user || !service || !stylist) return;
+    if (isDemo(stylist.id)) {
+      toast.error("This is a demo stylist. Please pick a real, onboarded stylist to book.");
       return;
     }
-    // Navigate to payment with booking details in state
-    navigate(`/payment/${stylistId}/${serviceId}`, {
-      state: {
-        date: selectedDate,
-        time: selectedTime,
-        locationType,
-        deposit,
-        platformFee,
-        totalDue: totalDue + transportFee,
-        remaining,
-        transportFee,
-        depositPercent,
-        homeLocation: locationType === "home" ? homeLocation : null,
-      },
-    });
+    setBusy(true);
+    try {
+      const [h, m] = time.split(":").map(Number);
+      const scheduled = setMinutes(setHours(date, h), m).toISOString();
+
+      const { data: booking, error } = await supabase
+        .from("bookings")
+        .insert({
+          customer_id: user.id,
+          stylist_id: stylist.id,
+          service_id: service.id,
+          scheduled_for: scheduled,
+          location_type: locationType,
+          address: locationType === "home" ? address : null,
+          amount_kes: service.price_kes,
+          deposit_kes: deposit,
+          notes,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+
+      // Trigger M-Pesa STK
+      const { data: mpesa, error: mErr } = await supabase.functions.invoke("mpesa-stk", {
+        body: { booking_id: booking.id, phone, amount: deposit },
+      });
+      if (mErr) {
+        toast.warning("Booking saved. Payment couldn't start — pay later in My Bookings.");
+      } else if ((mpesa as any)?.simulated) {
+        toast.success("Booking confirmed (demo). Check your bookings.");
+      } else {
+        toast.success("Check your phone for the M-Pesa prompt 📲");
+      }
+      nav("/bookings");
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't book. Try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const canProceed = selectedDate && selectedTime && (locationType === "salon" || homeLocation);
-  const isSlotBooked = (slot: string) => bookedSlots.includes(slot);
-
   return (
-    <motion.div {...pageTransition} className="min-h-screen bg-background pb-36">
-      {/* Header */}
-      <div className="px-5 pt-6 pb-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-6 w-6 text-foreground" />
-        </button>
-        <h1 className="font-display text-xl font-semibold tracking-tight">Book Appointment</h1>
-      </div>
+    <div className="pb-24 min-h-screen">
+      <PageHeader title="Book" subtitle={stylist?.display_name || "—"} back />
 
-      <div className="px-5 space-y-6">
-        {/* Service Summary */}
-        <div className="bg-card border border-border rounded-inner p-4">
-          <div className="flex items-center gap-3">
-            <img src={stylist.image} alt={stylist.name} className="h-12 w-12 rounded-inner object-cover" />
-            <div className="flex-1">
-              <p className="font-display font-medium">{stylist.name}</p>
-              <p className="text-sm text-muted-foreground">{service.name}</p>
-            </div>
-            <p className="font-display font-bold tabular-nums">KES {service.price.toLocaleString()}</p>
-          </div>
-        </div>
+      <div className="container-app">
+        <Stepper step={step} />
 
-        {/* Location Type */}
-        <div>
-          <label className="label-text">Where?</label>
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={() => setLocationType("salon")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-inner border text-sm font-medium transition-colors ${
-                locationType === "salon" ? "bg-primary/5 border-primary text-primary" : "bg-card border-border text-foreground"
-              }`}
-            >
-              <MapPin className="h-4 w-4" /> At Salon
-            </button>
-            <button
-              onClick={() => {
-                if (!homeEligible) {
-                  toast({
-                    title: "Home service unavailable",
-                    description: stylist.homeServiceEnabled
-                      ? "This stylist needs at least 3 completed bookings for home service"
-                      : "This stylist doesn't offer home service",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                setLocationType("home");
-              }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-inner border text-sm font-medium transition-colors ${
-                locationType === "home" ? "bg-primary/5 border-primary text-primary" : "bg-card border-border text-foreground"
-              } ${!homeEligible ? "opacity-50" : ""}`}
-            >
-              <Home className="h-4 w-4" /> At Home
-            </button>
-          </div>
-          {locationType === "home" && homeEligible && transportFee > 0 && (
-            <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" /> Transport fee of KES {transportFee.toLocaleString()} applies
-            </p>
-          )}
-        </div>
-
-        {/* Home Location Picker */}
-        {locationType === "home" && homeEligible && (
-          <div>
-            <label className="label-text">Your Location</label>
-            <p className="text-xs text-muted-foreground mt-1 mb-2">Select where the stylist should come</p>
-            {homeLocation ? (
-              <div className="bg-card border border-accent rounded-inner p-3 flex items-center gap-2">
-                <Check className="h-4 w-4 text-accent flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{homeLocation.address || "Location selected"}</p>
+        {step === 0 && (
+          <div className="mt-6 grid gap-3 animate-fade-up">
+            <div className="label">Choose a service</div>
+            {services.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setServiceId(s.id)}
+                className={cn("card p-4 text-left flex justify-between items-start gap-4", serviceId === s.id && "border-terracotta-500 ring-2 ring-terracotta-300")}
+              >
+                <div>
+                  <div className="font-semibold">{s.title}</div>
+                  {s.description && <p className="text-xs text-mute mt-1">{s.description}</p>}
+                  <div className="text-xs text-mute mt-1">{Math.round(s.duration_min/60*10)/10}h</div>
                 </div>
-                <button
-                  onClick={() => setHomeLocation(null)}
-                  className="text-xs text-primary font-medium flex-shrink-0"
-                >
-                  Change
-                </button>
-              </div>
-            ) : (
-              <Suspense fallback={<div className="h-[50vh] rounded-inner bg-secondary animate-pulse" />}>
-                <LocationPickerMap
-                  onLocationSelect={(lat, lng, address) => setHomeLocation({ lat, lng, address })}
-                />
-              </Suspense>
-            )}
+                <div className="font-display text-lg">{KES(s.price_kes)}</div>
+              </button>
+            ))}
+            <button
+              disabled={!serviceId}
+              onClick={() => setStep(1)}
+              className="btn-primary mt-4"
+            >Continue</button>
           </div>
         )}
 
-        {/* Date Selection */}
-        <div>
-          <label className="label-text">Pick a Date</label>
-          <div className="flex gap-2 mt-2 overflow-x-auto scrollbar-hide">
-            {dates.map((d) => (
-              <button
-                key={d.key}
-                onClick={() => { setSelectedDate(d.key); setSelectedTime(""); }}
-                className={`flex-shrink-0 w-16 py-3 rounded-inner border text-center transition-colors ${
-                  selectedDate === d.key
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card border-border text-foreground"
-                }`}
-              >
-                <p className="text-[10px] font-medium uppercase opacity-70">{d.day}</p>
-                <p className="text-lg font-display font-bold tabular-nums">{d.date}</p>
-                <p className="text-[10px] opacity-70">{d.month}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Time Selection */}
-        <div>
-          <label className="label-text">Pick a Time</label>
-          <div className="grid grid-cols-3 gap-2 mt-2">
-            {allTimeSlots.map((time) => {
-              const booked = isSlotBooked(time);
-              return (
+        {step === 1 && (
+          <div className="mt-6 animate-fade-up">
+            <div className="label">Pick a day</div>
+            <div className="-mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar">
+              {dates.map((d) => (
                 <button
-                  key={time}
-                  onClick={() => !booked && setSelectedTime(time)}
-                  disabled={booked}
-                  className={`py-2.5 rounded-inner border text-sm font-medium transition-colors ${
-                    booked
-                      ? "bg-destructive/10 border-destructive/20 text-destructive/50 line-through cursor-not-allowed"
-                      : selectedTime === time
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card border-border text-foreground"
-                  }`}
+                  key={d.toISOString()}
+                  onClick={() => setDate(d)}
+                  className={cn(
+                    "shrink-0 rounded-2xl border px-3 py-2 text-center min-w-[70px]",
+                    format(d, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+                      ? "bg-ink text-cream border-ink"
+                      : "bg-white border-line"
+                  )}
                 >
-                  {time}
+                  <div className="text-[10px] uppercase">{format(d, "EEE")}</div>
+                  <div className="font-display text-lg">{format(d, "d")}</div>
+                  <div className="text-[10px]">{format(d, "MMM")}</div>
                 </button>
-              );
-            })}
-          </div>
-          {bookedSlots.length > 0 && selectedDate && (
-            <p className="text-xs text-muted-foreground mt-1.5">Strikethrough slots are already booked</p>
-          )}
-        </div>
-
-        {/* Inspo Photo */}
-        <div>
-          <label className="label-text">Inspiration Photo (Optional)</label>
-          <button className="mt-2 w-full border-2 border-dashed border-border rounded-inner py-8 flex flex-col items-center gap-2 text-muted-foreground hover:border-primary/30 transition-colors">
-            <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
-              <Camera className="h-5 w-5" />
+              ))}
             </div>
-            <p className="text-sm font-medium">Upload a photo</p>
-            <p className="text-xs">Show your stylist the look you want</p>
-          </button>
-        </div>
 
-        {/* Price Breakdown */}
-        <div className="bg-card border border-border rounded-inner p-4 space-y-2">
-          <label className="label-text">Price Breakdown</label>
-          <div className="flex justify-between text-sm mt-2">
-            <span className="text-muted-foreground">{service.name}</span>
-            <span className="tabular-nums font-medium">KES {service.price.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Platform fee (5%)</span>
-            <span className="tabular-nums font-medium">KES {platformFee.toLocaleString()}</span>
-          </div>
-          {transportFee > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Transport fee</span>
-              <span className="tabular-nums font-medium">KES {transportFee.toLocaleString()}</span>
+            <div className="label mt-6">Time</div>
+            <div className="grid grid-cols-4 gap-2">
+              {times.map((t) => (
+                <button key={t} onClick={() => setTime(t)} className={cn(t === time ? "chip-active" : "chip", "justify-center")}>{t}</button>
+              ))}
             </div>
-          )}
-          <div className="border-t border-border pt-2 mt-2 flex justify-between text-sm">
-            <span className="font-medium">Deposit ({depositPercent}%)</span>
-            <span className="tabular-nums font-display font-bold text-primary">KES {deposit.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="font-medium">Due now</span>
-            <span className="tabular-nums font-display font-bold">KES {(totalDue + transportFee).toLocaleString()}</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Remaining KES {remaining.toLocaleString()} due after service completion
-          </p>
-        </div>
-      </div>
 
-      {/* Sticky Action Bar */}
-      <div className="sticky-action-bar">
-        <div className="max-w-md mx-auto space-y-2">
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            disabled={!canProceed}
-            onClick={handleProceed}
-            className={`w-full h-14 rounded-outer font-display font-semibold text-base transition-colors ${
-              canProceed ? "mpesa-gradient text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}
-          >
-            Pay KES {(totalDue + transportFee).toLocaleString()}
-          </motion.button>
-          <p className="text-xs text-center text-muted-foreground">
-            Secure your spot with a {depositPercent}% deposit + platform fee
-          </p>
-        </div>
+            <div className="label mt-6">Where?</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setLocationType("salon")} className={cn(locationType === "salon" ? "chip-active" : "chip", "justify-center py-3")}>At the salon</button>
+              <button onClick={() => setLocationType("home")} className={cn(locationType === "home" ? "chip-active" : "chip", "justify-center py-3")}>Come to me</button>
+            </div>
+
+            {locationType === "home" && (
+              <div className="mt-3">
+                <label className="label">Your address</label>
+                <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Apartment, area, landmark" />
+              </div>
+            )}
+
+            <div className="mt-3">
+              <label className="label">Notes for stylist (optional)</label>
+              <textarea rows={3} className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Length, colour, vault references…" />
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button onClick={() => setStep(0)} className="btn-outline">Back</button>
+              <button onClick={() => setStep(2)} className="btn-primary flex-1">Review</button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && service && (
+          <div className="mt-6 animate-fade-up space-y-4">
+            <div className="card p-5 space-y-3 text-sm">
+              <Row k="Service" v={service.title} />
+              <Row k="When" v={`${format(date, "EEE d MMM")} · ${time}`} />
+              <Row k="Where" v={locationType === "salon" ? `${stylist?.base_location} (salon)` : address || "Home"} />
+              <hr className="border-line" />
+              <Row k="Total" v={KES(service.price_kes)} />
+              <Row k="Deposit (now)" v={KES(deposit)} accent />
+              <Row k="Balance (after service)" v={KES(service.price_kes - deposit)} muted />
+            </div>
+
+            <div className="card p-5">
+              <div className="label">M-Pesa phone</div>
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-mute" />
+                <input className="input flex-1" placeholder="07XX XXX XXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+              <p className="text-xs text-mute mt-2">You'll get an STK push to authorise the deposit.</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setStep(1)} className="btn-outline">Back</button>
+              <button disabled={busy || !phone} onClick={confirm} className="btn-primary flex-1">
+                {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                Pay deposit & confirm
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
-};
+}
 
-export default Booking;
+function Row({ k, v, accent, muted }: { k: string; v: string; accent?: boolean; muted?: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-mute">{k}</span>
+      <span className={cn("font-semibold", accent && "text-terracotta-600", muted && "text-mute")}>{v}</span>
+    </div>
+  );
+}
+
+function Stepper({ step }: { step: number }) {
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      {["Service", "Date & place", "Pay"].map((l, i) => (
+        <div key={l} className="flex-1">
+          <div className={cn("h-1 rounded-full", i <= step ? "bg-terracotta-600" : "bg-line")} />
+          <div className="mt-2 flex items-center gap-1 text-xs">
+            {i < step ? <Check className="h-3 w-3 text-terracotta-600" /> : <span className={cn("inline-block h-2 w-2 rounded-full", i === step ? "bg-terracotta-600" : "bg-line")} />}
+            <span className={i <= step ? "text-ink font-semibold" : "text-mute"}>{l}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

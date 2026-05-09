@@ -1,152 +1,104 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Phone, Mail } from "lucide-react";
-import KichanaLogo from "@/components/KichanaLogo";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-const pageTransition = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, ease: [0.2, 0, 0, 1] as const },
-};
+export default function Auth() {
+  const { session, profile, loading } = useAuth();
+  const [params] = useSearchParams();
+  const presetRole = params.get("role") === "stylist" ? "stylist" : "customer";
 
-const Auth = () => {
-  const navigate = useNavigate();
-  const { signUp, signIn } = useAuth();
-  const { toast } = useToast();
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [method, setMethod] = useState<"email">("email");
+  const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"customer" | "stylist">("customer");
-  const [isLoading, setIsLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const nav = useNavigate();
 
-  const handleSubmit = async () => {
-    if (!email || !password) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
-      return;
-    }
-    setIsLoading(true);
+  if (loading) return null;
+  if (session) {
+    return <Navigate to={profile?.onboarding_complete ? "/home" : "/onboarding"} replace />;
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
     try {
       if (mode === "signup") {
-        await signUp(email, password, name, role);
-        toast({ title: "Account created!", description: "Please check your email and click the verification link to activate your account." });
-        setMode("login");
-        setPassword("");
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: name, intended_role: presetRole } },
+        });
+        if (error) throw error;
+        toast.success("Welcome to Kichana!");
+        nav(`/onboarding?role=${presetRole}`);
       } else {
-        await signIn(email, password);
-        toast({ title: "Welcome back!" });
-        navigate("/");
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        toast.success("Welcome back");
+        nav("/home");
       }
-    } catch (error: any) {
-      const msg = error?.message || "Something went wrong";
-      toast({ title: "Error", description: msg, variant: "destructive" });
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong");
     } finally {
-      setIsLoading(false);
+      setBusy(false);
     }
   };
 
   return (
-    <motion.div {...pageTransition} className="min-h-screen bg-background page-container">
-      <button onClick={() => navigate("/welcome")} className="mb-6">
-        <ArrowLeft className="h-6 w-6 text-foreground" />
-      </button>
-
-      <KichanaLogo />
-
-      <h1 className="font-display text-[28px] font-semibold tracking-tight leading-[1.1] mt-6">
-        {mode === "login" ? "Welcome back" : "Create account"}
-      </h1>
-      <p className="text-[15px] text-muted-foreground mt-2">
-        {mode === "login"
-          ? "Sign in to manage your bookings"
-          : "Join Kichana to discover amazing stylists"}
-      </p>
-
-      <div className="mt-8 space-y-4">
-        {mode === "signup" && (
-          <div>
-            <label className="label-text">Full Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Amina Wanjiku"
-              className="w-full mt-1.5 h-12 px-4 rounded-inner border border-border bg-card text-foreground text-[15px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            />
-          </div>
-        )}
-
-        <div>
-          <label className="label-text">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="amina@email.com"
-            className="w-full mt-1.5 h-12 px-4 rounded-inner border border-border bg-card text-foreground text-[15px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-          />
+    <div className="min-h-screen grid md:grid-cols-2">
+      <div className="hidden md:block bg-aubergine-700 text-cream p-10">
+        <Logo className="text-cream" />
+        <div className="mt-20">
+          <h2 className="font-display text-5xl leading-tight">A new chapter for Nairobi hair.</h2>
+          <p className="mt-4 text-cream/80 max-w-md">
+            From a quick fade in South B to a 6-hour boho install in Lavington — book it all in one place.
+          </p>
         </div>
-
-        <div>
-          <label className="label-text">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full mt-1.5 h-12 px-4 rounded-inner border border-border bg-card text-foreground text-[15px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-          />
-        </div>
-
-        {mode === "signup" && (
-          <div>
-            <label className="label-text">I want to</label>
-            <div className="flex gap-2 mt-1.5">
-              <button
-                onClick={() => setRole("customer")}
-                className={`flex-1 py-3 rounded-inner border text-sm font-medium transition-colors ${
-                  role === "customer" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"
-                }`}
-              >
-                Book services
-              </button>
-              <button
-                onClick={() => setRole("stylist")}
-                className={`flex-1 py-3 rounded-inner border text-sm font-medium transition-colors ${
-                  role === "stylist" ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground"
-                }`}
-              >
-                Offer services
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      <motion.button
-        whileTap={{ scale: 0.96 }}
-        onClick={handleSubmit}
-        disabled={isLoading}
-        className="w-full h-14 mt-8 rounded-outer bg-primary text-primary-foreground font-display font-semibold text-base disabled:opacity-50"
-      >
-        {isLoading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
-      </motion.button>
+      <div className="flex items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          <div className="md:hidden mb-8"><Logo /></div>
+          <h1 className="font-display text-3xl">{mode === "signup" ? "Create account" : "Welcome back"}</h1>
+          <p className="text-mute text-sm mt-1">
+            {mode === "signup" ? "Just an email and password to get started." : "Sign in to your account."}
+          </p>
 
-      <p className="text-center text-sm text-muted-foreground mt-4">
-        {mode === "login" ? "Don't have an account? " : "Already have an account? "}
-        <button
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-          className="text-primary font-medium"
-        >
-          {mode === "login" ? "Sign Up" : "Sign In"}
-        </button>
-      </p>
-    </motion.div>
+          <form onSubmit={submit} className="mt-8 space-y-3">
+            {mode === "signup" && (
+              <div>
+                <label className="label">Full name</label>
+                <input className="input" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Wanjiku Kamau" />
+              </div>
+            )}
+            <div>
+              <label className="label">Email</label>
+              <input type="email" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" />
+            </div>
+            <div>
+              <label className="label">Password</label>
+              <input type="password" required minLength={6} className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
+            </div>
+            <button disabled={busy} className="btn-primary w-full mt-2">
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              {mode === "signup" ? "Create account" : "Sign in"}
+            </button>
+          </form>
+
+          <p className="mt-6 text-sm text-mute">
+            {mode === "signup" ? "Already have an account? " : "New to Kichana? "}
+            <button onClick={() => setMode(mode === "signup" ? "signin" : "signup")} className="font-semibold text-terracotta-600">
+              {mode === "signup" ? "Sign in" : "Create one"}
+            </button>
+          </p>
+          <Link to="/" className="block mt-3 text-xs text-mute">← Back home</Link>
+        </div>
+      </div>
+    </div>
   );
-};
-
-export default Auth;
+}

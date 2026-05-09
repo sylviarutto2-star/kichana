@@ -1,51 +1,37 @@
-import { Home, Search, MapPin, Calendar, MessageCircle, User } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { NavLink } from "react-router-dom";
+import { Home, Search, Calendar, Bookmark, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const tabs = [
-  { icon: Home, label: "Home", path: "/" },
-  { icon: Search, label: "Explore", path: "/explore" },
-  { icon: MapPin, label: "Map", path: "/map" },
-  { icon: Calendar, label: "Bookings", path: "/bookings" },
-  { icon: MessageCircle, label: "Chat", path: "/chat" },
-  { icon: User, label: "Profile", path: "/profile" },
+const items = [
+  { to: "/home", label: "Home", Icon: Home },
+  { to: "/discover", label: "Discover", Icon: Search },
+  { to: "/bookings", label: "Bookings", Icon: Calendar },
+  { to: "/vault", label: "Vault", Icon: Bookmark },
+  { to: "/profile", label: "Me", Icon: User },
 ];
 
-const BottomNav = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-
-  if (
-    location.pathname === "/welcome" ||
-    location.pathname === "/auth" ||
-    location.pathname === "/map" ||
-    (!user && location.pathname === "/")
-  ) {
-    return null;
-  }
-
+export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur-sm z-50 pb-safe">
-      <div className="mx-auto flex max-w-3xl items-center justify-around px-3 py-2">
-        {tabs.map(({ icon: Icon, label, path }) => {
-          const active = location.pathname === path;
-          return (
-            <button
-              key={path}
-              onClick={() => navigate(path)}
-              className={`flex min-w-[52px] flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-colors ${
-                active ? "text-primary" : "text-muted-foreground"
-              }`}
+    <nav className="nav-bottom">
+      <ul className="grid grid-cols-5">
+        {items.map(({ to, label, Icon }) => (
+          <li key={to}>
+            <NavLink
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  "flex flex-col items-center gap-1 py-3 text-[11px] font-medium",
+                  isActive ? "text-terracotta-600" : "text-mute hover:text-ink"
+                )
+              }
             >
-              <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
-              <span className="text-[10px] font-medium">{label}</span>
-            </button>
-          );
-        })}
-      </div>
+              <Icon className="h-5 w-5" />
+              <span>{label}</span>
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+      <div className="h-[env(safe-area-inset-bottom)]" />
     </nav>
   );
-};
-
-export default BottomNav;
+}
