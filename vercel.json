@@ -5,7 +5,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "rewrites": [
-    { "source": "/((?!assets/|favicon\\.svg).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|assets/|favicon\\.svg|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|og\\.svg).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
