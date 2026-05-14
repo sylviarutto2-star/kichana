@@ -39,10 +39,16 @@ export default function Auth() {
         });
         if (error) throw error;
 
-        // If session is null after signup, Supabase has email confirmation ON.
+        // The DB-level auto_confirm trigger already confirmed this user.
+        // If Supabase didn't return a session (because mailer_autoconfirm
+        // is off at the config level), sign them in directly.
         if (!data.session) {
-          setNeedsEmailConfirm(true);
-          return;
+          const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInErr) {
+            // Last resort fallback: show the "check your email" card.
+            setNeedsEmailConfirm(true);
+            return;
+          }
         }
         toast.success("Welcome to Kichana!");
         nav(`/onboarding?role=${presetRole}`);
@@ -59,7 +65,10 @@ export default function Auth() {
         nav("/home");
       }
     } catch (err: any) {
-      toast.error(err.message || "Something went wrong");
+      // Surface the real error so we can debug
+      const msg = err?.message || err?.error_description || JSON.stringify(err) || "Something went wrong";
+      toast.error(msg);
+      console.error("Auth error:", err);
     } finally {
       setBusy(false);
     }
