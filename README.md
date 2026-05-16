@@ -53,7 +53,7 @@ The project is already wired to your existing Supabase project via `.env`. Apply
 
 ```bash
 # from project root, with supabase CLI installed
-supabase link --project-ref wdqpmyhtyhlwkkdrkjwv
+supabase link --project-ref dpzdltvxgbwepxbjpqnz
 supabase db push
 ```
 
