@@ -6,9 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin } from "lucide-react";
 
 const STYLES = [
-  { label: "Knotless braids", desc: "Box · boho · jumbo", src: "/landing/style-braids.svg" },
-  { label: "Locs & twists", desc: "Starter · retwist · styling", src: "/landing/style-locs.svg" },
-  { label: "Natural & afro", desc: "Wash · treat · define", src: "/landing/style-afro.svg" },
+  { label: "Knotless braids", desc: "Box · boho · jumbo", src: "/landing/style-braids.webp" },
+  { label: "Feed-in cornrows", desc: "Stitch · sleek · ponytail", src: "/landing/style-cornrows.webp" },
+  { label: "Colour braids", desc: "Ombré · pop · statement", src: "/landing/style-color.webp" },
 ];
 
 export default function Landing() {
@@ -112,7 +112,7 @@ function HeroComposition() {
       {/* Big stylist card */}
       <div className="col-span-7 row-span-2 rounded-3xl overflow-hidden aspect-[4/5] relative shadow-card">
         <SmartImage
-          src="/landing/hero.svg"
+          src="/landing/hero.webp"
           fallbackKey="hero-featured"
           alt="Featured stylist's braiding work"
           className="absolute inset-0 h-full w-full"
