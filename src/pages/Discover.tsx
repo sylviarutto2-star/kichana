@@ -27,7 +27,7 @@ export default function Discover() {
         .limit(60);
       const live: Row[] = (data || []).map((s: any) => ({
         ...s, profile: s.profiles,
-        from_kes: Math.min(...(s.services?.map((x: any) => x.price_kes) || [Infinity])),
+        from_kes: s.services?.length ? Math.min(...s.services.map((x: any) => x.price_kes)) : undefined,
       }));
       setRows(live.length ? live : (demoStylists as any));
       setLoading(false);

@@ -29,7 +29,7 @@ import HowItWorks from "@/pages/legal/HowItWorks";
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { session, loading } = useAuth();
   const loc = useLocation();
-  if (loading) return null;
+  if (loading) return <div className="min-h-screen bg-cream flex items-center justify-center"><div className="h-8 w-8 rounded-full border-2 border-terracotta-500 border-t-transparent animate-spin" /></div>;
   if (!session) return <Navigate to="/auth" state={{ from: loc.pathname }} replace />;
   return children;
 }

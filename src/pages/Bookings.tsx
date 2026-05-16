@@ -42,8 +42,8 @@ export default function Bookings() {
             .select("*, services(title), stylists(display_name, base_location)")
             .eq("id", payload.new.id)
             .single()
-            .then(({ data }) => {
-              if (data) setRows((prev) => prev.map((r) => r.id === data.id ? data : r));
+            .then(({ data, error }) => {
+              if (data && !error) setRows((prev) => prev.map((r) => r.id === data.id ? data : r));
             });
         },
       )

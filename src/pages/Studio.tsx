@@ -51,7 +51,7 @@ export default function Studio() {
 
   const addSvc = async () => {
     if (!stylist) return;
-    if (!newSvc.title || !newSvc.price_kes) return toast.error("Title and price required");
+    if (!newSvc.title || newSvc.price_kes <= 0) return toast.error("Title and price required");
     setBusy(true);
     const { data, error } = await supabase.from("services").insert({ ...newSvc, stylist_id: stylist.id }).select().single();
     setBusy(false);
@@ -94,7 +94,7 @@ export default function Studio() {
       <PageHeader title="Studio" subtitle={stylist.display_name} />
       <div className="container-app">
         <div className="grid grid-cols-3 gap-2 card p-4">
-          <Stat label="Rating" value={`${stylist.rating_avg.toFixed(1)}★`} icon={<Star className="h-4 w-4" />} />
+          <Stat label="Rating" value={`${(stylist.rating_avg ?? 0).toFixed(1)}★`} icon={<Star className="h-4 w-4" />} />
           <Stat label="Today" value={today.length} icon={<Calendar className="h-4 w-4" />} />
           <Stat label="Tier" value={stylist.loyalty_tier} icon={<ImageIcon className="h-4 w-4" />} />
         </div>
