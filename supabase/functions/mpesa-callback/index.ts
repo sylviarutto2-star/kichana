@@ -1,15 +1,31 @@
 // Daraja STK callback. Called by Safaricom with payment result.
+// Set MPESA_CALLBACK_SECRET and include ?secret=<value> in MPESA_CALLBACK_URL
+// to reject forged callbacks. Without this env var all callbacks are accepted
+// (safe for sandbox / demo; must be set in production).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 Deno.serve(async (req) => {
   try {
+    // Reject forged callbacks when a shared secret is configured
+    const expectedSecret = Deno.env.get("MPESA_CALLBACK_SECRET");
+    if (expectedSecret) {
+      const url = new URL(req.url);
+      const secret = url.searchParams.get("secret");
+      if (secret !== expectedSecret) {
+        // Return 0 to Safaricom so it doesn't retry; silently discard
+        return ok();
+      }
+    }
+
     const body = await req.json();
     const cb = body?.Body?.stkCallback;
     if (!cb) return ok();
 
     const checkoutId = cb.CheckoutRequestID as string;
     const success = cb.ResultCode === 0;
-    const items: any[] = cb.CallbackMetadata?.Item || [];
+    const rawItems = cb.CallbackMetadata?.Item;
+    // Safaricom may return Item as a single object or an array
+    const items: any[] = Array.isArray(rawItems) ? rawItems : rawItems ? [rawItems] : [];
     const receipt = items.find((i) => i.Name === "MpesaReceiptNumber")?.Value as string | undefined;
 
     const sb = createClient(

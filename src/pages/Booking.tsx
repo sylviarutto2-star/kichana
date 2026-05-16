@@ -32,6 +32,11 @@ export default function Booking() {
   const [busy, setBusy] = useState(false);
   const [groupBooking, setGroupBooking] = useState<any>(null);
 
+  // Re-sync phone from profile once it loads, only if user hasn't typed anything yet
+  useEffect(() => {
+    if (profile?.phone && !phone) setPhone(profile.phone);
+  }, [profile?.phone]);
+
   useEffect(() => {
     if (!stylistId) return;
     (async () => {
@@ -99,7 +104,7 @@ export default function Booking() {
 
       // Trigger M-Pesa STK
       const { data: mpesa, error: mErr } = await supabase.functions.invoke("mpesa-stk", {
-        body: { booking_id: booking.id, phone, amount: deposit },
+        body: { booking_id: booking.id, phone },
       });
       if (mErr) {
         toast.warning("Booking saved. Payment couldn't start — pay later in My Bookings.");

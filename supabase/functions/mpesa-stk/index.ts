@@ -6,7 +6,7 @@
 //   MPESA_CONSUMER_SECRET
 //   MPESA_SHORTCODE          (paybill or till)
 //   MPESA_PASSKEY
-//   MPESA_CALLBACK_URL       (https://<project>.supabase.co/functions/v1/mpesa-callback)
+//   MPESA_CALLBACK_URL       (https://<project>.supabase.co/functions/v1/mpesa-callback?secret=<MPESA_CALLBACK_SECRET>)
 //   MPESA_ENV                "sandbox" | "production"   (default: sandbox)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -21,9 +21,36 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const { booking_id, phone, amount } = await req.json();
-    if (!booking_id || !phone || !amount) {
-      return json({ error: "booking_id, phone, amount required" }, 400);
+    const { booking_id, phone } = await req.json();
+    if (!booking_id || !phone) {
+      return json({ error: "booking_id and phone required" }, 400);
+    }
+
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Verify the caller is authenticated and owns this booking
+    const jwtToken = (req.headers.get("Authorization") || "").replace("Bearer ", "");
+    const { data: { user }, error: authErr } = await sb.auth.getUser(jwtToken);
+    if (authErr || !user) return json({ error: "Unauthorized" }, 401);
+
+    const { data: booking, error: bookingErr } = await sb
+      .from("bookings")
+      .select("id, customer_id, deposit_kes, payment_status")
+      .eq("id", booking_id)
+      .eq("customer_id", user.id)
+      .maybeSingle();
+    if (bookingErr || !booking) return json({ error: "Booking not found" }, 403);
+
+    // Always use the deposit stored in the DB — never trust the client-supplied amount
+    const amount = booking.deposit_kes;
+
+    // Validate phone after normalisation
+    const normalizedPhone = normalizePhone(phone);
+    if (!/^254\d{9}$/.test(normalizedPhone)) {
+      return json({ error: "Invalid phone number. Use 07XX XXX XXX or +254 7XX XXX XXX." }, 400);
     }
 
     const KEY = Deno.env.get("MPESA_CONSUMER_KEY");
@@ -32,11 +59,6 @@ Deno.serve(async (req) => {
     const PASSKEY = Deno.env.get("MPESA_PASSKEY");
     const CB = Deno.env.get("MPESA_CALLBACK_URL");
     const ENV = Deno.env.get("MPESA_ENV") || "sandbox";
-
-    const sb = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
 
     // Demo mode if Daraja creds aren't configured
     if (!KEY || !SECRET || !SHORT || !PASSKEY) {
@@ -54,24 +76,24 @@ Deno.serve(async (req) => {
       headers: { Authorization: "Basic " + btoa(`${KEY}:${SECRET}`) },
     });
     const tokenJson = await tokenRes.json();
-    const token = tokenJson.access_token;
-    if (!token) return json({ error: "Daraja auth failed", details: tokenJson }, 502);
+    const accessToken = tokenJson.access_token;
+    if (!accessToken) return json({ error: "Daraja auth failed", details: tokenJson }, 502);
 
     const ts = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
     const password = btoa(`${SHORT}${PASSKEY}${ts}`);
 
     const stkRes = await fetch(`${base}/mpesa/stkpush/v1/processrequest`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         BusinessShortCode: SHORT,
         Password: password,
         Timestamp: ts,
         TransactionType: "CustomerPayBillOnline",
         Amount: amount,
-        PartyA: normalizePhone(phone),
+        PartyA: normalizedPhone,
         PartyB: SHORT,
-        PhoneNumber: normalizePhone(phone),
+        PhoneNumber: normalizedPhone,
         CallBackURL: CB,
         AccountReference: `KICHANA-${booking_id.slice(0, 8)}`,
         TransactionDesc: "Kichana booking deposit",
@@ -81,7 +103,7 @@ Deno.serve(async (req) => {
 
     if (stkJson.ResponseCode === "0") {
       await sb.from("bookings").update({
-        // Track checkout request id in mpesa_receipt placeholder; callback will overwrite
+        // Store checkout request ID; callback will overwrite with real receipt number
         mpesa_receipt: stkJson.CheckoutRequestID,
       }).eq("id", booking_id);
       return json({ ok: true, request: stkJson });
@@ -98,6 +120,7 @@ function json(body: unknown, status = 200) {
     headers: { ...cors, "Content-Type": "application/json" },
   });
 }
+
 function normalizePhone(p: string) {
   const d = p.replace(/\D/g, "");
   if (d.startsWith("254")) return d;

@@ -35,7 +35,16 @@ export default function Bookings() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "bookings", filter: `customer_id=eq.${user.id}` },
         (payload) => {
-          setRows((prev) => prev.map((r) => (r.id === payload.new.id ? { ...r, ...payload.new } : r)));
+          // Re-fetch the full row including joined tables — payload.new only contains
+          // the raw columns, not the services/stylists join data.
+          supabase
+            .from("bookings")
+            .select("*, services(title), stylists(display_name, base_location)")
+            .eq("id", payload.new.id)
+            .single()
+            .then(({ data }) => {
+              if (data) setRows((prev) => prev.map((r) => r.id === data.id ? data : r));
+            });
         },
       )
       .subscribe();
@@ -72,7 +81,7 @@ export default function Bookings() {
     setRetrying((prev) => ({ ...prev, [b.id]: { ...prev[b.id], busy: true } }));
     try {
       const { data, error } = await supabase.functions.invoke("mpesa-stk", {
-        body: { booking_id: b.id, phone: state.phone, amount: b.deposit_kes },
+        body: { booking_id: b.id, phone: state.phone },
       });
       if (error) throw error;
       if ((data as any)?.simulated) {
