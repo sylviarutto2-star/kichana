@@ -2,9 +2,14 @@ import { Link, Navigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { SmartImage } from "@/components/SmartImage";
-import { HAIR_PHOTOS, photoUrl } from "@/lib/imagery";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin } from "lucide-react";
+
+const STYLES = [
+  { label: "Knotless braids", desc: "Box · boho · jumbo", src: "/landing/style-braids.svg" },
+  { label: "Locs & twists", desc: "Starter · retwist · styling", src: "/landing/style-locs.svg" },
+  { label: "Natural & afro", desc: "Wash · treat · define", src: "/landing/style-afro.svg" },
+];
 
 export default function Landing() {
   const { session, loading } = useAuth();
@@ -45,10 +50,55 @@ export default function Landing() {
         <HeroComposition />
       </main>
 
-      <section className="container-wide pb-20 grid md:grid-cols-3 gap-4">
+      <section className="container-wide pb-16 grid md:grid-cols-3 gap-4">
         <Feature icon={<Calendar className="h-5 w-5" />} title="Book in 30 seconds" body="Pick a stylist, a slot, pay deposit on M-Pesa. Done." />
         <Feature icon={<Sparkles className="h-5 w-5" />} title="Real, verified work" body="Portfolios are built from actual completed bookings. No fake glow-ups." />
         <Feature icon={<Shield className="h-5 w-5" />} title="Safe & secure" body="ID-verified stylists. Refund-protected deposits. Your data stays yours." />
+      </section>
+
+      <section className="container-wide pb-20">
+        <div className="flex items-end justify-between mb-5">
+          <div>
+            <p className="h-eyebrow mb-2">Find your look</p>
+            <h2 className="font-display text-3xl md:text-4xl">Browse by style</h2>
+          </div>
+          <Link to="/auth" className="btn-ghost text-sm hidden sm:inline-flex">
+            See all <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          {STYLES.map((s) => (
+            <Link key={s.src} to="/auth" className="group card p-0 overflow-hidden">
+              <SmartImage
+                src={s.src}
+                fallbackKey={s.label}
+                alt={s.label}
+                className="aspect-[4/5]"
+                imgClassName="transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="p-3">
+                <div className="font-semibold text-sm">{s.label}</div>
+                <div className="text-xs text-mute">{s.desc}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="container-wide pb-20">
+        <div className="card relative overflow-hidden bg-aubergine-700 text-cream p-8 md:p-12">
+          <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_85%_20%,rgba(216,168,90,0.5),transparent_50%)]" />
+          <div className="relative max-w-lg">
+            <h2 className="font-display text-3xl md:text-4xl">Ready when you are.</h2>
+            <p className="mt-3 text-cream/80">
+              Join thousands of clients booking Nairobi's best — or grow your own chair with verified bookings and M-Pesa payouts.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/auth" className="btn-primary">Get started <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/auth?role=stylist" className="rounded-full bg-cream/10 text-cream px-4 py-2 text-sm font-semibold ring-1 ring-cream/25 hover:bg-cream/15">I'm a stylist</Link>
+            </div>
+          </div>
+        </div>
       </section>
 
       <Footer />
@@ -62,7 +112,7 @@ function HeroComposition() {
       {/* Big stylist card */}
       <div className="col-span-7 row-span-2 rounded-3xl overflow-hidden aspect-[4/5] relative shadow-card">
         <SmartImage
-          src={photoUrl(HAIR_PHOTOS.braidsHero, 800)}
+          src="/landing/hero.svg"
           fallbackKey="hero-featured"
           alt="Featured stylist's braiding work"
           className="absolute inset-0 h-full w-full"
@@ -94,12 +144,12 @@ function HeroComposition() {
           Save inspirations. <span className="text-mute">Show your stylist exactly what you want — they see your saved looks before the appointment.</span>
         </p>
         <div className="mt-1 grid grid-cols-3 gap-1.5">
-          {[HAIR_PHOTOS.naturalHero, HAIR_PHOTOS.locsHero, HAIR_PHOTOS.nailsHero].map((id) => (
+          {STYLES.map((s) => (
             <SmartImage
-              key={id}
-              src={photoUrl(id, 220)}
-              fallbackKey={id}
-              alt="Saved hair inspiration"
+              key={s.src}
+              src={s.src}
+              fallbackKey={s.label}
+              alt={s.label}
               className="aspect-square rounded-lg"
             />
           ))}
