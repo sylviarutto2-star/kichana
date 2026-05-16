@@ -6,4 +6,4 @@ Disallow: /bookings
 Disallow: /vault
 Disallow: /profile
 
-Sitemap: https://kichana.vercel.app/sitemap.xml
+Sitemap: https://kichana.co.ke/sitemap.xml
