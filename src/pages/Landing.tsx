@@ -1,6 +1,8 @@
 import { Link, Navigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
+import { SmartImage } from "@/components/SmartImage";
+import { HAIR_PHOTOS, photoUrl } from "@/lib/imagery";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin } from "lucide-react";
 
@@ -57,9 +59,15 @@ export default function Landing() {
 function HeroComposition() {
   return (
     <div className="relative grid grid-cols-12 gap-3 md:gap-4 animate-fade-up">
-      {/* Big stylist card mock */}
-      <div className="col-span-7 row-span-2 rounded-3xl overflow-hidden bg-gradient-to-br from-terracotta-700 via-terracotta-500 to-aubergine-700 aspect-[4/5] relative shadow-card">
-        <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.4),transparent_50%),radial-gradient(circle_at_80%_80%,rgba(216,168,90,0.5),transparent_45%)]" />
+      {/* Big stylist card */}
+      <div className="col-span-7 row-span-2 rounded-3xl overflow-hidden aspect-[4/5] relative shadow-card">
+        <SmartImage
+          src={photoUrl(HAIR_PHOTOS.braidsHero, 800)}
+          fallbackKey="hero-featured"
+          alt="Featured stylist's braiding work"
+          className="absolute inset-0 h-full w-full"
+        />
+        <div className="absolute inset-0 [background:linear-gradient(to_top,rgba(27,20,16,0.85),rgba(27,20,16,0.05)_55%,transparent)]" />
         <div className="absolute top-4 left-4 chip text-[10px]">⭐ Featured</div>
         <div className="absolute top-4 right-4 rounded-full bg-cream/95 px-2.5 py-1 text-xs font-semibold flex items-center gap-1">
           <Star className="h-3 w-3 fill-gold-500 text-gold-500" /> 4.9
@@ -86,12 +94,14 @@ function HeroComposition() {
           Save inspirations. <span className="text-mute">Show your stylist exactly what you want — they see your saved looks before the appointment.</span>
         </p>
         <div className="mt-1 grid grid-cols-3 gap-1.5">
-          {[
-            "from-terracotta-300 to-terracotta-600",
-            "from-aubergine-500 to-aubergine-700",
-            "from-gold-400 to-terracotta-500",
-          ].map((g, i) => (
-            <div key={i} className={`aspect-square rounded-lg bg-gradient-to-br ${g}`} />
+          {[HAIR_PHOTOS.naturalHero, HAIR_PHOTOS.locsHero, HAIR_PHOTOS.nailsHero].map((id) => (
+            <SmartImage
+              key={id}
+              src={photoUrl(id, 220)}
+              fallbackKey={id}
+              alt="Saved hair inspiration"
+              className="aspect-square rounded-lg"
+            />
           ))}
         </div>
       </div>
