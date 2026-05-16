@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { PageHeader } from "@/components/PageHeader";
@@ -17,8 +17,6 @@ export default function Bookings() {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState<Record<string, { open: boolean; phone: string; busy: boolean }>>({});
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -41,7 +39,6 @@ export default function Bookings() {
         },
       )
       .subscribe();
-    channelRef.current = channel;
 
     return () => {
       channel.unsubscribe();
