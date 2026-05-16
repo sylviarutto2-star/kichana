@@ -13,6 +13,9 @@ dist-ssr
 *.local
 *.tsbuildinfo
 
+# M-Pesa / Daraja secrets — never commit real keys
+supabase/.env.mpesa
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

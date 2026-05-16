@@ -39,6 +39,10 @@ Deno.serve(async (req) => {
     const PASSKEY = Deno.env.get("MPESA_PASSKEY");
     const CB = Deno.env.get("MPESA_CALLBACK_URL");
     const ENV = Deno.env.get("MPESA_ENV") || "sandbox";
+    // CustomerBuyGoodsOnline (Till) or CustomerPayBillOnline. The Safaricom
+    // sandbox test shortcode 174379 is a Paybill, so sandbox runs should set
+    // MPESA_TRANSACTION_TYPE=CustomerPayBillOnline.
+    const TXN_TYPE = Deno.env.get("MPESA_TRANSACTION_TYPE") || "CustomerBuyGoodsOnline";
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -66,7 +70,9 @@ Deno.serve(async (req) => {
 
     const ts = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
     // Buy Goods STK: BusinessShortCode + password are based on the Store Number,
-    // PartyB is the Till Number, TransactionType is CustomerBuyGoodsOnline.
+    // PartyB is the Till Number. For Paybill, PartyB is the shortcode itself.
+    const isBuyGoods = TXN_TYPE === "CustomerBuyGoodsOnline";
+    const partyB = isBuyGoods ? TILL : STORE;
     const password = btoa(`${STORE}${PASSKEY}${ts}`);
 
     const stkRes = await fetch(`${base}/mpesa/stkpush/v1/processrequest`, {
@@ -76,10 +82,10 @@ Deno.serve(async (req) => {
         BusinessShortCode: STORE,
         Password: password,
         Timestamp: ts,
-        TransactionType: "CustomerBuyGoodsOnline",
+        TransactionType: TXN_TYPE,
         Amount: amount,
         PartyA: normalizePhone(phone),
-        PartyB: TILL,
+        PartyB: partyB,
         PhoneNumber: normalizePhone(phone),
         CallBackURL: CB,
         AccountReference: `KICHANA-${booking_id.slice(0, 8)}`,
