@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { KES, cn } from "@/lib/utils";
 import { addDays, format, setHours, setMinutes } from "date-fns";
-import { Check, Loader2, Smartphone } from "lucide-react";
+import { Check, Loader2, Smartphone, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Service, Stylist } from "@/lib/database.types";
 
@@ -16,6 +16,8 @@ export default function Booking() {
   const initialServiceId = params.get("service") || undefined;
   const nav = useNavigate();
   const { user, profile } = useAuth();
+
+  const groupCode = params.get("group") || undefined;
 
   const [stylist, setStylist] = useState<Stylist | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -28,6 +30,7 @@ export default function Booking() {
   const [phone, setPhone] = useState(profile?.phone || "");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [groupBooking, setGroupBooking] = useState<any>(null);
 
   useEffect(() => {
     if (!stylistId) return;
@@ -37,14 +40,28 @@ export default function Booking() {
         setServices(demoServices[stylistId] || []);
         return;
       }
-      const [{ data: s }, { data: svc }] = await Promise.all([
+      const promises: Promise<any>[] = [
         supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
         supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
-      ]);
+      ];
+      const [{ data: s }, { data: svc }] = await Promise.all(promises);
       setStylist(s as any);
       setServices((svc as Service[]) || []);
+
+      if (groupCode) {
+        const { data: g } = await supabase
+          .from("group_bookings")
+          .select("*")
+          .eq("invite_code", groupCode.toUpperCase())
+          .maybeSingle();
+        if (g) {
+          setGroupBooking(g);
+          setDate(new Date(g.scheduled_for));
+          setTime(format(new Date(g.scheduled_for), "HH:mm"));
+        }
+      }
     })();
-  }, [stylistId]);
+  }, [stylistId, groupCode]);
 
   const service = useMemo(() => services.find((s) => s.id === serviceId), [services, serviceId]);
   const dates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
@@ -75,6 +92,7 @@ export default function Booking() {
           amount_kes: service.price_kes,
           deposit_kes: deposit,
           notes,
+          group_id: groupBooking?.id ?? null,
         })
         .select()
         .single();
@@ -104,6 +122,15 @@ export default function Booking() {
       <PageHeader title="Book" subtitle={stylist?.display_name || "—"} back />
 
       <div className="container-app">
+        {groupBooking && (
+          <div className="mt-4 flex items-center gap-2 rounded-2xl bg-aubergine-700/10 px-4 py-3 text-sm">
+            <Users className="h-4 w-4 text-aubergine-700 shrink-0" />
+            <span className="text-aubergine-700 font-medium">
+              Joining group session · {format(new Date(groupBooking.scheduled_for), "EEE d MMM · HH:mm")}
+            </span>
+          </div>
+        )}
+
         <Stepper step={step} />
 
         {step === 0 && (
@@ -133,32 +160,41 @@ export default function Booking() {
 
         {step === 1 && (
           <div className="mt-6 animate-fade-up">
-            <div className="label">Pick a day</div>
-            <div className="-mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar">
-              {dates.map((d) => (
-                <button
-                  key={d.toISOString()}
-                  onClick={() => setDate(d)}
-                  className={cn(
-                    "shrink-0 rounded-2xl border px-3 py-2 text-center min-w-[70px]",
-                    format(d, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
-                      ? "bg-ink text-cream border-ink"
-                      : "bg-white border-line"
-                  )}
-                >
-                  <div className="text-[10px] uppercase">{format(d, "EEE")}</div>
-                  <div className="font-display text-lg">{format(d, "d")}</div>
-                  <div className="text-[10px]">{format(d, "MMM")}</div>
-                </button>
-              ))}
-            </div>
+            {groupBooking ? (
+              <div className="card p-4 text-sm text-mute space-y-1">
+                <div className="font-semibold text-ink">Date & time set by group host</div>
+                <div>{format(new Date(groupBooking.scheduled_for), "EEEE d MMMM · HH:mm")}</div>
+              </div>
+            ) : (
+              <>
+                <div className="label">Pick a day</div>
+                <div className="-mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar">
+                  {dates.map((d) => (
+                    <button
+                      key={d.toISOString()}
+                      onClick={() => setDate(d)}
+                      className={cn(
+                        "shrink-0 rounded-2xl border px-3 py-2 text-center min-w-[70px]",
+                        format(d, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+                          ? "bg-ink text-cream border-ink"
+                          : "bg-white border-line"
+                      )}
+                    >
+                      <div className="text-[10px] uppercase">{format(d, "EEE")}</div>
+                      <div className="font-display text-lg">{format(d, "d")}</div>
+                      <div className="text-[10px]">{format(d, "MMM")}</div>
+                    </button>
+                  ))}
+                </div>
 
-            <div className="label mt-6">Time</div>
-            <div className="grid grid-cols-4 gap-2">
-              {times.map((t) => (
-                <button key={t} onClick={() => setTime(t)} className={cn(t === time ? "chip-active" : "chip", "justify-center")}>{t}</button>
-              ))}
-            </div>
+                <div className="label mt-6">Time</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {times.map((t) => (
+                    <button key={t} onClick={() => setTime(t)} className={cn(t === time ? "chip-active" : "chip", "justify-center")}>{t}</button>
+                  ))}
+                </div>
+              </>
+            )}
 
             <div className="label mt-6">Where?</div>
             <div className="grid grid-cols-2 gap-2">

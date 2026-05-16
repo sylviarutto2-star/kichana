@@ -65,11 +65,21 @@ export default function GroupBooking() {
           <div className="card p-6 text-center">
             <div className="h-eyebrow">Group code</div>
             <div className="font-display text-5xl mt-2 tracking-wider">{code}</div>
-            <p className="text-mute text-sm mt-3">Share this code with your group. They'll book individually with the stylist using this code.</p>
-            <button
-              onClick={() => { navigator.clipboard.writeText(code); toast.success("Copied"); }}
-              className="btn-outline mt-4"
-            ><Copy className="h-4 w-4" /> Copy code</button>
+            <p className="text-mute text-sm mt-3">Share this code or link with your group. Each person books and pays their own deposit.</p>
+            <div className="flex flex-col gap-2 mt-4">
+              <button
+                onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}
+                className="btn-outline"
+              ><Copy className="h-4 w-4" /> Copy code</button>
+              <button
+                onClick={() => {
+                  const link = `${window.location.origin}/book/${stylistId}?group=${code}`;
+                  navigator.clipboard.writeText(link);
+                  toast.success("Join link copied");
+                }}
+                className="btn-outline"
+              ><Copy className="h-4 w-4" /> Copy join link</button>
+            </div>
             <button onClick={() => nav("/bookings")} className="btn-primary mt-3 w-full">Done</button>
           </div>
         )}
