@@ -9,7 +9,7 @@ export const SOCIAL = {
   facebook: "https://facebook.com/kichana",
   twitter: "https://twitter.com/kichana",
   whatsapp: "https://wa.me/254700000000",
-  email: "mailto:hello@kichana.app",
+  email: "mailto:hello@kichana.co.ke",
 };
 
 export function Footer() {

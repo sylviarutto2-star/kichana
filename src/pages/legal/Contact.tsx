@@ -8,19 +8,19 @@ export default function Contact() {
 
       <div className="not-prose grid sm:grid-cols-2 gap-3 mt-6">
         <Card icon={<MessageCircle className="h-5 w-5" />} title="WhatsApp" href="https://wa.me/254700000000" subtitle="+254 700 000 000" />
-        <Card icon={<Mail className="h-5 w-5" />} title="Email" href="mailto:hello@kichana.app" subtitle="hello@kichana.app" />
+        <Card icon={<Mail className="h-5 w-5" />} title="Email" href="mailto:hello@kichana.co.ke" subtitle="hello@kichana.co.ke" />
         <Card icon={<Instagram className="h-5 w-5" />} title="Instagram" href="https://instagram.com/kichana" subtitle="@kichana" />
         <Card icon={<MapPin className="h-5 w-5" />} title="Office" subtitle="Westlands, Nairobi, Kenya" />
       </div>
 
       <h2>Press</h2>
-      <p>For press enquiries: <a href="mailto:press@kichana.app">press@kichana.app</a>.</p>
+      <p>For press enquiries: <a href="mailto:press@kichana.co.ke">press@kichana.co.ke</a>.</p>
 
       <h2>Partnerships</h2>
-      <p>For events, brand partnerships and B2B group bookings: <a href="mailto:partners@kichana.app">partners@kichana.app</a>.</p>
+      <p>For events, brand partnerships and B2B group bookings: <a href="mailto:partners@kichana.co.ke">partners@kichana.co.ke</a>.</p>
 
       <h2>Security</h2>
-      <p>To report a vulnerability: <a href="mailto:security@kichana.app">security@kichana.app</a>. We respond within 24 hours.</p>
+      <p>To report a vulnerability: <a href="mailto:security@kichana.co.ke">security@kichana.co.ke</a>. We respond within 24 hours.</p>
     </MarketingShell>
   );
 }
