@@ -40,11 +40,10 @@ export default function Booking() {
         setServices(demoServices[stylistId] || []);
         return;
       }
-      const promises: Promise<any>[] = [
+      const [{ data: s }, { data: svc }] = await Promise.all([
         supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
         supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
-      ];
-      const [{ data: s }, { data: svc }] = await Promise.all(promises);
+      ]);
       setStylist(s as any);
       setServices((svc as Service[]) || []);
 
