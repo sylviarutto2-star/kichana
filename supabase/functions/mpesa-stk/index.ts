@@ -1,13 +1,19 @@
 // Daraja STK Push initiation. Falls back to a "simulated" success
 // when MPESA_* env vars are not configured (useful for demo/dev).
 //
+// Kichana is registered as M-Pesa Buy Goods (Till):
+//   Till Number   : 5811747
+//   Store Number  : 9038434  (Head Office number used as BusinessShortCode)
+//
 // Required secrets in production:
 //   MPESA_CONSUMER_KEY
 //   MPESA_CONSUMER_SECRET
-//   MPESA_SHORTCODE          (paybill or till)
 //   MPESA_PASSKEY
 //   MPESA_CALLBACK_URL       (https://<project>.supabase.co/functions/v1/mpesa-callback)
 //   MPESA_ENV                "sandbox" | "production"   (default: sandbox)
+// Optional overrides (default to the registered Buy Goods numbers):
+//   MPESA_TILL_NUMBER        (PartyB for CustomerBuyGoodsOnline)
+//   MPESA_STORE_NUMBER       (BusinessShortCode + password base)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -28,7 +34,8 @@ Deno.serve(async (req) => {
 
     const KEY = Deno.env.get("MPESA_CONSUMER_KEY");
     const SECRET = Deno.env.get("MPESA_CONSUMER_SECRET");
-    const SHORT = Deno.env.get("MPESA_SHORTCODE");
+    const TILL = Deno.env.get("MPESA_TILL_NUMBER") || "5811747";
+    const STORE = Deno.env.get("MPESA_STORE_NUMBER") || "9038434";
     const PASSKEY = Deno.env.get("MPESA_PASSKEY");
     const CB = Deno.env.get("MPESA_CALLBACK_URL");
     const ENV = Deno.env.get("MPESA_ENV") || "sandbox";
@@ -39,7 +46,7 @@ Deno.serve(async (req) => {
     );
 
     // Demo mode if Daraja creds aren't configured
-    if (!KEY || !SECRET || !SHORT || !PASSKEY) {
+    if (!KEY || !SECRET || !PASSKEY) {
       await sb.from("bookings").update({
         status: "confirmed",
         payment_status: "deposit_paid",
@@ -58,19 +65,21 @@ Deno.serve(async (req) => {
     if (!token) return json({ error: "Daraja auth failed", details: tokenJson }, 502);
 
     const ts = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
-    const password = btoa(`${SHORT}${PASSKEY}${ts}`);
+    // Buy Goods STK: BusinessShortCode + password are based on the Store Number,
+    // PartyB is the Till Number, TransactionType is CustomerBuyGoodsOnline.
+    const password = btoa(`${STORE}${PASSKEY}${ts}`);
 
     const stkRes = await fetch(`${base}/mpesa/stkpush/v1/processrequest`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        BusinessShortCode: SHORT,
+        BusinessShortCode: STORE,
         Password: password,
         Timestamp: ts,
-        TransactionType: "CustomerPayBillOnline",
+        TransactionType: "CustomerBuyGoodsOnline",
         Amount: amount,
         PartyA: normalizePhone(phone),
-        PartyB: SHORT,
+        PartyB: TILL,
         PhoneNumber: normalizePhone(phone),
         CallBackURL: CB,
         AccountReference: `KICHANA-${booking_id.slice(0, 8)}`,

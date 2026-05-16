@@ -64,16 +64,21 @@ supabase functions deploy mpesa-callback
 ```
 
 ### 4. M-Pesa (when ready to take real money)
+Kichana is registered as **M-Pesa Buy Goods (Till)**:
+- Till Number: `5811747`
+- Store Number: `9038434` (Head Office number — used as the STK `BusinessShortCode`)
+
 Set these as Supabase function secrets:
 ```
 MPESA_CONSUMER_KEY
 MPESA_CONSUMER_SECRET
-MPESA_SHORTCODE          # paybill or till
 MPESA_PASSKEY
 MPESA_CALLBACK_URL       # https://<project>.supabase.co/functions/v1/mpesa-callback
 MPESA_ENV                # sandbox | production
+MPESA_TILL_NUMBER        # optional, defaults to 5811747
+MPESA_STORE_NUMBER       # optional, defaults to 9038434
 ```
-Until those are set, the app silently falls back to **demo M-Pesa** so you can keep testing the full flow.
+Until `MPESA_CONSUMER_KEY`/`MPESA_CONSUMER_SECRET`/`MPESA_PASSKEY` are set, the app silently falls back to **demo M-Pesa** so you can keep testing the full flow.
 
 ### 5. Run
 ```bash
