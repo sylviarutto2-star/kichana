@@ -4,6 +4,39 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#FBF6EE" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <!--
+      Cache kill-switch: unregister any stale service worker and purge cached
+      bundles left by earlier deploys, then reload once so every browser gets
+      the current build regardless of its cache history.
+    -->
+    <script>
+      (function () {
+        try {
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              var had = regs && regs.length > 0;
+              (regs || []).forEach(function (r) { r.unregister(); });
+              var done = function () {
+                if (had && !sessionStorage.getItem("kichana_cache_cleared")) {
+                  sessionStorage.setItem("kichana_cache_cleared", "1");
+                  location.reload();
+                }
+              };
+              if (window.caches && caches.keys) {
+                caches.keys().then(function (keys) {
+                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                }).then(done).catch(done);
+              } else {
+                done();
+              }
+            }).catch(function () {});
+          }
+        } catch (e) {}
+      })();
+    </script>
     <title>Kichana — Hair, brilliantly booked</title>
     <meta name="description" content="Discover Nairobi's best hairstylists, book in seconds, pay with M-Pesa. Braids, wigs, natural hair, locs — at the salon or at home." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
