@@ -28,19 +28,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-      if (error) {
-        // DB schema not applied yet — synthesize a minimal profile so the app
-        // doesn't strand the user. They can still sign in and see public surfaces.
-        if (error.code === "42P01" || /relation .* does not exist/i.test(error.message)) {
-          setProfile({ id: userId, full_name: null, phone: null, avatar_url: null,
-            role: "customer", neighborhood: null, language: "en", loyalty_points: 0,
-            hair_type: null, allergies: null, birthday: null, onboarding_complete: false,
-            created_at: new Date().toISOString() } as Profile);
-          return;
-        }
+      // Real schema: profiles.user_id references auth.users.id (profiles.id is its own PK).
+      const { data, error } = await supabase.from("profiles" as any).select("*").eq("user_id", userId).maybeSingle();
+      if (error && (error.code === "42P01" || /relation .* does not exist/i.test(error.message))) {
+        setProfile({ id: userId, user_id: userId, name: "", role: "customer" } as any);
+        return;
       }
-      setProfile((data as Profile) ?? null);
+      // Normalise so the rest of the app can read both shapes during the schema reconciliation.
+      const p: any = data ?? null;
+      if (p) {
+        p.full_name = p.full_name ?? p.name ?? null;
+        p.avatar_url = p.avatar_url ?? p.profile_photo ?? null;
+        p.neighborhood = p.neighborhood ?? p.location ?? null;
+      }
+      setProfile(p);
     } catch {
       setProfile(null);
     }
