@@ -1,14 +1,12 @@
 import { Link } from "react-router-dom";
-import { Instagram, Facebook, Twitter, Music, Mail, MessageCircle } from "lucide-react";
+import { Instagram, Facebook, Music, Mail } from "lucide-react";
 import { Logo } from "./Logo";
 
-// Replace these with your real social URLs once ready.
+// Official Kichana social channels.
 export const SOCIAL = {
-  instagram: "https://instagram.com/kichana",
-  tiktok: "https://tiktok.com/@kichana",
-  facebook: "https://facebook.com/kichana",
-  twitter: "https://twitter.com/kichana",
-  whatsapp: "https://wa.me/254700000000",
+  instagram: "https://www.instagram.com/kichana.app/",
+  tiktok: "https://www.tiktok.com/@kichana.official",
+  facebook: "https://web.facebook.com/kichana.co.ke",
   email: "mailto:hello@kichana.co.ke",
 };
 
@@ -25,8 +23,6 @@ export function Footer() {
             <Social href={SOCIAL.instagram} label="Instagram"><Instagram className="h-4 w-4" /></Social>
             <Social href={SOCIAL.tiktok} label="TikTok"><Music className="h-4 w-4" /></Social>
             <Social href={SOCIAL.facebook} label="Facebook"><Facebook className="h-4 w-4" /></Social>
-            <Social href={SOCIAL.twitter} label="X / Twitter"><Twitter className="h-4 w-4" /></Social>
-            <Social href={SOCIAL.whatsapp} label="WhatsApp"><MessageCircle className="h-4 w-4" /></Social>
             <Social href={SOCIAL.email} label="Email"><Mail className="h-4 w-4" /></Social>
           </div>
         </div>

@@ -1,9 +1,20 @@
 import { NavLink } from "react-router-dom";
-import { Home, Search, Calendar, Bookmark, User } from "lucide-react";
+import {
+  Home,
+  Search,
+  Calendar,
+  Bookmark,
+  User,
+  Scissors,
+  BarChart3,
+} from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
-const items = [
+type Item = { to: string; label: string; Icon: typeof Home };
+
+const CUSTOMER_NAV: Item[] = [
   { to: "/home", label: "Home", Icon: Home },
   { to: "/discover", label: "Discover", Icon: Search },
   { to: "/bookings", label: "Bookings", Icon: Calendar },
@@ -11,7 +22,18 @@ const items = [
   { to: "/profile", label: "Me", Icon: User },
 ];
 
+const STYLIST_NAV: Item[] = [
+  { to: "/home", label: "Home", Icon: Home },
+  { to: "/discover", label: "Discover", Icon: Search },
+  { to: "/studio", label: "Studio", Icon: Scissors },
+  { to: "/business", label: "Business", Icon: BarChart3 },
+  { to: "/profile", label: "Me", Icon: User },
+];
+
 export function BottomNav() {
+  const { profile } = useAuth();
+  const items = profile?.role === "stylist" ? STYLIST_NAV : CUSTOMER_NAV;
+
   return (
     <>
       {/* Mobile bottom nav */}
@@ -63,7 +85,9 @@ export function BottomNav() {
           ))}
         </ul>
         <div className="mt-auto text-[11px] text-mute px-3">
-          Built in Nairobi · Kichana
+          {profile?.role === "stylist"
+            ? "Studio · Kichana for business"
+            : "Built in Nairobi · Kichana"}
         </div>
       </aside>
     </>
