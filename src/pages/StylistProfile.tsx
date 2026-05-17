@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { demoStylists, demoServices, isDemo } from "@/lib/demoData";
 import { Avatar } from "@/components/Avatar";
 import { SmartImage } from "@/components/SmartImage";
+import { StylistMap } from "@/components/StylistMap";
 import { KES } from "@/lib/utils";
 import type { Stylist, Service } from "@/lib/database.types";
 
@@ -29,7 +30,7 @@ export default function StylistProfile() {
       const [{ data: s }, { data: svc }, { data: pf }] = await Promise.all([
         supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
         supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),
-        supabase.from("portfolio_items").select("id, image_url").eq("stylist_id", id).order("created_at", { ascending: false }).limit(12),
+        supabase.from("portfolio_images").select("id, image_url").eq("stylist_id", id).order("sort_order").limit(12),
       ]);
       setStylist(s as any);
       setServices((svc as Service[]) || []);
@@ -106,9 +107,30 @@ export default function StylistProfile() {
           {portfolio.length > 0 ? (
             portfolio.map((p) => <img key={p.id} src={p.image_url} className="aspect-square rounded-xl object-cover" />)
           ) : (
-            <div className="col-span-3 text-mute text-sm">Portfolio builds automatically from completed bookings.</div>
+            <div className="col-span-3 text-mute text-sm">No portfolio images yet.</div>
           )}
         </div>
+
+        {stylist.lat != null && stylist.lng != null && (
+          <>
+            <h2 className="font-display text-2xl mt-8 mb-3">Where to find them</h2>
+            <StylistMap
+              stylists={[{
+                id: stylist.id,
+                display_name: stylist.display_name,
+                lat: stylist.lat,
+                lng: stylist.lng,
+                rating_avg: stylist.rating_avg,
+                base_location: stylist.base_location,
+              }]}
+              height={240}
+            />
+            <p className="text-xs text-mute mt-2 flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {stylist.base_location || stylist.neighborhoods?.join(", ")}
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

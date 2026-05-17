@@ -122,14 +122,14 @@ export default function Home() {
         {/* Feed */}
         <section className="lg:min-w-0">
           {loading && (
-            <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="skeleton h-96 rounded-3xl" />
               ))}
             </div>
           )}
 
-          <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2">
             {posts.map((p) => (
               <article
                 key={p.id}

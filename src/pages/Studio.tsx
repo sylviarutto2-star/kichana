@@ -41,7 +41,7 @@ export default function Studio() {
       const { data: s } = await supabase
         .from("stylists" as any)
         .select("*")
-        .eq("user_id", user.id)
+        .eq("profile_id", user.id)
         .maybeSingle();
       setStylist(s);
 
@@ -49,7 +49,7 @@ export default function Studio() {
         const [svc, port, bks, av, pol] = await Promise.all([
           supabase.from("services" as any).select("*").eq("stylist_id", (s as any).id).order("sort_order").order("created_at", { ascending: false }),
           supabase.from("portfolio_images" as any).select("*").eq("stylist_id", (s as any).id).order("is_cover", { ascending: false }).order("sort_order"),
-          supabase.from("bookings" as any).select("*, services(name), profiles!bookings_customer_id_fkey(name, phone)").eq("stylist_id", (s as any).id).order("appointment_date").order("appointment_time"),
+          supabase.from("bookings" as any).select("*, services(title), profiles:profiles!bookings_customer_id_fkey(full_name, phone)").eq("stylist_id", (s as any).id).order("scheduled_for"),
           supabase.from("stylist_availability" as any).select("*").eq("stylist_id", (s as any).id).order("weekday").order("start_time"),
           supabase.from("stylist_policies" as any).select("*").eq("stylist_id", (s as any).id).maybeSingle(),
         ]);
@@ -82,11 +82,13 @@ export default function Studio() {
   }
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
-  const today = bookings.filter((b) => b.appointment_date === todayStr);
+  const bookingDate = (b: any) =>
+    b.scheduled_for ? format(new Date(b.scheduled_for), "yyyy-MM-dd") : "";
+  const today = bookings.filter((b) => bookingDate(b) === todayStr);
   const upcoming = bookings.filter(
-    (b) => !["completed", "cancelled"].includes(b.status) && b.appointment_date >= todayStr,
+    (b) => !["completed", "cancelled"].includes(b.status) && bookingDate(b) >= todayStr,
   );
-  const upcomingRevenue = upcoming.reduce((s, b) => s + (b.total_price || 0), 0);
+  const upcomingRevenue = upcoming.reduce((s, b) => s + (b.amount_kes || 0), 0);
 
   const TABS: { id: Tab; label: string; Icon: any }[] = [
     { id: "today", label: "Today", Icon: Calendar },
@@ -198,28 +200,28 @@ function TodayTab({
           <div key={b.id} className="card p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-semibold truncate">{b.services?.name || "Service"}</div>
+                <div className="font-semibold truncate">{b.services?.title || "Service"}</div>
                 <div className="text-xs text-mute mt-0.5">
-                  {b.profiles?.name || "Client"} · {b.profiles?.phone || "no phone"}
+                  {b.profiles?.full_name || "Client"} · {b.profiles?.phone || "no phone"}
                 </div>
                 <div className="text-xs text-mute mt-1">
-                  {format(new Date(`${b.appointment_date}T${b.appointment_time}`), "EEE d MMM, HH:mm")}
+                  {b.scheduled_for ? format(new Date(b.scheduled_for), "EEE d MMM, HH:mm") : "—"}
                   {" · "}
                   {b.location_type === "salon" ? "At salon" : "Home visit"}
                 </div>
                 {b.notes && <p className="text-xs text-mute mt-2 italic">"{b.notes}"</p>}
               </div>
               <div className="text-right shrink-0">
-                <div className="font-display text-lg">{KES(b.total_price || 0)}</div>
+                <div className="font-display text-lg">{KES(b.amount_kes || 0)}</div>
                 <div className="text-[10px] uppercase text-mute tracking-wider">
-                  {b.deposit_paid ? "deposit paid" : "unpaid"}
+                  {["deposit_paid", "paid"].includes(b.payment_status) ? "deposit paid" : "unpaid"}
                 </div>
               </div>
             </div>
             <div className="flex gap-2 mt-3 flex-wrap">
               {b.status === "pending" && (
                 <>
-                  <button onClick={() => setStatus(b.id, "accepted")} className="btn-primary !py-2 !px-3 text-xs">
+                  <button onClick={() => setStatus(b.id, "confirmed")} className="btn-primary !py-2 !px-3 text-xs">
                     <Check className="h-4 w-4" /> Confirm
                   </button>
                   <button onClick={() => setStatus(b.id, "cancelled")} className="btn-outline !py-2 !px-3 text-xs">
@@ -227,7 +229,7 @@ function TodayTab({
                   </button>
                 </>
               )}
-              {b.status === "accepted" && (
+              {b.status === "confirmed" && (
                 <button onClick={() => setStatus(b.id, "completed")} className="btn-dark !py-2 !px-3 text-xs">
                   Mark complete
                 </button>
@@ -275,10 +277,10 @@ function ServicesTab({
     setBusy(true);
     const payload = {
       stylist_id: stylistId,
-      name: form.name,
+      title: form.name,
       description: form.description || null,
-      price: Number(form.price),
-      duration_min: Number(form.duration_min) || null,
+      price_kes: Number(form.price),
+      duration_min: Number(form.duration_min) || 60,
       category: form.category,
       subcategory: form.subcategory || null,
       hair_type_tags: form.hair_type_tags,
@@ -396,7 +398,7 @@ function ServicesTab({
             <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <div className="font-semibold truncate">{s.name}</div>
+                  <div className="font-semibold truncate">{s.title}</div>
                   {s.intro_offer_active && (
                     <span className="chip text-[10px] bg-mpesa-50 text-mpesa-700 border-mpesa-200">
                       Intro -{s.intro_offer_percent || 15}%
@@ -419,7 +421,7 @@ function ServicesTab({
                 )}
               </div>
               <div className="text-right shrink-0">
-                <div className="font-display text-lg">{KES(s.price)}</div>
+                <div className="font-display text-lg">{KES(s.price_kes)}</div>
               </div>
             </div>
             <div className="flex gap-2 mt-3">

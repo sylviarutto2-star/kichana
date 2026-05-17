@@ -14,6 +14,7 @@ import Bookings from "@/pages/Bookings";
 import Vault from "@/pages/Vault";
 import Profile from "@/pages/Profile";
 import Studio from "@/pages/Studio";
+import Business from "@/pages/Business";
 import PostCreate from "@/pages/PostCreate";
 import GroupBooking from "@/pages/GroupBooking";
 import NotFound from "@/pages/NotFound";
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="/vault" element={<RequireAuth><Vault /></RequireAuth>} />
         <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
         <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />
+        <Route path="/business" element={<RequireAuth><Business /></RequireAuth>} />
         <Route path="/post" element={<RequireAuth><PostCreate /></RequireAuth>} />
         <Route path="/group/:stylistId" element={<RequireAuth><GroupBooking /></RequireAuth>} />
 

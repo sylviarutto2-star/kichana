@@ -32,6 +32,8 @@ export type Stylist = {
   rating_count: number;
   bookings_count: number;
   verified: boolean;
+  lat?: number | null;
+  lng?: number | null;
   featured_until: ISO | null;
   commission_rate: number;
   loyalty_tier: "bronze" | "silver" | "gold" | "platinum";

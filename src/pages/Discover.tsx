@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, SlidersHorizontal, X, MapPin } from "lucide-react";
+import { Search, SlidersHorizontal, X, MapPin, Map as MapIcon, LayoutGrid, Navigation } from "lucide-react";
 import { BottomNav } from "@/components/BottomNav";
 import { StylistCard } from "@/components/StylistCard";
+import { StylistMap } from "@/components/StylistMap";
 import { NAIROBI_AREAS, SERVICE_CATEGORIES, cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import type { Stylist } from "@/lib/database.types";
@@ -48,6 +49,19 @@ export default function Discover() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [view, setView] = useState<"grid" | "map">(
+    (sp.get("view") as "grid" | "map") || "grid"
+  );
+  const [me, setMe] = useState<{ lat: number; lng: number } | null>(null);
+
+  const locateMe = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setMe({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
 
   // Persist filters in URL
   useEffect(() => {
@@ -65,8 +79,9 @@ export default function Discover() {
     if (travelsOnly) next.set("travels", "1");
     if (avail !== "Any") next.set("avail", avail);
     if (sort !== "rating") next.set("sort", sort);
+    if (view !== "grid") next.set("view", view);
     setSp(next, { replace: true });
-  }, [q, area, cat, hairTypes, langs, vibes, minPrice, maxPrice, minRating, verifiedOnly, travelsOnly, avail, sort, setSp]);
+  }, [q, area, cat, hairTypes, langs, vibes, minPrice, maxPrice, minRating, verifiedOnly, travelsOnly, avail, sort, view, setSp]);
 
   useEffect(() => {
     (async () => {
@@ -173,7 +188,8 @@ export default function Discover() {
               {loading ? "Loading…" : `${filtered.length} stylists match your filters`}
             </p>
           </div>
-          <div className="hidden lg:flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-3">
+            <ViewToggle view={view} setView={setView} />
             <SortPicker value={sort} onChange={setSort} />
           </div>
         </div>
@@ -230,17 +246,20 @@ export default function Discover() {
           ))}
         </div>
 
-        {/* Mobile sort row */}
-        <div className="mt-3 flex items-center justify-between lg:hidden">
+        {/* Mobile sort + view row */}
+        <div className="mt-3 flex items-center justify-between gap-2 lg:hidden">
           <SortPicker value={sort} onChange={setSort} />
-          {activeCount > 0 && (
-            <button
-              onClick={clearAll}
-              className="text-xs font-semibold text-terracotta-700"
-            >
-              Clear all ({activeCount})
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {activeCount > 0 && (
+              <button
+                onClick={clearAll}
+                className="text-xs font-semibold text-terracotta-700"
+              >
+                Clear ({activeCount})
+              </button>
+            )}
+            <ViewToggle view={view} setView={setView} />
+          </div>
         </div>
       </div>
 
@@ -269,11 +288,37 @@ export default function Discover() {
               </button>
             </div>
           )}
-          {!loading && filtered.length > 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {!loading && filtered.length > 0 && view === "grid" && (
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {filtered.map((s) => (
                 <StylistCard key={s.id} s={s as any} fromKes={s.from_kes} />
               ))}
+            </div>
+          )}
+          {!loading && filtered.length > 0 && view === "map" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-mute">
+                  {filtered.filter((s) => s.lat != null).length} stylists pinned ·
+                  prices shown live
+                </p>
+                <button onClick={locateMe} className="btn-outline !py-2 !px-3 text-xs">
+                  <Navigation className="h-3.5 w-3.5" /> Near me
+                </button>
+              </div>
+              <StylistMap
+                stylists={filtered.map((s) => ({
+                  id: s.id,
+                  display_name: s.display_name,
+                  lat: s.lat,
+                  lng: s.lng,
+                  rating_avg: s.rating_avg,
+                  base_location: s.base_location,
+                  from_kes: s.from_kes,
+                }))}
+                me={me}
+                height={580}
+              />
             </div>
           )}
         </section>
@@ -314,6 +359,39 @@ export default function Discover() {
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
+
+function ViewToggle({
+  view,
+  setView,
+}: {
+  view: "grid" | "map";
+  setView: (v: "grid" | "map") => void;
+}) {
+  return (
+    <div className="inline-flex rounded-full border border-line bg-white p-0.5">
+      <button
+        onClick={() => setView("grid")}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+          view === "grid" ? "bg-ink text-cream" : "text-mute"
+        )}
+        aria-pressed={view === "grid"}
+      >
+        <LayoutGrid className="h-3.5 w-3.5" /> Grid
+      </button>
+      <button
+        onClick={() => setView("map")}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition",
+          view === "map" ? "bg-ink text-cream" : "text-mute"
+        )}
+        aria-pressed={view === "map"}
+      >
+        <MapIcon className="h-3.5 w-3.5" /> Map
+      </button>
+    </div>
+  );
+}
 
 function SortPicker({ value, onChange }: { value: SortKey; onChange: (v: SortKey) => void }) {
   return (

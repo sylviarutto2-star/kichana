@@ -15,7 +15,7 @@ export const demoStylists: (Stylist & { profile: { full_name: string; avatar_url
     commission_rate: 0.10, loyalty_tier: "gold",
     created_at: new Date().toISOString(),
     profile: { full_name: "Amani Wanjiru", avatar_url: avatarUrl(AVATAR_PHOTOS[0]) },
-    from_kes: 2500,
+    from_kes: 2500, lat: -1.2649, lng: 36.8121,
   },
   {
     id: "demo-2", profile_id: "demo", display_name: "Nia Natural Hair",
@@ -27,7 +27,7 @@ export const demoStylists: (Stylist & { profile: { full_name: string; avatar_url
     featured_until: null, commission_rate: 0.10, loyalty_tier: "silver",
     created_at: new Date().toISOString(),
     profile: { full_name: "Nia Mwangi", avatar_url: avatarUrl(AVATAR_PHOTOS[1]) },
-    from_kes: 3500,
+    from_kes: 3500, lat: -1.3194, lng: 36.7073,
   },
   {
     id: "demo-3", profile_id: "demo", display_name: "Lulu Wigs",
@@ -39,7 +39,7 @@ export const demoStylists: (Stylist & { profile: { full_name: string; avatar_url
     featured_until: null, commission_rate: 0.10, loyalty_tier: "gold",
     created_at: new Date().toISOString(),
     profile: { full_name: "Lulu Achieng", avatar_url: avatarUrl(AVATAR_PHOTOS[2]) },
-    from_kes: 4500,
+    from_kes: 4500, lat: -1.2906, lng: 36.7820,
   },
   {
     id: "demo-4", profile_id: "demo", display_name: "Locs By Imani",
@@ -51,7 +51,7 @@ export const demoStylists: (Stylist & { profile: { full_name: string; avatar_url
     featured_until: null, commission_rate: 0.10, loyalty_tier: "silver",
     created_at: new Date().toISOString(),
     profile: { full_name: "Imani Otieno", avatar_url: avatarUrl(AVATAR_PHOTOS[3]) },
-    from_kes: 2800,
+    from_kes: 2800, lat: -1.2790, lng: 36.7680,
   },
   {
     id: "demo-5", profile_id: "demo", display_name: "Glow Nails Bar",
@@ -63,7 +63,7 @@ export const demoStylists: (Stylist & { profile: { full_name: string; avatar_url
     featured_until: null, commission_rate: 0.10, loyalty_tier: "gold",
     created_at: new Date().toISOString(),
     profile: { full_name: "Glow Studio", avatar_url: avatarUrl(AVATAR_PHOTOS[4]) },
-    from_kes: 1500,
+    from_kes: 1500, lat: -1.2680, lng: 36.8050,
   },
   {
     id: "demo-6", profile_id: "demo", display_name: "Kev Cuts",
@@ -75,7 +75,7 @@ export const demoStylists: (Stylist & { profile: { full_name: string; avatar_url
     featured_until: null, commission_rate: 0.10, loyalty_tier: "silver",
     created_at: new Date().toISOString(),
     profile: { full_name: "Kevin Ouma", avatar_url: avatarUrl(AVATAR_PHOTOS[2]) },
-    from_kes: 800,
+    from_kes: 800, lat: -1.3110, lng: 36.8330,
   },
 ];
 
