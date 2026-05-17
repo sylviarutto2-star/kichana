@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,10 +11,17 @@ import { Calendar, MapPin, Clock } from "lucide-react";
 type Row = any;
 
 export default function Bookings() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const nav = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [loading, setLoading] = useState(true);
+
+  // Stylists/vendors don't have a customer "Bookings" page — their client
+  // appointments live in Studio. Send them there.
+  useEffect(() => {
+    if (profile?.role === "stylist") nav("/studio", { replace: true });
+  }, [profile, nav]);
 
   useEffect(() => {
     if (!user) return;
