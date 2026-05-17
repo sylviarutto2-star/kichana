@@ -206,27 +206,46 @@ export type Database = {
       }
       portfolio_images: {
         Row: {
+          caption: string | null
           created_at: string
           id: string
           image_url: string
+          is_cover: boolean
           media_type: string
+          service_id: string | null
+          sort_order: number
           stylist_id: string
         }
         Insert: {
+          caption?: string | null
           created_at?: string
           id?: string
           image_url: string
+          is_cover?: boolean
           media_type?: string
+          service_id?: string | null
+          sort_order?: number
           stylist_id: string
         }
         Update: {
+          caption?: string | null
           created_at?: string
           id?: string
           image_url?: string
+          is_cover?: boolean
           media_type?: string
+          service_id?: string | null
+          sort_order?: number
           stylist_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "portfolio_images_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "portfolio_images_stylist_id_fkey"
             columns: ["stylist_id"]
@@ -328,41 +347,182 @@ export type Database = {
       }
       services: {
         Row: {
+          active: boolean
           category: string | null
           created_at: string
+          deposit_override: number | null
           description: string | null
           duration: string | null
+          duration_min: number | null
+          hair_type_tags: string[]
           id: string
           images: string[] | null
+          intro_offer_active: boolean
+          intro_offer_percent: number | null
           name: string
           price: number
+          sort_order: number
           stylist_id: string
+          subcategory: string | null
         }
         Insert: {
+          active?: boolean
           category?: string | null
           created_at?: string
+          deposit_override?: number | null
           description?: string | null
           duration?: string | null
+          duration_min?: number | null
+          hair_type_tags?: string[]
           id?: string
           images?: string[] | null
+          intro_offer_active?: boolean
+          intro_offer_percent?: number | null
           name: string
           price: number
+          sort_order?: number
           stylist_id: string
+          subcategory?: string | null
         }
         Update: {
+          active?: boolean
           category?: string | null
           created_at?: string
+          deposit_override?: number | null
           description?: string | null
           duration?: string | null
+          duration_min?: number | null
+          hair_type_tags?: string[]
           id?: string
           images?: string[] | null
+          intro_offer_active?: boolean
+          intro_offer_percent?: number | null
           name?: string
           price?: number
+          sort_order?: number
           stylist_id?: string
+          subcategory?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "services_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stylist_availability: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          start_time: string
+          stylist_id: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          start_time: string
+          stylist_id: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          stylist_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stylist_availability_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: false
+            referencedRelation: "stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stylist_policies: {
+        Row: {
+          cancellation_hours: number
+          created_at: string
+          custom_terms: string | null
+          deposit_refundable: boolean
+          late_grace_min: number
+          no_show_fee_percent: number
+          stylist_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancellation_hours?: number
+          created_at?: string
+          custom_terms?: string | null
+          deposit_refundable?: boolean
+          late_grace_min?: number
+          no_show_fee_percent?: number
+          stylist_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancellation_hours?: number
+          created_at?: string
+          custom_terms?: string | null
+          deposit_refundable?: boolean
+          late_grace_min?: number
+          no_show_fee_percent?: number
+          stylist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stylist_policies_stylist_id_fkey"
+            columns: ["stylist_id"]
+            isOneToOne: true
+            referencedRelation: "stylists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stylist_schedule_overrides: {
+        Row: {
+          created_at: string
+          date: string
+          end_time: string | null
+          id: string
+          is_closed: boolean
+          reason: string | null
+          start_time: string | null
+          stylist_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          end_time?: string | null
+          id?: string
+          is_closed?: boolean
+          reason?: string | null
+          start_time?: string | null
+          stylist_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          end_time?: string | null
+          id?: string
+          is_closed?: boolean
+          reason?: string | null
+          start_time?: string | null
+          stylist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stylist_schedule_overrides_stylist_id_fkey"
             columns: ["stylist_id"]
             isOneToOne: false
             referencedRelation: "stylists"
@@ -377,8 +537,10 @@ export type Database = {
           completed_bookings_count: number
           created_at: string
           deposit_percentage: number
+          display_name: string | null
           early_program: boolean
           early_program_start: string | null
+          hero_image_url: string | null
           home_service_enabled: boolean
           id: string
           latitude: number | null
@@ -386,7 +548,9 @@ export type Database = {
           rating: number | null
           review_count: number | null
           service_areas: string[] | null
+          specialties: string[]
           transport_fee: number
+          travels: boolean
           updated_at: string
           user_id: string
           verified: boolean | null
@@ -398,8 +562,10 @@ export type Database = {
           completed_bookings_count?: number
           created_at?: string
           deposit_percentage?: number
+          display_name?: string | null
           early_program?: boolean
           early_program_start?: string | null
+          hero_image_url?: string | null
           home_service_enabled?: boolean
           id?: string
           latitude?: number | null
@@ -407,7 +573,9 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           service_areas?: string[] | null
+          specialties?: string[]
           transport_fee?: number
+          travels?: boolean
           updated_at?: string
           user_id: string
           verified?: boolean | null
@@ -419,8 +587,10 @@ export type Database = {
           completed_bookings_count?: number
           created_at?: string
           deposit_percentage?: number
+          display_name?: string | null
           early_program?: boolean
           early_program_start?: string | null
+          hero_image_url?: string | null
           home_service_enabled?: boolean
           id?: string
           latitude?: number | null
@@ -428,7 +598,9 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           service_areas?: string[] | null
+          specialties?: string[]
           transport_fee?: number
+          travels?: boolean
           updated_at?: string
           user_id?: string
           verified?: boolean | null
