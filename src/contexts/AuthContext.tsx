@@ -48,17 +48,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
+    let active = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
       setSession(data.session);
-      if (data.session?.user) await loadProfile(data.session.user.id);
+      // Auth state is known — render immediately. The profile loads in the
+      // background so a slow/failed query never traps the app on a blank screen.
       setLoading(false);
+      if (data.session?.user) void loadProfile(data.session.user.id);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      if (!active) return;
       setSession(s);
-      if (s?.user) await loadProfile(s.user.id);
+      setLoading(false);
+      // Defer Supabase data calls out of the auth callback: querying inside it
+      // while the auth client holds its lock can deadlock the whole client.
+      if (s?.user) setTimeout(() => loadProfile(s.user.id), 0);
       else setProfile(null);
     });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   return (
