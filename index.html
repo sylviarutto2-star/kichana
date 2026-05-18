@@ -8,33 +8,52 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <!--
-      Cache kill-switch: unregister any stale service worker and purge cached
-      bundles left by earlier deploys, then reload once so every browser gets
-      the current build regardless of its cache history.
+      Hard reset kill-switch: runs once per browser. Unregisters stale service
+      workers, purges cache storage, and wipes localStorage / sessionStorage /
+      cookies so every visitor gets a clean signed-out state on the current
+      build. The "done" marker is re-written AFTER the wipe so it survives and
+      prevents a reload loop.
     -->
     <script>
       (function () {
+        var RESET_KEY = "kichana_reset_2026_05_18";
+        try {
+          if (localStorage.getItem(RESET_KEY) === "1") return;
+        } catch (e) { return; }
+
+        var finish = function () {
+          try {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.cookie.split(";").forEach(function (c) {
+              var name = c.split("=")[0].trim();
+              if (!name) return;
+              var expire = "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+              document.cookie = name + expire;
+              document.cookie = name + expire + ";domain=" + location.hostname;
+            });
+          } catch (e) {}
+          try { localStorage.setItem(RESET_KEY, "1"); } catch (e) {}
+          location.reload();
+        };
+
         try {
           if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (regs) {
-              var had = regs && regs.length > 0;
-              (regs || []).forEach(function (r) { r.unregister(); });
-              var done = function () {
-                if (had && !sessionStorage.getItem("kichana_cache_cleared")) {
-                  sessionStorage.setItem("kichana_cache_cleared", "1");
-                  location.reload();
-                }
-              };
-              if (window.caches && caches.keys) {
-                caches.keys().then(function (keys) {
-                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
-                }).then(done).catch(done);
-              } else {
-                done();
-              }
-            }).catch(function () {});
+            navigator.serviceWorker.getRegistrations()
+              .then(function (regs) { (regs || []).forEach(function (r) { r.unregister(); }); })
+              .catch(function () {});
           }
-        } catch (e) {}
+          if (window.caches && caches.keys) {
+            caches.keys()
+              .then(function (keys) {
+                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+              })
+              .then(finish)
+              .catch(finish);
+          } else {
+            finish();
+          }
+        } catch (e) { finish(); }
       })();
     </script>
     <title>Kichana — Hair, brilliantly booked</title>
