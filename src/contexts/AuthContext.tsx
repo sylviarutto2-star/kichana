@@ -28,20 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadProfile = async (userId: string) => {
     try {
-      // Real schema: profiles.user_id references auth.users.id (profiles.id is its own PK).
-      const { data, error } = await supabase.from("profiles" as any).select("*").eq("user_id", userId).maybeSingle();
+      // profiles.id is the PK and references auth.users(id) directly — there is
+      // no separate user_id column (see kichana_v1 schema).
+      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
       if (error && (error.code === "42P01" || /relation .* does not exist/i.test(error.message))) {
-        setProfile({ id: userId, user_id: userId, name: "", role: "customer" } as any);
+        setProfile({ id: userId, role: "customer" } as Profile);
         return;
       }
-      // Normalise so the rest of the app can read both shapes during the schema reconciliation.
-      const p: any = data ?? null;
-      if (p) {
-        p.full_name = p.full_name ?? p.name ?? null;
-        p.avatar_url = p.avatar_url ?? p.profile_photo ?? null;
-        p.neighborhood = p.neighborhood ?? p.location ?? null;
-      }
-      setProfile(p);
+      setProfile((data as Profile) ?? null);
     } catch {
       setProfile(null);
     }

@@ -10,7 +10,7 @@ import { LogOut, Award, Languages, Phone, MapPin, Settings, Scissors } from "luc
 import { NAIROBI_AREAS } from "@/lib/utils";
 
 export default function Profile() {
-  const { profile, signOut, refreshProfile, user } = useAuth();
+  const { profile, signOut, refreshProfile, user, loading } = useAuth();
   const nav = useNavigate();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
@@ -42,7 +42,28 @@ export default function Profile() {
     toast.success("Saved");
   };
 
-  if (!profile) return null;
+  if (loading) return null;
+
+  if (!profile) {
+    return (
+      <div className="pb-28 min-h-screen">
+        <PageHeader title="Me" />
+        <div className="container-app">
+          <div className="card p-5 mt-4 text-sm space-y-3">
+            <div className="font-display text-lg">Finish setting up your account</div>
+            <p className="text-mute">We couldn't load your profile yet.</p>
+            <button className="btn-primary w-full" onClick={() => nav("/onboarding")}>
+              Complete onboarding
+            </button>
+            <button className="btn-outline w-full text-terracotta-600" onClick={async () => { await signOut(); nav("/"); }}>
+              <LogOut className="h-4 w-4" /> Sign out
+            </button>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    );
+  }
 
   return (
     <div className="pb-28 min-h-screen">
