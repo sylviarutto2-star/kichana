@@ -32,31 +32,38 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("feed_posts")
-        .select(
-          "id, image_url, caption, category, likes_count, comments_count, created_at, stylist_id, profiles!feed_posts_author_id_fkey(full_name, avatar_url), stylists(display_name)"
-        )
-        .order("created_at", { ascending: false })
-        .limit(60);
-      let rows: FeedRow[] = (data || []).map((r: any) => ({
-        id: r.id,
-        image_url: r.image_url,
-        caption: r.caption,
-        category: r.category,
-        likes_count: r.likes_count,
-        comments_count: r.comments_count,
-        created_at: r.created_at,
-        stylist_id: r.stylist_id,
-        author_name: r.profiles?.full_name,
-        avatar_url: r.profiles?.avatar_url,
-        stylist_name: r.stylists?.display_name,
-      }));
-      if (rows.length < 5) rows = [...rows, ...demoFeed];
-      setPosts(rows);
-      setLoading(false);
+      try {
+        const { data } = await supabase
+          .from("feed_posts")
+          .select(
+            "id, image_url, caption, category, likes_count, comments_count, created_at, stylist_id, profiles!feed_posts_author_id_fkey(full_name, avatar_url), stylists(display_name)"
+          )
+          .order("created_at", { ascending: false })
+          .limit(60);
+        let rows: FeedRow[] = (data || []).map((r: any) => ({
+          id: r.id,
+          image_url: r.image_url,
+          caption: r.caption,
+          category: r.category,
+          likes_count: r.likes_count,
+          comments_count: r.comments_count,
+          created_at: r.created_at,
+          stylist_id: r.stylist_id,
+          author_name: r.profiles?.full_name,
+          avatar_url: r.profiles?.avatar_url,
+          stylist_name: r.stylists?.display_name,
+        }));
+        if (rows.length < 5) rows = [...rows, ...demoFeed];
+        if (!cancelled) setPosts(rows);
+      } catch {
+        if (!cancelled) setPosts([...demoFeed]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   const saveToVault = async (

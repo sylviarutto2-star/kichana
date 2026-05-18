@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Tab = "today" | "services" | "portfolio" | "hours" | "policies" | "profile";
 
@@ -20,7 +21,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const HAIR_TYPES = ["4A", "4B", "4C", "3A", "3B", "3C", "Relaxed", "Locs"];
 
 export default function Studio() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const nav = useNavigate();
   const [stylist, setStylist] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
@@ -32,17 +33,20 @@ export default function Studio() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading || !user) return;
     if (profile && profile.role && profile.role !== "stylist") {
       nav("/profile");
       return;
     }
+    let cancelled = false;
     (async () => {
+      try {
       const { data: s } = await supabase
         .from("stylists" as any)
         .select("*")
         .eq("profile_id", user.id)
         .maybeSingle();
+      if (cancelled) return;
       setStylist(s);
 
       if (s) {
@@ -62,10 +66,16 @@ export default function Studio() {
           no_show_fee_percent: 50, deposit_refundable: false, custom_terms: "",
         });
       }
-      setLoading(false);
+      } catch {
+        if (!cancelled) toast.error("Couldn't load your studio. Please try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
-  }, [user, profile]);
+    return () => { cancelled = true; };
+  }, [user, profile, authLoading]);
 
+  if (authLoading) return <LoadingScreen />;
   if (loading) return <div className="container-app py-10"><div className="skeleton h-32" /></div>;
   if (!stylist) {
     return (

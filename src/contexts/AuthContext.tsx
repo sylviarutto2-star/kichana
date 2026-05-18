@@ -42,6 +42,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Watchdog: if the session lookup ever stalls (e.g. network hang), force
+    // the app out of its loading state so it can never strand on a blank screen.
+    const watchdog = setTimeout(() => setLoading(false), 8000);
+
     supabase.auth
       .getSession()
       .then(async ({ data }) => {
@@ -54,13 +58,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null);
         setProfile(null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(watchdog);
+        setLoading(false);
+      });
     const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
       setSession(s);
       if (s?.user) await loadProfile(s.user.id);
       else setProfile(null);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      clearTimeout(watchdog);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   return (

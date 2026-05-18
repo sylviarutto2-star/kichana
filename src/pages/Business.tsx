@@ -12,6 +12,7 @@ import {
   Sparkles, Cake, Check, Megaphone, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 /* ------------------------------------------------------------------ */
 /* Types & demo fallback                                              */
@@ -79,7 +80,7 @@ function buildDemoBookings(): Booking[] {
 /* ------------------------------------------------------------------ */
 
 export default function Business() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const nav = useNavigate();
   const [stylist, setStylist] = useState<any>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -88,45 +89,56 @@ export default function Business() {
   const [activated, setActivated] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading || !user) return;
     if (profile && profile.role && profile.role !== "stylist") {
       nav("/home");
       return;
     }
+    let cancelled = false;
     (async () => {
-      const { data: s } = await supabase
-        .from("stylists")
-        .select("*")
-        .eq("profile_id", user.id)
-        .maybeSingle();
-      setStylist(s);
+      try {
+        const { data: s } = await supabase
+          .from("stylists")
+          .select("*")
+          .eq("profile_id", user.id)
+          .maybeSingle();
+        if (cancelled) return;
+        setStylist(s);
 
-      let rows: Booking[] = [];
-      if (s) {
-        const { data } = await supabase
-          .from("bookings")
-          .select(
-            "id, customer_id, scheduled_for, status, amount_kes, services(title, category), profiles:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url, birthday, marketing_opt_in)"
-          )
-          .eq("stylist_id", (s as any).id);
-        rows = (data || []).map((r: any) => ({
-          id: r.id,
-          customer_id: r.customer_id,
-          scheduled_for: r.scheduled_for,
-          status: r.status,
-          amount_kes: r.amount_kes || 0,
-          service: r.services,
-          customer: r.profiles,
-        }));
+        let rows: Booking[] = [];
+        if (s) {
+          const { data } = await supabase
+            .from("bookings")
+            .select(
+              "id, customer_id, scheduled_for, status, amount_kes, services(title, category), profiles:profiles!bookings_customer_id_fkey(full_name, phone, avatar_url, birthday, marketing_opt_in)"
+            )
+            .eq("stylist_id", (s as any).id);
+          rows = (data || []).map((r: any) => ({
+            id: r.id,
+            customer_id: r.customer_id,
+            scheduled_for: r.scheduled_for,
+            status: r.status,
+            amount_kes: r.amount_kes || 0,
+            service: r.services,
+            customer: r.profiles,
+          }));
+        }
+        if (rows.length === 0) {
+          rows = buildDemoBookings();
+          if (!cancelled) setIsDemo(true);
+        }
+        if (!cancelled) setBookings(rows);
+      } catch {
+        if (!cancelled) {
+          setBookings(buildDemoBookings());
+          setIsDemo(true);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      if (rows.length === 0) {
-        rows = buildDemoBookings();
-        setIsDemo(true);
-      }
-      setBookings(rows);
-      setLoading(false);
     })();
-  }, [user, profile]);
+    return () => { cancelled = true; };
+  }, [user, profile, authLoading]);
 
   const stats = useMemo(() => computeStats(bookings), [bookings]);
   const customers = useMemo(() => computeCustomers(bookings), [bookings]);
@@ -153,6 +165,7 @@ export default function Business() {
     }
   };
 
+  if (authLoading) return <LoadingScreen />;
   if (loading) {
     return (
       <div className="container-shell py-10 with-sidenav">

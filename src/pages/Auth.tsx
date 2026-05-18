@@ -5,6 +5,7 @@ import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, MailCheck } from "lucide-react";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function Auth() {
   const { session, profile, loading } = useAuth();
@@ -19,7 +20,7 @@ export default function Auth() {
   const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
   const nav = useNavigate();
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
   if (session) {
     return <Navigate to={profile?.onboarding_complete ? "/home" : "/onboarding"} replace />;
   }

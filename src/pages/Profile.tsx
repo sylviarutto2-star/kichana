@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { LogOut, Award, Languages, Phone, MapPin, Settings, Scissors } from "lucide-react";
 import { NAIROBI_AREAS } from "@/lib/utils";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function Profile() {
   const { profile, signOut, refreshProfile, user, loading } = useAuth();
@@ -42,7 +43,7 @@ export default function Profile() {
     toast.success("Saved");
   };
 
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
 
   if (!profile) {
     return (

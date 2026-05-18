@@ -15,32 +15,55 @@ export default function StylistProfile() {
   const [services, setServices] = useState<Service[]>([]);
   const [portfolio, setPortfolio] = useState<{ id: string; image_url: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    let cancelled = false;
     (async () => {
-      if (isDemo(id)) {
-        const s = demoStylists.find((x) => x.id === id);
-        setStylist(s as any);
-        setServices(demoServices[id] || []);
-        setPortfolio([]);
-        setLoading(false);
+      setLoading(true);
+      setError(false);
+      if (!id) {
+        if (!cancelled) { setError(true); setLoading(false); }
         return;
       }
-      const [{ data: s }, { data: svc }, { data: pf }] = await Promise.all([
-        supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
-        supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),
-        supabase.from("portfolio_images").select("id, image_url").eq("stylist_id", id).order("sort_order").limit(12),
-      ]);
-      setStylist(s as any);
-      setServices((svc as Service[]) || []);
-      setPortfolio((pf as any) || []);
-      setLoading(false);
+      try {
+        if (isDemo(id)) {
+          const s = demoStylists.find((x) => x.id === id);
+          if (cancelled) return;
+          setStylist(s as any);
+          setServices(demoServices[id] || []);
+          setPortfolio([]);
+          setLoading(false);
+          return;
+        }
+        const [{ data: s }, { data: svc }, { data: pf }] = await Promise.all([
+          supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
+          supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),
+          supabase.from("portfolio_images").select("id, image_url").eq("stylist_id", id).order("sort_order").limit(12),
+        ]);
+        if (cancelled) return;
+        setStylist(s as any);
+        setServices((svc as Service[]) || []);
+        setPortfolio((pf as any) || []);
+      } catch {
+        if (!cancelled) setError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, [id]);
 
   if (loading) return <div className="container-app py-10"><div className="skeleton h-72 rounded-3xl" /></div>;
-  if (!stylist) return <div className="container-app py-10">Not found.</div>;
+  if (error || !stylist) {
+    return (
+      <div className="container-app py-16 text-center">
+        <div className="font-display text-3xl">Stylist not found</div>
+        <p className="text-mute mt-2 text-sm">This profile may have been removed or is unavailable.</p>
+        <Link to="/discover" className="btn-primary mt-6 inline-flex">Back to Discover</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-24 min-h-screen">
@@ -67,7 +90,7 @@ export default function StylistProfile() {
                 {stylist.verified && <Verified className="h-5 w-5 text-terracotta-600" />}
               </div>
               <div className="text-sm text-mute mt-1 flex items-center gap-3 flex-wrap">
-                <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-gold-500 text-gold-500" /> {stylist.rating_avg.toFixed(1)} ({stylist.rating_count})</span>
+                <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-gold-500 text-gold-500" /> {(stylist.rating_avg ?? 0).toFixed(1)} ({stylist.rating_count ?? 0})</span>
                 <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {stylist.neighborhoods?.join(", ")}</span>
                 <span className="flex items-center gap-1"><Users className="h-4 w-4" /> {stylist.bookings_count} done</span>
               </div>

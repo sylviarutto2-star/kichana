@@ -31,19 +31,27 @@ export default function Booking() {
 
   useEffect(() => {
     if (!stylistId) return;
+    let cancelled = false;
     (async () => {
-      if (isDemo(stylistId)) {
-        setStylist(demoStylists.find((x) => x.id === stylistId) as any);
-        setServices(demoServices[stylistId] || []);
-        return;
+      try {
+        if (isDemo(stylistId)) {
+          if (cancelled) return;
+          setStylist(demoStylists.find((x) => x.id === stylistId) as any);
+          setServices(demoServices[stylistId] || []);
+          return;
+        }
+        const [{ data: s }, { data: svc }] = await Promise.all([
+          supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
+          supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
+        ]);
+        if (cancelled) return;
+        setStylist(s as any);
+        setServices((svc as Service[]) || []);
+      } catch {
+        if (!cancelled) toast.error("Couldn't load this stylist. Please try again.");
       }
-      const [{ data: s }, { data: svc }] = await Promise.all([
-        supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
-        supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
-      ]);
-      setStylist(s as any);
-      setServices((svc as Service[]) || []);
     })();
+    return () => { cancelled = true; };
   }, [stylistId]);
 
   const service = useMemo(() => services.find((s) => s.id === serviceId), [services, serviceId]);
@@ -101,7 +109,7 @@ export default function Booking() {
 
   return (
     <div className="pb-24 min-h-screen">
-      <PageHeader title="Book" subtitle={stylist?.display_name || "—"} back />
+      <PageHeader title="Book" subtitle={stylist?.display_name || "—"} back backTo="/discover" />
 
       <div className="container-app">
         <Stepper step={step} />

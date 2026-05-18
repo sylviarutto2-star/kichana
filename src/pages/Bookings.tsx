@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { KES } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, MapPin, Clock } from "lucide-react";
+import { toast } from "sonner";
 
 type Row = any;
 
@@ -25,15 +26,22 @@ export default function Bookings() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("bookings")
-        .select("*, services(title), stylists(display_name, base_location)")
-        .eq("customer_id", user.id)
-        .order("scheduled_for", { ascending: false });
-      setRows(data || []);
-      setLoading(false);
+      try {
+        const { data } = await supabase
+          .from("bookings")
+          .select("*, services(title), stylists(display_name, base_location)")
+          .eq("customer_id", user.id)
+          .order("scheduled_for", { ascending: false });
+        if (!cancelled) setRows(data || []);
+      } catch {
+        if (!cancelled) toast.error("Couldn't load your bookings. Please try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, [user]);
 
   const now = Date.now();
@@ -67,8 +75,8 @@ export default function Bookings() {
             <div key={b.id} className="card p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="font-semibold truncate">{b.services?.title}</div>
-                  <div className="text-xs text-mute mt-1">with {b.stylists?.display_name}</div>
+                  <div className="font-semibold truncate">{b.services?.title || "Service"}</div>
+                  <div className="text-xs text-mute mt-1">with {b.stylists?.display_name || "your stylist"}</div>
                   <div className="mt-2 text-xs text-mute flex flex-wrap gap-3">
                     <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {format(new Date(b.scheduled_for), "EEE d MMM")}</span>
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {format(new Date(b.scheduled_for), "HH:mm")}</span>
@@ -78,7 +86,7 @@ export default function Bookings() {
                 <div className="text-right">
                   <Status s={b.status} />
                   <div className="font-display text-lg mt-2">{KES(b.amount_kes)}</div>
-                  <div className="text-[10px] text-mute uppercase">{b.payment_status.replace("_", " ")}</div>
+                  <div className="text-[10px] text-mute uppercase">{(b.payment_status || "unpaid").replace("_", " ")}</div>
                 </div>
               </div>
             </div>

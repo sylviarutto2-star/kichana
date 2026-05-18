@@ -5,9 +5,14 @@ const KEY = "kichana_cookie_consent_v1";
 
 export function CookieBanner() {
   const [show, setShow] = useState(false);
-  useEffect(() => { setShow(!localStorage.getItem(KEY)); }, []);
+  useEffect(() => {
+    try { setShow(!localStorage.getItem(KEY)); } catch { setShow(false); }
+  }, []);
   if (!show) return null;
-  const set = (v: "all" | "essential") => { localStorage.setItem(KEY, v); setShow(false); };
+  const set = (v: "all" | "essential") => {
+    try { localStorage.setItem(KEY, v); } catch { /* storage unavailable — dismiss anyway */ }
+    setShow(false);
+  };
   return (
     <div className="fixed bottom-4 inset-x-4 md:inset-x-auto md:right-6 md:bottom-6 md:max-w-sm z-50">
       <div className="card p-4 shadow-pop">

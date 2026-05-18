@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -11,9 +11,19 @@ export default function PostCreate() {
   const { user } = useAuth();
   const nav = useNavigate();
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [category, setCategory] = useState<string>("braids");
   const [busy, setBusy] = useState(false);
+
+  // Build the preview URL once per file and revoke it when it changes/unmounts
+  // so we don't leak object URLs on repeated visits.
+  useEffect(() => {
+    if (!file) { setPreview(null); return; }
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   const submit = async () => {
     if (!user || !file) return toast.error("Pick an image first");
@@ -41,8 +51,8 @@ export default function PostCreate() {
       <PageHeader title="Post a look" subtitle="Photos auto-expire after 90 days." back />
       <div className="container-app space-y-4">
         <label className="card p-6 grid place-items-center text-center cursor-pointer">
-          {file ? (
-            <img src={URL.createObjectURL(file)} className="w-full aspect-[4/5] object-cover rounded-2xl" />
+          {file && preview ? (
+            <img src={preview} className="w-full aspect-[4/5] object-cover rounded-2xl" />
           ) : (
             <>
               <div className="font-semibold">Tap to upload</div>
