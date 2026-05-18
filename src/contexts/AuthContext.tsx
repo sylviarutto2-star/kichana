@@ -48,11 +48,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) await loadProfile(data.session.user.id);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        setSession(data.session);
+        if (data.session?.user) await loadProfile(data.session.user.id);
+      })
+      .catch(() => {
+        // Never let a failed session lookup leave the app stuck on a blank
+        // screen — fall back to a signed-out state.
+        setSession(null);
+        setProfile(null);
+      })
+      .finally(() => setLoading(false));
     const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
       setSession(s);
       if (s?.user) await loadProfile(s.user.id);
