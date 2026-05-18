@@ -17,6 +17,7 @@ export default function Bookings() {
   const [rows, setRows] = useState<Row[]>([]);
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [loading, setLoading] = useState(true);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   // Stylists/vendors don't have a customer "Bookings" page — their client
   // appointments live in Studio. Send them there.
@@ -43,6 +44,28 @@ export default function Bookings() {
     })();
     return () => { cancelled = true; };
   }, [user]);
+
+  const payDeposit = async (b: Row) => {
+    const phone = (profile?.phone || window.prompt("M-Pesa phone (07XX XXX XXX)") || "").trim();
+    if (!phone) return;
+    setPayingId(b.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("mpesa-stk", {
+        body: { booking_id: b.id, phone, amount: b.deposit_kes },
+      });
+      if (error) throw error;
+      if ((data as any)?.simulated) {
+        toast.success("Deposit confirmed (demo).");
+        setRows((rs) => rs.map((r) => (r.id === b.id ? { ...r, status: "confirmed", payment_status: "deposit_paid" } : r)));
+      } else {
+        toast.success("Check your phone for the M-Pesa prompt 📲");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't start payment. Try again.");
+    } finally {
+      setPayingId(null);
+    }
+  };
 
   const now = Date.now();
   const filtered = rows.filter((r) => {
@@ -89,6 +112,15 @@ export default function Bookings() {
                   <div className="text-[10px] text-mute uppercase">{(b.payment_status || "unpaid").replace("_", " ")}</div>
                 </div>
               </div>
+              {(b.payment_status || "unpaid") === "unpaid" && !["cancelled", "completed", "no_show"].includes(b.status) && (
+                <button
+                  onClick={() => payDeposit(b)}
+                  disabled={payingId === b.id}
+                  className="btn-primary w-full mt-3"
+                >
+                  {payingId === b.id ? "Starting payment…" : `Pay deposit ${KES(b.deposit_kes)}`}
+                </button>
+              )}
             </div>
           ))}
         </div>
