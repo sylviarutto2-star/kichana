@@ -10,6 +10,7 @@ type Ctx = {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfileLocally: (patch: Partial<Profile>) => void;
 };
 
 const AuthCtx = createContext<Ctx>({
@@ -19,6 +20,7 @@ const AuthCtx = createContext<Ctx>({
   loading: true,
   signOut: async () => {},
   refreshProfile: async () => {},
+  updateProfileLocally: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -82,6 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         signOut: async () => { await supabase.auth.signOut(); },
         refreshProfile: async () => { if (session?.user) await loadProfile(session.user.id); },
+        updateProfileLocally: (patch: Partial<Profile>) => {
+          setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
+        },
       }}
     >
       {children}

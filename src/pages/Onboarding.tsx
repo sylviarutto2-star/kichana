@@ -19,7 +19,7 @@ function isValidPhone(raw: string) {
 }
 
 export default function Onboarding() {
-  const { user, profile, loading, refreshProfile } = useAuth();
+  const { user, profile, loading, updateProfileLocally } = useAuth();
   const [params] = useSearchParams();
   const presetRole: Role = params.get("role") === "stylist" ? "stylist" : "customer";
 
@@ -101,7 +101,7 @@ export default function Onboarding() {
         if (sErr) throw sErr;
       }
 
-      await refreshProfile();
+      updateProfileLocally({ onboarding_complete: true, role, neighborhood, language, phone });
       toast.success(role === "stylist" ? "Studio created — add your services next." : "You're all set!");
       nav(role === "stylist" ? "/studio" : "/home", { replace: true });
     } catch (e: any) {
