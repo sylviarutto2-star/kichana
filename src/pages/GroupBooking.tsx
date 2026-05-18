@@ -21,10 +21,13 @@ export default function GroupBooking() {
   const start = async () => {
     if (!user || !stylistId) return;
     if (isDemo(stylistId)) return toast.error("Pick a real stylist for group bookings.");
+    if (!date || !time) return toast.error("Pick a date and time first.");
+    const parsed = new Date(`${date}T${time}:00`);
+    if (Number.isNaN(parsed.getTime())) return toast.error("That date or time looks invalid.");
     setBusy(true);
     try {
       const inv = Math.random().toString(36).slice(2, 8).toUpperCase();
-      const scheduled = new Date(`${date}T${time}:00`).toISOString();
+      const scheduled = parsed.toISOString();
       const { error } = await supabase.from("group_bookings").insert({
         host_id: user.id, stylist_id: stylistId, scheduled_for: scheduled, invite_code: inv, notes,
       });

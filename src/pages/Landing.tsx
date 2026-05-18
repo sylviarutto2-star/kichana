@@ -3,6 +3,7 @@ import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { SmartImage } from "@/components/SmartImage";
 import { useAuth } from "@/contexts/AuthContext";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin } from "lucide-react";
 
 const STYLES = [
@@ -13,7 +14,7 @@ const STYLES = [
 
 export default function Landing() {
   const { session, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
   if (session) return <Navigate to="/home" replace />;
 
   return (

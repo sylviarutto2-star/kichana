@@ -3,6 +3,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { SmartImage } from "@/components/SmartImage";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,15 +14,22 @@ export default function Vault() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("vault_items")
-        .select("*")
-        .eq("owner_id", user.id)
-        .order("created_at", { ascending: false });
-      setItems(data || []);
-      setLoading(false);
+      try {
+        const { data } = await supabase
+          .from("vault_items")
+          .select("*")
+          .eq("owner_id", user.id)
+          .order("created_at", { ascending: false });
+        if (!cancelled) setItems(data || []);
+      } catch {
+        if (!cancelled) toast.error("Couldn't load your Vault. Please try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, [user]);
 
   const remove = async (id: string) => {
@@ -43,7 +51,13 @@ export default function Vault() {
         <div className="grid grid-cols-2 gap-3">
           {items.map((it) => (
             <div key={it.id} className="relative group">
-              <img src={it.image_url} className="w-full aspect-[3/4] rounded-2xl object-cover" />
+              <SmartImage
+                src={it.image_url}
+                fallbackKey={it.id}
+                fallbackLabel={it.category || "Inspiration"}
+                alt={it.category || "Saved inspiration"}
+                className="w-full aspect-[3/4] rounded-2xl"
+              />
               <button
                 onClick={() => remove(it.id)}
                 className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-cream/95"

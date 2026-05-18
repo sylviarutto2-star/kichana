@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { CookieBanner } from "@/components/CookieBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 import Landing from "@/pages/Landing";
 import Auth from "@/pages/Auth";
@@ -28,10 +29,14 @@ import Contact from "@/pages/legal/Contact";
 import HowItWorks from "@/pages/legal/HowItWorks";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
-  const { session, loading } = useAuth();
+  const { session, profile, loading } = useAuth();
   const loc = useLocation();
-  if (loading) return null;
+  if (loading) return <LoadingScreen />;
   if (!session) return <Navigate to="/auth" state={{ from: loc.pathname }} replace />;
+  // Every account type must finish onboarding before reaching the app.
+  if (profile && profile.onboarding_complete === false && loc.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
   return children;
 }
 

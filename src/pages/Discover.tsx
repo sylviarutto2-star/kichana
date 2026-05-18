@@ -84,25 +84,33 @@ export default function Discover() {
   }, [q, area, cat, hairTypes, langs, vibes, minPrice, maxPrice, minRating, verifiedOnly, travelsOnly, avail, sort, view, setSp]);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("stylists")
-        .select(
-          "*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url), services(price_kes)"
-        )
-        .order("rating_avg", { ascending: false })
-        .limit(120);
-      const live: Row[] = (data || []).map((s: any) => ({
-        ...s,
-        profile: s.profiles,
-        from_kes: Math.min(
-          ...(s.services?.map((x: any) => x.price_kes) || [Infinity])
-        ),
-      }));
-      setRows(live.length ? live : (demoStylists as any));
-      setLoading(false);
+      try {
+        const { data } = await supabase
+          .from("stylists")
+          .select(
+            "*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url), services(price_kes)"
+          )
+          .order("rating_avg", { ascending: false })
+          .limit(120);
+        const live: Row[] = (data || []).map((s: any) => {
+          const prices: number[] = (s.services || []).map((x: any) => x.price_kes);
+          return {
+            ...s,
+            profile: s.profiles,
+            from_kes: prices.length ? Math.min(...prices) : undefined,
+          };
+        });
+        if (!cancelled) setRows(live.length ? live : (demoStylists as any));
+      } catch {
+        if (!cancelled) setRows(demoStylists as any);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   const filtered = useMemo(() => {
@@ -113,7 +121,7 @@ export default function Discover() {
       if (verifiedOnly && !s.verified) return false;
       if (travelsOnly && !s.travels) return false;
       if (minRating > 0 && s.rating_avg < minRating) return false;
-      const price = s.from_kes ?? 0;
+      const price = s.from_kes ?? Infinity;
       if (Number.isFinite(price) && (price < minPrice || price > maxPrice)) return false;
       return true;
     });

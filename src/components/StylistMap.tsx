@@ -105,8 +105,10 @@ export function StylistMap({
       m.on("popupopen", (e) => {
         const btn = (e.popup.getElement() as HTMLElement | undefined)?.querySelector(
           "button[data-stylist]",
-        );
-        btn?.addEventListener("click", () => nav(`/stylist/${s.id}`));
+        ) as HTMLButtonElement | null;
+        // Assigning onclick (rather than addEventListener) avoids stacking a
+        // fresh handler every time the same popup is re-opened.
+        if (btn) btn.onclick = () => nav(`/stylist/${s.id}`);
       });
     });
 
