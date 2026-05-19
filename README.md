@@ -53,7 +53,7 @@ The project is already wired to your existing Supabase project via `.env`. Apply
 
 ```bash
 # from project root, with supabase CLI installed
-supabase link --project-ref wdqpmyhtyhlwkkdrkjwv
+supabase link --project-ref dpzdltvxgbwepxbjpqnz
 supabase db push
 ```
 
@@ -80,7 +80,7 @@ Set them as function secrets:
 supabase secrets set \
   MPESA_CONSUMER_KEY=...        MPESA_CONSUMER_SECRET=... \
   MPESA_SHORTCODE=174379        MPESA_PASSKEY=bfb279f9aa9b... \
-  MPESA_CALLBACK_URL=https://wdqpmyhtyhlwkkdrkjwv.supabase.co/functions/v1/mpesa-callback \
+  MPESA_CALLBACK_URL=https://dpzdltvxgbwepxbjpqnz.supabase.co/functions/v1/mpesa-callback \
   MPESA_ENV=sandbox
 ```
 
