@@ -1,12 +1,16 @@
-// Daraja STK Push initiation. Falls back to a "simulated" success
-// when MPESA_* env vars are not configured (useful for demo/dev).
+// Daraja STK Push initiation (Buy Goods / Till). Falls back to a
+// "simulated" success when MPESA_* env vars are not configured
+// (useful for demo/dev).
 //
 // Required secrets in production:
 //   MPESA_CONSUMER_KEY
 //   MPESA_CONSUMER_SECRET
-//   MPESA_SHORTCODE          (paybill or till)
+//   MPESA_STORE_NUMBER       (Head Office / store number — used as BusinessShortCode)
+//   MPESA_TILL_NUMBER        (Buy Goods till number — used as PartyB)
 //   MPESA_PASSKEY
 //   MPESA_CALLBACK_URL       (https://<project>.supabase.co/functions/v1/mpesa-callback)
+//   MPESA_TRANSACTION_TYPE   "CustomerBuyGoodsOnline" | "CustomerPayBillOnline"
+//                            (default: CustomerBuyGoodsOnline)
 //   MPESA_ENV                "sandbox" | "production"   (default: sandbox)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -28,9 +32,11 @@ Deno.serve(async (req) => {
 
     const KEY = Deno.env.get("MPESA_CONSUMER_KEY");
     const SECRET = Deno.env.get("MPESA_CONSUMER_SECRET");
-    const SHORT = Deno.env.get("MPESA_SHORTCODE");
+    const STORE = Deno.env.get("MPESA_STORE_NUMBER");
+    const TILL = Deno.env.get("MPESA_TILL_NUMBER");
     const PASSKEY = Deno.env.get("MPESA_PASSKEY");
     const CB = Deno.env.get("MPESA_CALLBACK_URL");
+    const TX_TYPE = Deno.env.get("MPESA_TRANSACTION_TYPE") || "CustomerBuyGoodsOnline";
     const ENV = Deno.env.get("MPESA_ENV") || "sandbox";
 
     const sb = createClient(
@@ -39,7 +45,7 @@ Deno.serve(async (req) => {
     );
 
     // Demo mode if Daraja creds aren't configured
-    if (!KEY || !SECRET || !SHORT || !PASSKEY) {
+    if (!KEY || !SECRET || !STORE || !TILL || !PASSKEY) {
       await sb.from("bookings").update({
         status: "confirmed",
         payment_status: "deposit_paid",
@@ -58,19 +64,21 @@ Deno.serve(async (req) => {
     if (!token) return json({ error: "Daraja auth failed", details: tokenJson }, 502);
 
     const ts = new Date().toISOString().replace(/[-:T.Z]/g, "").slice(0, 14);
-    const password = btoa(`${SHORT}${PASSKEY}${ts}`);
+    // Buy Goods: the password and BusinessShortCode use the store/HO number;
+    // PartyB carries the actual till number.
+    const password = btoa(`${STORE}${PASSKEY}${ts}`);
 
     const stkRes = await fetch(`${base}/mpesa/stkpush/v1/processrequest`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        BusinessShortCode: SHORT,
+        BusinessShortCode: STORE,
         Password: password,
         Timestamp: ts,
-        TransactionType: "CustomerPayBillOnline",
+        TransactionType: TX_TYPE,
         Amount: amount,
         PartyA: normalizePhone(phone),
-        PartyB: SHORT,
+        PartyB: TILL,
         PhoneNumber: normalizePhone(phone),
         CallBackURL: CB,
         AccountReference: `KICHANA-${booking_id.slice(0, 8)}`,

@@ -69,17 +69,19 @@ M-Pesa secrets are **server-side only** — they live as Supabase Edge
 Function secrets, never in `.env`. Until they are set, the app silently
 falls back to **demo M-Pesa** so you can keep testing the full flow.
 
-Get the credentials from the Daraja portal (https://developer.safaricom.co.ke):
-your app's Consumer Key and Consumer Secret, the business shortcode, and
-the Lipa Na M-Pesa Online passkey. For **sandbox** testing use shortcode
-`174379` and the sandbox passkey
+The integration uses a **Buy Goods (Till)** STK push. Get the credentials
+from the Daraja portal (https://developer.safaricom.co.ke): your app's
+Consumer Key and Consumer Secret, the store/Head Office number, the till
+number, and the Lipa Na M-Pesa Online passkey. For **sandbox** testing the
+shared passkey is
 `bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919`.
 
 Set them as function secrets:
 ```bash
 supabase secrets set \
   MPESA_CONSUMER_KEY=...        MPESA_CONSUMER_SECRET=... \
-  MPESA_SHORTCODE=174379        MPESA_PASSKEY=bfb279f9aa9b... \
+  MPESA_STORE_NUMBER=...        MPESA_TILL_NUMBER=... \
+  MPESA_PASSKEY=bfb279f9aa9b... MPESA_TRANSACTION_TYPE=CustomerBuyGoodsOnline \
   MPESA_CALLBACK_URL=https://dpzdltvxgbwepxbjpqnz.supabase.co/functions/v1/mpesa-callback \
   MPESA_ENV=sandbox
 ```
@@ -87,8 +89,10 @@ supabase secrets set \
 | Secret | Notes |
 |---|---|
 | `MPESA_CONSUMER_KEY` / `MPESA_CONSUMER_SECRET` | From the Daraja app's Keys tab |
-| `MPESA_SHORTCODE` | Paybill or till (sandbox: `174379`) |
+| `MPESA_STORE_NUMBER` | Head Office / store number — used as `BusinessShortCode` and in the password |
+| `MPESA_TILL_NUMBER` | Buy Goods till number — used as `PartyB` |
 | `MPESA_PASSKEY` | Lipa Na M-Pesa Online passkey |
+| `MPESA_TRANSACTION_TYPE` | `CustomerBuyGoodsOnline` (default) or `CustomerPayBillOnline` |
 | `MPESA_CALLBACK_URL` | `https://<project>.supabase.co/functions/v1/mpesa-callback` |
 | `MPESA_ENV` | `sandbox` while testing, `production` once live |
 
