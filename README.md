@@ -53,7 +53,7 @@ The project is already wired to your existing Supabase project via `.env`. Apply
 
 ```bash
 # from project root, with supabase CLI installed
-supabase link --project-ref wdqpmyhtyhlwkkdrkjwv
+supabase link --project-ref dpzdltvxgbwepxbjpqnz
 supabase db push
 ```
 
@@ -63,17 +63,45 @@ supabase functions deploy mpesa-stk
 supabase functions deploy mpesa-callback
 ```
 
-### 4. M-Pesa (when ready to take real money)
-Set these as Supabase function secrets:
+### 4. M-Pesa setup (Daraja)
+
+M-Pesa secrets are **server-side only** — they live as Supabase Edge
+Function secrets, never in `.env`. Until they are set, the app silently
+falls back to **demo M-Pesa** so you can keep testing the full flow.
+
+Get the credentials from the Daraja portal (https://developer.safaricom.co.ke):
+your app's Consumer Key and Consumer Secret, the business shortcode, and
+the Lipa Na M-Pesa Online passkey. For **sandbox** testing use shortcode
+`174379` and the sandbox passkey
+`bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919`.
+
+Set them as function secrets:
+```bash
+supabase secrets set \
+  MPESA_CONSUMER_KEY=...        MPESA_CONSUMER_SECRET=... \
+  MPESA_SHORTCODE=174379        MPESA_PASSKEY=bfb279f9aa9b... \
+  MPESA_CALLBACK_URL=https://dpzdltvxgbwepxbjpqnz.supabase.co/functions/v1/mpesa-callback \
+  MPESA_ENV=sandbox
 ```
-MPESA_CONSUMER_KEY
-MPESA_CONSUMER_SECRET
-MPESA_SHORTCODE          # paybill or till
-MPESA_PASSKEY
-MPESA_CALLBACK_URL       # https://<project>.supabase.co/functions/v1/mpesa-callback
-MPESA_ENV                # sandbox | production
-```
-Until those are set, the app silently falls back to **demo M-Pesa** so you can keep testing the full flow.
+
+| Secret | Notes |
+|---|---|
+| `MPESA_CONSUMER_KEY` / `MPESA_CONSUMER_SECRET` | From the Daraja app's Keys tab |
+| `MPESA_SHORTCODE` | Paybill or till (sandbox: `174379`) |
+| `MPESA_PASSKEY` | Lipa Na M-Pesa Online passkey |
+| `MPESA_CALLBACK_URL` | `https://<project>.supabase.co/functions/v1/mpesa-callback` |
+| `MPESA_ENV` | `sandbox` while testing, `production` once live |
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
+
+**Sandbox test:** book a service and pay with Safaricom's test number
+`254708374149` — the STK auto-completes and the callback confirms the
+booking. The callback verifies the paid amount covers the expected
+deposit before marking a booking paid.
+
+**Going live:** complete Daraja "Go Live", then re-run `supabase secrets
+set` with the production Consumer Key/Secret, real shortcode + passkey,
+and `MPESA_ENV=production`.
 
 ### 5. Run
 ```bash

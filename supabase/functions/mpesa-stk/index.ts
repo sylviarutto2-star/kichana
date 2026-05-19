@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
       await sb.from("bookings").update({
         // Track checkout request id in mpesa_receipt placeholder; callback will overwrite
         mpesa_receipt: stkJson.CheckoutRequestID,
+        mpesa_merchant_request_id: stkJson.MerchantRequestID,
       }).eq("id", booking_id);
       return json({ ok: true, request: stkJson });
     }
