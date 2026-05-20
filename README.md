@@ -54,7 +54,7 @@ The project is already wired to your existing Supabase project via `.env`. Apply
 
 ```bash
 # from project root, with supabase CLI installed
-supabase link --project-ref wdqpmyhtyhlwkkdrkjwv
+supabase link --project-ref dpzdltvxgbwepxbjpqnz
 supabase db push
 ```
 
@@ -72,7 +72,7 @@ supabase functions deploy paystack-webhook
    ```
 2. In the Paystack Dashboard → **Settings → API Keys & Webhooks**, set the Webhook URL to:
    ```
-   https://wdqpmyhtyhlwkkdrkjwv.supabase.co/functions/v1/paystack-webhook
+   https://dpzdltvxgbwepxbjpqnz.supabase.co/functions/v1/paystack-webhook
    ```
    Paystack has separate **Test** and **Live** webhook fields — set the Test one while using `sk_test_`, and the Live one before going live.
 

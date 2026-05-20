@@ -35,13 +35,14 @@ export default function Home() {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("feed_posts")
           .select(
             "id, image_url, caption, category, likes_count, comments_count, created_at, stylist_id, profiles!feed_posts_author_id_fkey(full_name, avatar_url), stylists(display_name)"
           )
           .order("created_at", { ascending: false })
           .limit(60);
+        if (error) console.error("Home: feed_posts query failed", error);
         let rows: FeedRow[] = (data || []).map((r: any) => ({
           id: r.id,
           image_url: r.image_url,

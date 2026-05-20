@@ -33,8 +33,12 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   const { session, profile, loading } = useAuth();
   const loc = useLocation();
   if (loading) return <LoadingScreen />;
-  if (!session) return <Navigate to="/auth" state={{ from: loc.pathname }} replace />;
-  // Every account type must finish onboarding before reaching the app.
+  if (!session) return <Navigate to="/auth" state={{ from: loc.pathname + loc.search }} replace />;
+  // A missing profile row (new signup race, RLS hiccup) should land in onboarding,
+  // not render a downstream page with profile=null and crash on field reads.
+  if (!profile && loc.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
   if (profile && profile.onboarding_complete === false && loc.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }

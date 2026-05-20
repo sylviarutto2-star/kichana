@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { PageHeader } from "@/components/PageHeader";
 import { BottomNav } from "@/components/BottomNav";
-import { SERVICE_CATEGORIES, KES, cn } from "@/lib/utils";
+import { SERVICE_CATEGORIES, KES, cn, withTimeout } from "@/lib/utils";
 import {
   Plus, Trash2, Star, Calendar, Loader2, Image as ImageIcon, Sparkles,
   GripVertical, Check, X, ChevronUp, ChevronDown, Settings as SettingsIcon,
@@ -33,41 +33,61 @@ export default function Studio() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
     if (profile && profile.role && profile.role !== "stylist") {
+      setLoading(false);
       nav("/profile");
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-      const { data: s } = await supabase
-        .from("stylists" as any)
-        .select("*")
-        .eq("profile_id", user.id)
-        .maybeSingle();
-      if (cancelled) return;
-      setStylist(s);
+        // Look up the stylist row, retrying once after a short delay if it
+        // isn't readable yet — covers the replica-lag window right after
+        // onboarding inserts a fresh row.
+        let s: any = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const { data, error } = await withTimeout(
+            supabase.from("stylists" as any).select("*").eq("profile_id", user.id).maybeSingle(),
+            15000,
+            "Loading studio",
+          );
+          if (error) {
+            console.error("Studio: stylist lookup failed", error);
+            break;
+          }
+          if (data) { s = data; break; }
+          if (attempt === 0) await new Promise((r) => setTimeout(r, 700));
+        }
+        if (cancelled) return;
+        setStylist(s);
 
-      if (s) {
-        const [svc, port, bks, av, pol] = await Promise.all([
-          supabase.from("services" as any).select("*").eq("stylist_id", (s as any).id).order("sort_order").order("created_at", { ascending: false }),
-          supabase.from("portfolio_images" as any).select("*").eq("stylist_id", (s as any).id).order("is_cover", { ascending: false }).order("sort_order"),
-          supabase.from("bookings" as any).select("*, services(title), profiles:profiles!bookings_customer_id_fkey(full_name, phone)").eq("stylist_id", (s as any).id).order("scheduled_for"),
-          supabase.from("stylist_availability" as any).select("*").eq("stylist_id", (s as any).id).order("weekday").order("start_time"),
-          supabase.from("stylist_policies" as any).select("*").eq("stylist_id", (s as any).id).maybeSingle(),
-        ]);
-        setServices((svc.data as any[]) || []);
-        setPortfolio((port.data as any[]) || []);
-        setBookings((bks.data as any[]) || []);
-        setAvailability((av.data as any[]) || []);
-        setPolicies(pol.data || {
-          stylist_id: (s as any).id, cancellation_hours: 24, late_grace_min: 15,
-          no_show_fee_percent: 50, deposit_refundable: false, custom_terms: "",
-        });
-      }
-      } catch {
-        if (!cancelled) toast.error("Couldn't load your studio. Please try again.");
+        if (s) {
+          const [svc, port, bks, av, pol] = await Promise.all([
+            withTimeout(supabase.from("services" as any).select("*").eq("stylist_id", (s as any).id).order("sort_order").order("created_at", { ascending: false }), 15000, "Loading services"),
+            withTimeout(supabase.from("portfolio_images" as any).select("*").eq("stylist_id", (s as any).id).order("is_cover", { ascending: false }).order("sort_order"), 15000, "Loading portfolio"),
+            withTimeout(supabase.from("bookings" as any).select("*, services(title), profiles:profiles!bookings_customer_id_fkey(full_name, phone)").eq("stylist_id", (s as any).id).order("scheduled_for"), 15000, "Loading bookings"),
+            withTimeout(supabase.from("stylist_availability" as any).select("*").eq("stylist_id", (s as any).id).order("weekday").order("start_time"), 15000, "Loading hours"),
+            withTimeout(supabase.from("stylist_policies" as any).select("*").eq("stylist_id", (s as any).id).maybeSingle(), 15000, "Loading policies"),
+          ]);
+          if (svc.error) console.error("Studio: services query failed", svc.error);
+          if (port.error) console.error("Studio: portfolio query failed", port.error);
+          if (bks.error) console.error("Studio: bookings query failed", bks.error);
+          if (av.error) console.error("Studio: availability query failed", av.error);
+          if (pol.error) console.error("Studio: policies query failed", pol.error);
+          setServices((svc.data as any[]) || []);
+          setPortfolio((port.data as any[]) || []);
+          setBookings((bks.data as any[]) || []);
+          setAvailability((av.data as any[]) || []);
+          setPolicies(pol.data || {
+            stylist_id: (s as any).id, cancellation_hours: 24, late_grace_min: 15,
+            no_show_fee_percent: 50, deposit_refundable: false, custom_terms: "",
+          });
+        }
+      } catch (e: any) {
+        console.error("Studio: load threw", e);
+        if (!cancelled) toast.error(e?.message || "Couldn't load your studio. Please try again.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -193,10 +213,18 @@ function TodayTab({
   bookings, upcoming, onChange,
 }: { bookings: any[]; upcoming: any[]; onChange: (b: any[]) => void }) {
   const setStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("bookings" as any).update({ status }).eq("id", id);
-    if (error) return toast.error(error.message);
-    onChange(bookings.map((b) => (b.id === id ? { ...b, status } : b)));
-    toast.success(`Booking ${status}`);
+    try {
+      const { error } = await withTimeout(
+        supabase.from("bookings" as any).update({ status }).eq("id", id),
+        15000, "Updating booking",
+      );
+      if (error) { console.error(error); return toast.error(error.message); }
+      onChange(bookings.map((b) => (b.id === id ? { ...b, status } : b)));
+      toast.success(`Booking ${status}`);
+    } catch (e: any) {
+      console.error("setStatus failed:", e);
+      toast.error(e.message || "Couldn't update booking.");
+    }
   };
 
   return (
@@ -298,17 +326,32 @@ function ServicesTab({
       intro_offer_percent: form.intro_offer_active ? Number(form.intro_offer_percent) || null : null,
       active: true,
     };
-    const { data, error } = await supabase.from("services" as any).insert(payload).select().single();
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    onChange([data, ...services]);
+    try {
+      const { data, error } = await withTimeout(
+        supabase.from("services" as any).insert(payload).select().single(),
+        15000, "Saving service",
+      );
+      setBusy(false);
+      if (error) { console.error(error); return toast.error(error.message); }
+      onChange([data, ...services]);
+    } catch (e: any) {
+      setBusy(false);
+      console.error("Add service failed:", e);
+      return toast.error(e.message || "Couldn't add service.");
+    }
     setForm({ ...form, name: "", description: "", price: "", subcategory: "" });
     toast.success("Service added");
   };
 
   const toggleActive = async (id: string, active: boolean) => {
-    await supabase.from("services" as any).update({ active }).eq("id", id);
+    const prev = services;
     onChange(services.map((s) => (s.id === id ? { ...s, active } : s)));
+    const { error } = await supabase.from("services" as any).update({ active }).eq("id", id);
+    if (error) {
+      console.error("toggleActive:", error);
+      onChange(prev);
+      toast.error(error.message || "Couldn't update.");
+    }
   };
   const remove = async (id: string) => {
     if (!confirm("Delete this service permanently?")) return;
@@ -318,8 +361,14 @@ function ServicesTab({
     toast.success("Deleted");
   };
   const toggleIntro = async (id: string, on: boolean) => {
-    await supabase.from("services" as any).update({ intro_offer_active: on }).eq("id", id);
+    const prev = services;
     onChange(services.map((s) => (s.id === id ? { ...s, intro_offer_active: on } : s)));
+    const { error } = await supabase.from("services" as any).update({ intro_offer_active: on }).eq("id", id);
+    if (error) {
+      console.error("toggleIntro:", error);
+      onChange(prev);
+      toast.error(error.message || "Couldn't update.");
+    }
   };
 
   return (
@@ -492,10 +541,21 @@ function PortfolioTab({
   };
 
   const setCover = async (id: string) => {
-    // Clear existing cover, then set new one.
-    await supabase.from("portfolio_images" as any).update({ is_cover: false }).eq("stylist_id", stylistId);
-    await supabase.from("portfolio_images" as any).update({ is_cover: true }).eq("id", id);
+    const prev = items;
+    // Optimistic update first.
     onChange(items.map((it) => ({ ...it, is_cover: it.id === id })));
+    // Two writes in parallel so a partial failure can be diagnosed and
+    // rolled back rather than leaving every image with is_cover=false.
+    const [clr, set] = await Promise.all([
+      supabase.from("portfolio_images" as any).update({ is_cover: false }).eq("stylist_id", stylistId).neq("id", id),
+      supabase.from("portfolio_images" as any).update({ is_cover: true }).eq("id", id),
+    ]);
+    if (clr.error || set.error) {
+      console.error("setCover failed:", clr.error || set.error);
+      onChange(prev);
+      toast.error("Couldn't update cover.");
+      return;
+    }
     toast.success("Cover updated");
   };
 
@@ -507,24 +567,44 @@ function PortfolioTab({
   };
 
   const updateCaption = async (id: string, caption: string) => {
-    await supabase.from("portfolio_images" as any).update({ caption }).eq("id", id);
+    const prev = items;
     onChange(items.map((i) => (i.id === id ? { ...i, caption } : i)));
+    const { error } = await supabase.from("portfolio_images" as any).update({ caption }).eq("id", id);
+    if (error) {
+      console.error("updateCaption:", error);
+      onChange(prev);
+      toast.error("Couldn't save caption.");
+    }
   };
   const linkService = async (id: string, service_id: string | null) => {
-    await supabase.from("portfolio_images" as any).update({ service_id }).eq("id", id);
+    const prev = items;
     onChange(items.map((i) => (i.id === id ? { ...i, service_id } : i)));
+    const { error } = await supabase.from("portfolio_images" as any).update({ service_id }).eq("id", id);
+    if (error) {
+      console.error("linkService:", error);
+      onChange(prev);
+      toast.error("Couldn't link service.");
+    }
   };
 
   const move = async (id: string, dir: -1 | 1) => {
     const idx = items.findIndex((i) => i.id === id);
     const swap = idx + dir;
     if (swap < 0 || swap >= items.length) return;
+    const prev = items;
     const next = [...items];
     [next[idx], next[swap]] = [next[swap], next[idx]];
-    onChange(next.map((it, i) => ({ ...it, sort_order: i })));
-    await Promise.all(
-      next.map((it, i) => supabase.from("portfolio_images" as any).update({ sort_order: i }).eq("id", it.id)),
+    const ordered = next.map((it, i) => ({ ...it, sort_order: i }));
+    onChange(ordered);
+    const results = await Promise.all(
+      ordered.map((it, i) => supabase.from("portfolio_images" as any).update({ sort_order: i }).eq("id", it.id)),
     );
+    const failed = results.find((r) => r.error);
+    if (failed) {
+      console.error("Reorder portfolio failed:", failed.error);
+      onChange(prev);
+      toast.error("Couldn't reorder portfolio.");
+    }
   };
 
   return (
@@ -583,7 +663,7 @@ function PortfolioTab({
                 >
                   <option value="">Tag a service…</option>
                   {services.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.title}</option>
                   ))}
                 </select>
                 <div className="flex items-center justify-between">
@@ -622,13 +702,30 @@ function HoursTab({
     onChange([...availability, data]);
   };
   const updateBlock = async (id: string, patch: any) => {
-    onChange(availability.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    const prev = availability;
+    const merged = availability.map((a) => (a.id === id ? { ...a, ...patch } : a));
+    const target = merged.find((a) => a.id === id);
+    if (target && target.start_time && target.end_time && target.start_time >= target.end_time) {
+      toast.error("End time must be after start time.");
+      return;
+    }
+    onChange(merged);
     const { error } = await supabase.from("stylist_availability" as any).update(patch).eq("id", id);
-    if (error) toast.error(error.message);
+    if (error) {
+      console.error("updateBlock:", error);
+      onChange(prev);
+      toast.error(error.message || "Couldn't update hours.");
+    }
   };
   const removeBlock = async (id: string) => {
+    const prev = availability;
     onChange(availability.filter((a) => a.id !== id));
-    await supabase.from("stylist_availability" as any).delete().eq("id", id);
+    const { error } = await supabase.from("stylist_availability" as any).delete().eq("id", id);
+    if (error) {
+      console.error("removeBlock:", error);
+      onChange(prev);
+      toast.error(error.message || "Couldn't remove hours.");
+    }
   };
 
   return (
@@ -682,16 +779,25 @@ function PoliciesTab({
 
   const save = async () => {
     setBusy(true);
-    const payload = { ...policies, stylist_id: stylistId };
-    const { data, error } = await supabase
-      .from("stylist_policies" as any)
-      .upsert(payload, { onConflict: "stylist_id" })
-      .select()
-      .single();
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    onChange(data);
-    toast.success("Policies saved");
+    try {
+      const payload = { ...policies, stylist_id: stylistId };
+      const { data, error } = await withTimeout(
+        supabase
+          .from("stylist_policies" as any)
+          .upsert(payload, { onConflict: "stylist_id" })
+          .select()
+          .single(),
+        15000, "Saving policies",
+      );
+      setBusy(false);
+      if (error) { console.error(error); return toast.error(error.message); }
+      onChange(data);
+      toast.success("Policies saved");
+    } catch (e: any) {
+      setBusy(false);
+      console.error("Save policies failed:", e);
+      toast.error(e.message || "Couldn't save policies.");
+    }
   };
 
   return (
@@ -757,16 +863,25 @@ function ProfileTab({ stylist, onChange }: { stylist: any; onChange: (s: any) =>
 
   const save = async () => {
     setBusy(true);
-    const { data, error } = await supabase
-      .from("stylists" as any)
-      .update(form)
-      .eq("id", stylist.id)
-      .select()
-      .single();
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    onChange(data);
-    toast.success("Profile saved");
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from("stylists" as any)
+          .update(form)
+          .eq("id", stylist.id)
+          .select()
+          .single(),
+        15000, "Saving profile",
+      );
+      setBusy(false);
+      if (error) { console.error(error); return toast.error(error.message); }
+      onChange(data);
+      toast.success("Profile saved");
+    } catch (e: any) {
+      setBusy(false);
+      console.error("Save stylist profile failed:", e);
+      toast.error(e.message || "Couldn't save profile.");
+    }
   };
 
   const toggleSpec = (s: string) => {
