@@ -13,6 +13,15 @@ dist-ssr
 *.local
 *.tsbuildinfo
 
+# Environment & secrets (publishable Supabase keys are checked in by the
+# hardcoded client, but never commit anything that lands here).
+.env
+.env.local
+.env.*.local
+
+# Lovable scratch (removed)
+.lovable/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
