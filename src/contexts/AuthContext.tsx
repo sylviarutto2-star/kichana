@@ -85,7 +85,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: session?.user ?? null,
         profile,
         loading,
-        signOut: async () => { await supabase.auth.signOut(); },
+        signOut: async () => {
+          // Race the network signOut against a short timeout; either way,
+          // clear local auth state so the user is never trapped on a
+          // signed-in screen because the request hung.
+          try {
+            await Promise.race([
+              supabase.auth.signOut(),
+              new Promise((_, rej) => setTimeout(() => rej(new Error("signOut timeout")), 4000)),
+            ]);
+          } catch (e) {
+            console.warn("signOut: forcing local clear after error", e);
+          }
+          setSession(null);
+          setProfile(null);
+        },
         refreshProfile: async () => { if (session?.user) await loadProfile(session.user.id); },
       }}
     >

@@ -17,13 +17,18 @@ export default function Vault() {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("vault_items")
           .select("*")
           .eq("owner_id", user.id)
           .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Vault: query failed", error);
+          if (!cancelled) toast.error(error.message || "Couldn't load your Vault.");
+        }
         if (!cancelled) setItems(data || []);
-      } catch {
+      } catch (e) {
+        console.error("Vault: fetch threw", e);
         if (!cancelled) toast.error("Couldn't load your Vault. Please try again.");
       } finally {
         if (!cancelled) setLoading(false);

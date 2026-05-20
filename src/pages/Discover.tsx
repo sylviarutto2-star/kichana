@@ -88,13 +88,20 @@ export default function Discover() {
     (async () => {
       setLoading(true);
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("stylists")
           .select(
             "*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url), services(price_kes)"
           )
           .order("rating_avg", { ascending: false })
           .limit(120);
+        if (error) {
+          console.error("Discover: stylists query failed", error);
+          // Surface the error in dev — falling silently to demo data is what
+          // was hiding real profiles from the admin in production.
+          if (!cancelled) setRows(demoStylists as any);
+          return;
+        }
         const live: Row[] = (data || []).map((s: any) => {
           const prices: number[] = (s.services || []).map((x: any) => x.price_kes);
           return {
@@ -103,8 +110,15 @@ export default function Discover() {
             from_kes: prices.length ? Math.min(...prices) : undefined,
           };
         });
-        if (!cancelled) setRows(live.length ? live : (demoStylists as any));
-      } catch {
+        // Always show real stylists when they exist. Pad with demos only if
+        // the live set is too thin to fill a page, so we never hide a real
+        // profile behind demo data.
+        const next: Row[] = live.length >= 12
+          ? live
+          : [...live, ...(demoStylists as any[])];
+        if (!cancelled) setRows(next);
+      } catch (e) {
+        console.error("Discover: stylists fetch threw", e);
         if (!cancelled) setRows(demoStylists as any);
       } finally {
         if (!cancelled) setLoading(false);

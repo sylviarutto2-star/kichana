@@ -30,13 +30,18 @@ export default function Bookings() {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("bookings")
           .select("*, services(title), stylists(display_name, base_location)")
           .eq("customer_id", user.id)
           .order("scheduled_for", { ascending: false });
+        if (error) {
+          console.error("Bookings: query failed", error);
+          if (!cancelled) toast.error(error.message || "Couldn't load your bookings.");
+        }
         if (!cancelled) setRows(data || []);
-      } catch {
+      } catch (e) {
+        console.error("Bookings: fetch threw", e);
         if (!cancelled) toast.error("Couldn't load your bookings. Please try again.");
       } finally {
         if (!cancelled) setLoading(false);
