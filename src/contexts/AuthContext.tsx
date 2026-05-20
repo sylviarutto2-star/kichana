@@ -33,19 +33,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfileLoaded(false);
     const fetchOnce = () =>
       supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    // Hard ceiling so the UI never spins forever if the query hangs.
+    const withDeadline = <T,>(p: PromiseLike<T>, ms: number): Promise<T> =>
+      new Promise((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error("profile load timeout")), ms);
+        Promise.resolve(p).then(
+          (v) => { clearTimeout(t); resolve(v); },
+          (e) => { clearTimeout(t); reject(e); },
+        );
+      });
     try {
-      let { data, error } = await fetchOnce();
+      let { data, error } = await withDeadline(fetchOnce(), 6000);
       if (error && !(error.code === "42P01" || /relation .* does not exist/i.test(error.message))) {
         // One retry on transient errors (network blip, RLS warm-up).
         await new Promise((r) => setTimeout(r, 400));
-        ({ data, error } = await fetchOnce());
+        ({ data, error } = await withDeadline(fetchOnce(), 6000));
       }
       if (error && (error.code === "42P01" || /relation .* does not exist/i.test(error.message))) {
         setProfile({ id: userId, role: "customer" } as Profile);
         return;
       }
       setProfile((data as Profile) ?? null);
-    } catch {
+    } catch (e) {
+      console.warn("loadProfile failed/timed out — releasing the loading gate", e);
       setProfile(null);
     } finally {
       setProfileLoaded(true);
@@ -57,7 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // so the app can render /auth instead of a permanent blank screen.
     // We do NOT null out session here — the real getSession promise can still
     // resolve and update state, which avoids a sign-in/sign-out flicker.
-    const watchdog = setTimeout(() => setLoading(false), 8000);
+    const watchdog = setTimeout(() => {
+      setLoading(false);
+      setProfileLoaded(true);
+    }, 8000);
 
     supabase.auth
       .getSession()
