@@ -17,6 +17,21 @@ export function isValidPhone(raw: string) {
   return digits.length >= 9 && digits.length <= 12;
 }
 
+// Race a promise against a timeout so the UI never hangs on a stuck network
+// call. Reject is the same shape supabase callers already handle via toast.
+export function withTimeout<T>(p: PromiseLike<T>, ms = 15000, label = "Request"): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(
+      () => reject(new Error(`${label} took too long — please check your connection and try again.`)),
+      ms,
+    );
+    Promise.resolve(p).then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
 export const NAIROBI_AREAS = [
   "Westlands", "Kilimani", "Lavington", "Karen", "Runda", "Parklands",
   "South B", "South C", "Langata", "Kileleshwa", "Hurlingham", "Upperhill",

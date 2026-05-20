@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { NAIROBI_AREAS, SERVICE_CATEGORIES, cn, isValidPhone } from "@/lib/utils";
+import { NAIROBI_AREAS, SERVICE_CATEGORIES, cn, isValidPhone, withTimeout } from "@/lib/utils";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -57,28 +57,16 @@ export default function Onboarding() {
     }
     setBusy(true);
     try {
-      const { error: pErr } = await supabase
-        .from("profiles")
-        .update({
-          role,
-          neighborhood,
-          language,
-          phone,
-          hair_type: role === "customer" ? hairType : null,
-          allergies: role === "customer" ? allergies || null : null,
-          birthday: role === "customer" && birthday ? birthday : null,
-          onboarding_complete: true,
-        })
-        .eq("id", user.id);
-      if (pErr) throw pErr;
-
+      // Create the stylist row FIRST so we never mark a profile complete
+      // without its accompanying studio record. If this fails the user can
+      // retry from the same step.
       if (role === "stylist") {
-        // Don't create a duplicate studio if onboarding is somehow re-run.
-        const { data: existing } = await supabase
-          .from("stylists")
-          .select("id")
-          .eq("profile_id", user.id)
-          .maybeSingle();
+        const { data: existing, error: lookupErr } = await withTimeout(
+          supabase.from("stylists").select("id").eq("profile_id", user.id).maybeSingle(),
+          15000,
+          "Looking up your studio",
+        );
+        if (lookupErr) throw lookupErr;
 
         const studioPayload = {
           display_name: displayName.trim() || "My Studio",
@@ -88,17 +76,41 @@ export default function Onboarding() {
           base_location: neighborhood,
           travels,
         };
-
-        const { error: sErr } = existing
-          ? await supabase.from("stylists").update(studioPayload).eq("id", (existing as any).id)
-          : await supabase.from("stylists").insert({ profile_id: user.id, ...studioPayload });
+        const { error: sErr } = await withTimeout(
+          existing
+            ? supabase.from("stylists").update(studioPayload).eq("id", (existing as any).id)
+            : supabase.from("stylists").insert({ profile_id: user.id, ...studioPayload }),
+          15000,
+          "Creating your studio",
+        );
         if (sErr) throw sErr;
       }
 
-      await refreshProfile();
+      const { error: pErr } = await withTimeout(
+        supabase
+          .from("profiles")
+          .update({
+            role,
+            neighborhood,
+            language,
+            phone,
+            hair_type: role === "customer" ? hairType : null,
+            allergies: role === "customer" ? allergies || null : null,
+            birthday: role === "customer" && birthday ? birthday : null,
+            onboarding_complete: true,
+          })
+          .eq("id", user.id),
+        15000,
+        "Saving your profile",
+      );
+      if (pErr) throw pErr;
+
+      // refreshProfile is best-effort — don't block navigation on it.
+      void refreshProfile();
       toast.success(role === "stylist" ? "Studio created — add your services next." : "You're all set!");
       nav(role === "stylist" ? "/studio" : "/home", { replace: true });
     } catch (e: any) {
+      console.error("Onboarding finish failed:", e);
       toast.error(e?.message || "Couldn't save your details. Please try again.");
     } finally {
       setBusy(false);

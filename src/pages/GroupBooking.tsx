@@ -7,6 +7,7 @@ import { addDays } from "date-fns";
 import { toast } from "sonner";
 import { Loader2, Copy } from "lucide-react";
 import { isDemo } from "@/lib/demoData";
+import { withTimeout } from "@/lib/utils";
 
 export default function GroupBooking() {
   const { stylistId } = useParams();
@@ -28,13 +29,18 @@ export default function GroupBooking() {
     try {
       const inv = Math.random().toString(36).slice(2, 8).toUpperCase();
       const scheduled = parsed.toISOString();
-      const { error } = await supabase.from("group_bookings").insert({
-        host_id: user.id, stylist_id: stylistId, scheduled_for: scheduled, invite_code: inv, notes,
-      });
+      const { error } = await withTimeout(
+        supabase.from("group_bookings").insert({
+          host_id: user.id, stylist_id: stylistId, scheduled_for: scheduled, invite_code: inv, notes,
+        }),
+        15000,
+        "Creating group session",
+      );
       if (error) throw error;
       setCode(inv);
       toast.success("Group session created. Share the code!");
     } catch (e: any) {
+      console.error("Group booking failed:", e);
       toast.error(e.message || "Couldn't create group");
     } finally {
       setBusy(false);

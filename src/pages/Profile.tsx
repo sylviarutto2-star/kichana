@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { LogOut, Award, Languages, Phone, MapPin, Settings, Scissors } from "lucide-react";
-import { NAIROBI_AREAS, isValidPhone } from "@/lib/utils";
+import { NAIROBI_AREAS, isValidPhone, withTimeout } from "@/lib/utils";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function Profile() {
@@ -42,9 +42,20 @@ export default function Profile() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("profiles").update(form).eq("id", user.id);
+    try {
+      const { error } = await withTimeout(
+        supabase.from("profiles").update(form).eq("id", user.id),
+        15000,
+        "Saving profile",
+      );
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    } catch (e: any) {
+      console.error("Profile save failed:", e);
+      toast.error(e.message || "Couldn't save");
+      setSaving(false);
+      return;
+    }
     setSaving(false);
-    if (error) return toast.error(error.message);
     await refreshProfile();
     setEditing(false);
     toast.success("Saved");

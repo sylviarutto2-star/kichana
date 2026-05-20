@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { KES, isValidPhone } from "@/lib/utils";
+import { KES, isValidPhone, withTimeout } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -54,9 +54,13 @@ export default function Bookings() {
     }
     setPayingId(b.id);
     try {
-      const { data, error } = await supabase.functions.invoke("mpesa-stk", {
-        body: { booking_id: b.id, phone, amount: b.deposit_kes },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("mpesa-stk", {
+          body: { booking_id: b.id, phone, amount: b.deposit_kes },
+        }),
+        20000,
+        "Starting M-Pesa",
+      );
       if (error) throw error;
       if ((data as any)?.simulated) {
         toast.success("Deposit confirmed (demo).");

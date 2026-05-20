@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, MailCheck } from "lucide-react";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { withTimeout } from "@/lib/utils";
 
 export default function Auth() {
   const { session, profile, loading } = useAuth();
@@ -33,21 +34,25 @@ export default function Auth() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await withTimeout(supabase.auth.signUp({
           email,
           password,
           options: {
             data: { full_name: name, intended_role: presetRole },
             emailRedirectTo: window.location.origin + "/onboarding",
           },
-        });
+        }), 15000, "Sign up");
         if (error) throw error;
 
         // The DB-level auto_confirm trigger already confirmed this user.
         // If Supabase didn't return a session (because mailer_autoconfirm
         // is off at the config level), sign them in directly.
         if (!data.session) {
-          const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+          const { error: signInErr } = await withTimeout(
+            supabase.auth.signInWithPassword({ email, password }),
+            15000,
+            "Sign in",
+          );
           if (signInErr) {
             // Last resort fallback: show the "check your email" card.
             setNeedsEmailConfirm(true);
@@ -57,7 +62,11 @@ export default function Auth() {
         toast.success("Welcome to Kichana!");
         nav(`/onboarding?role=${presetRole}`);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          15000,
+          "Sign in",
+        );
         if (error) {
           if (error.message.toLowerCase().includes("email not confirmed")) {
             setNeedsEmailConfirm(true);

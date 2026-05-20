@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { demoServices, demoStylists, isDemo } from "@/lib/demoData";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
-import { KES, cn, isValidPhone } from "@/lib/utils";
+import { KES, cn, isValidPhone, withTimeout } from "@/lib/utils";
 import { addDays, format, setHours, setMinutes } from "date-fns";
 import { Check, Loader2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
@@ -90,28 +90,37 @@ export default function Booking() {
       const [h, m] = time.split(":").map(Number);
       const scheduled = setMinutes(setHours(date, h), m).toISOString();
 
-      const { data: booking, error } = await supabase
-        .from("bookings")
-        .insert({
-          customer_id: user.id,
-          stylist_id: stylist.id,
-          service_id: service.id,
-          scheduled_for: scheduled,
-          location_type: locationType,
-          address: locationType === "home" ? address : null,
-          amount_kes: service.price_kes,
-          deposit_kes: deposit,
-          notes,
-        })
-        .select()
-        .single();
+      const { data: booking, error } = await withTimeout(
+        supabase
+          .from("bookings")
+          .insert({
+            customer_id: user.id,
+            stylist_id: stylist.id,
+            service_id: service.id,
+            scheduled_for: scheduled,
+            location_type: locationType,
+            address: locationType === "home" ? address : null,
+            amount_kes: service.price_kes,
+            deposit_kes: deposit,
+            notes,
+          })
+          .select()
+          .single(),
+        15000,
+        "Saving booking",
+      );
       if (error) throw error;
 
       // Trigger M-Pesa STK
-      const { data: mpesa, error: mErr } = await supabase.functions.invoke("mpesa-stk", {
-        body: { booking_id: booking.id, phone, amount: deposit },
-      });
+      const { data: mpesa, error: mErr } = await withTimeout(
+        supabase.functions.invoke("mpesa-stk", {
+          body: { booking_id: booking.id, phone, amount: deposit },
+        }),
+        20000,
+        "Starting M-Pesa",
+      );
       if (mErr) {
+        console.error("M-Pesa STK failed:", mErr);
         toast.warning("Booking saved. Payment couldn't start — pay later in My Bookings.");
       } else if ((mpesa as any)?.simulated) {
         toast.success("Booking confirmed (demo). Check your bookings.");
@@ -120,6 +129,7 @@ export default function Booking() {
       }
       nav("/bookings");
     } catch (e: any) {
+      console.error("Booking confirm failed:", e);
       toast.error(e.message || "Couldn't book. Try again.");
     } finally {
       setBusy(false);
