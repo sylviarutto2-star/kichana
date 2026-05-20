@@ -8,6 +8,7 @@ type Ctx = {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoaded: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -17,6 +18,7 @@ const AuthCtx = createContext<Ctx>({
   user: null,
   profile: null,
   loading: true,
+  profileLoaded: false,
   signOut: async () => {},
   refreshProfile: async () => {},
 });
@@ -25,8 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const loadProfile = async (userId: string) => {
+    setProfileLoaded(false);
     const fetchOnce = () =>
       supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
     try {
@@ -43,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile((data as Profile) ?? null);
     } catch {
       setProfile(null);
+    } finally {
+      setProfileLoaded(true);
     }
   };
 
@@ -58,10 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(async ({ data }) => {
         setSession(data.session);
         if (data.session?.user) await loadProfile(data.session.user.id);
+        else setProfileLoaded(true);
       })
       .catch(() => {
         setSession(null);
         setProfile(null);
+        setProfileLoaded(true);
       })
       .finally(() => {
         clearTimeout(watchdog);
@@ -70,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
       setSession(s);
       if (s?.user) await loadProfile(s.user.id);
-      else setProfile(null);
+      else { setProfile(null); setProfileLoaded(true); }
     });
     return () => {
       clearTimeout(watchdog);
@@ -85,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user: session?.user ?? null,
         profile,
         loading,
+        profileLoaded,
         signOut: async () => {
           // Race the network signOut against a short timeout; either way,
           // clear local auth state so the user is never trapped on a
@@ -99,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           setSession(null);
           setProfile(null);
+          setProfileLoaded(true);
         },
         refreshProfile: async () => { if (session?.user) await loadProfile(session.user.id); },
       }}

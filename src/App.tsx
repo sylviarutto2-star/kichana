@@ -32,10 +32,13 @@ const Contact = lazy(() => import("@/pages/legal/Contact"));
 const HowItWorks = lazy(() => import("@/pages/legal/HowItWorks"));
 
 function RequireAuth({ children }: { children: JSX.Element }) {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, profileLoaded } = useAuth();
   const loc = useLocation();
   if (loading) return <LoadingScreen />;
   if (!session) return <Navigate to="/auth" state={{ from: loc.pathname + loc.search }} replace />;
+  // Have a session but the profile fetch hasn't resolved yet — never bounce
+  // to /onboarding on a transient null. Wait for the real answer.
+  if (!profileLoaded) return <LoadingScreen />;
   if (!profile && loc.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }

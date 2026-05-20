@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -38,6 +38,28 @@ export default function Onboarding() {
 
   const [busy, setBusy] = useState(false);
   const nav = useNavigate();
+
+  // Safety net: if a user somehow lands here with bookings already in flight,
+  // they've clearly past the onboarding stage. Auto-complete the flag and
+  // route them to the correct landing page so they can never be trapped here.
+  useEffect(() => {
+    if (!user || profile?.onboarding_complete) return;
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("bookings")
+        .select("id", { head: true, count: "exact" })
+        .eq("customer_id", user.id);
+      if (cancelled || !count) return;
+      await supabase
+        .from("profiles")
+        .update({ onboarding_complete: true })
+        .eq("id", user.id);
+      void refreshProfile();
+      nav(profile?.role === "stylist" ? "/studio" : "/home", { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [user, profile?.onboarding_complete, profile?.role, nav, refreshProfile]);
 
   const totalSteps = role === "stylist" ? 4 : role === "customer" ? 3 : 1;
 

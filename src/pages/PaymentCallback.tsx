@@ -45,7 +45,11 @@ export default function PaymentCallback() {
             <>
               <div className="rounded-full bg-sage/20 p-3"><Check className="h-8 w-8 text-aubergine-700" /></div>
               <div className="font-semibold">Deposit received — booking confirmed!</div>
-              <button onClick={() => nav("/bookings")} className="btn-primary">View my bookings</button>
+              <p className="text-xs text-mute">You'll get a reminder before your appointment.</p>
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <button onClick={() => nav("/home")} className="btn-primary">Back to home</button>
+                <button onClick={() => nav("/bookings")} className="btn-outline">View my bookings</button>
+              </div>
             </>
           )}
           {state === "failed" && (
@@ -53,7 +57,10 @@ export default function PaymentCallback() {
               <div className="rounded-full bg-line p-3"><X className="h-8 w-8 text-mute" /></div>
               <div className="font-semibold">We couldn't confirm that payment.</div>
               <p className="text-xs text-mute">If you were charged, it'll be reconciled shortly. You can also retry from My Bookings.</p>
-              <button onClick={() => nav("/bookings")} className="btn-primary">Go to my bookings</button>
+              <div className="flex flex-col gap-2 w-full mt-2">
+                <button onClick={() => nav("/home")} className="btn-primary">Back to home</button>
+                <button onClick={() => nav("/bookings")} className="btn-outline">Go to my bookings</button>
+              </div>
             </>
           )}
         </div>
