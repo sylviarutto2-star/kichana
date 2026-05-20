@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Home,
@@ -11,6 +12,7 @@ import {
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 type Item = { to: string; label: string; Icon: typeof Home };
 
@@ -31,15 +33,36 @@ const STYLIST_NAV: Item[] = [
 ];
 
 export function BottomNav() {
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const items = profile?.role === "stylist" ? STYLIST_NAV : CUSTOMER_NAV;
+  const [hasActiveBooking, setHasActiveBooking] = useState(false);
+
+  useEffect(() => {
+    if (!user || profile?.role === "stylist") { setHasActiveBooking(false); return; }
+    let cancelled = false;
+    (async () => {
+      const cutoff = new Date(Date.now() - 3600_000).toISOString();
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("customer_id", user.id)
+        .not("status", "in", "(cancelled,completed,no_show)")
+        .gte("scheduled_for", cutoff)
+        .limit(1);
+      if (cancelled) return;
+      setHasActiveBooking(!error && !!data && data.length > 0);
+    })();
+    return () => { cancelled = true; };
+  }, [user, profile?.role]);
 
   return (
     <>
       {/* Mobile bottom nav */}
       <nav className="nav-bottom" aria-label="Primary">
         <ul className="grid grid-cols-5">
-          {items.map(({ to, label, Icon }) => (
+          {items.map(({ to, label, Icon }) => {
+            const showDot = hasActiveBooking && to === "/bookings";
+            return (
             <li key={to}>
               <NavLink
                 to={to}
@@ -50,11 +73,20 @@ export function BottomNav() {
                   )
                 }
               >
-                <Icon className="h-5 w-5" />
+                <span className="relative inline-flex">
+                  <Icon className="h-5 w-5" />
+                  {showDot && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-terracotta-600"
+                    />
+                  )}
+                </span>
                 <span>{label}</span>
               </NavLink>
             </li>
-          ))}
+            );
+          })}
         </ul>
         <div className="h-[env(safe-area-inset-bottom)]" />
       </nav>
@@ -65,7 +97,9 @@ export function BottomNav() {
           <Logo />
         </div>
         <ul className="flex flex-col gap-1">
-          {items.map(({ to, label, Icon }) => (
+          {items.map(({ to, label, Icon }) => {
+            const showDot = hasActiveBooking && to === "/bookings";
+            return (
             <li key={to}>
               <NavLink
                 to={to}
@@ -80,9 +114,16 @@ export function BottomNav() {
               >
                 <Icon className="h-4 w-4" />
                 <span>{label}</span>
+                {showDot && (
+                  <span
+                    aria-hidden="true"
+                    className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-terracotta-600"
+                  />
+                )}
               </NavLink>
             </li>
-          ))}
+            );
+          })}
         </ul>
         <div className="mt-auto text-[11px] text-mute px-3">
           {profile?.role === "stylist"
