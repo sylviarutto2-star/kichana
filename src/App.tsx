@@ -12,6 +12,7 @@ import Discover from "@/pages/Discover";
 import StylistProfile from "@/pages/StylistProfile";
 import Booking from "@/pages/Booking";
 import Bookings from "@/pages/Bookings";
+import PaymentCallback from "@/pages/PaymentCallback";
 import Vault from "@/pages/Vault";
 import Profile from "@/pages/Profile";
 import Studio from "@/pages/Studio";
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/stylist/:id" element={<RequireAuth><StylistProfile /></RequireAuth>} />
         <Route path="/book/:stylistId" element={<RequireAuth><Booking /></RequireAuth>} />
         <Route path="/bookings" element={<RequireAuth><Bookings /></RequireAuth>} />
+        <Route path="/payment/callback" element={<RequireAuth><PaymentCallback /></RequireAuth>} />
         <Route path="/vault" element={<RequireAuth><Vault /></RequireAuth>} />
         <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
         <Route path="/studio" element={<RequireAuth><Studio /></RequireAuth>} />

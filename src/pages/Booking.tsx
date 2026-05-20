@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { KES, cn } from "@/lib/utils";
 import { addDays, format, setHours, setMinutes } from "date-fns";
-import { Check, Loader2, Smartphone } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Service, Stylist } from "@/lib/database.types";
 
@@ -15,7 +15,7 @@ export default function Booking() {
   const [params] = useSearchParams();
   const initialServiceId = params.get("service") || undefined;
   const nav = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
   const [stylist, setStylist] = useState<Stylist | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -25,7 +25,6 @@ export default function Booking() {
   const [time, setTime] = useState<string>("10:00");
   const [locationType, setLocationType] = useState<"salon" | "home">("salon");
   const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState(profile?.phone || "");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -88,18 +87,25 @@ export default function Booking() {
         .single();
       if (error) throw error;
 
-      // Trigger M-Pesa STK
-      const { data: mpesa, error: mErr } = await supabase.functions.invoke("mpesa-stk", {
-        body: { booking_id: booking.id, phone, amount: deposit },
+      // Start Paystack checkout
+      const { data: pay, error: pErr } = await supabase.functions.invoke("paystack-initialize", {
+        body: {
+          booking_id: booking.id,
+          callback_url: `${window.location.origin}/payment/callback`,
+        },
       });
-      if (mErr) {
+      if (pErr) {
         toast.warning("Booking saved. Payment couldn't start — pay later in My Bookings.");
-      } else if ((mpesa as any)?.simulated) {
+        nav("/bookings");
+      } else if ((pay as any)?.simulated) {
         toast.success("Booking confirmed (demo). Check your bookings.");
+        nav("/bookings");
+      } else if ((pay as any)?.authorization_url) {
+        window.location.href = (pay as any).authorization_url;
       } else {
-        toast.success("Check your phone for the M-Pesa prompt 📲");
+        toast.warning("Booking saved. Payment couldn't start — pay later in My Bookings.");
+        nav("/bookings");
       }
-      nav("/bookings");
     } catch (e: any) {
       toast.error(e.message || "Couldn't book. Try again.");
     } finally {
@@ -206,17 +212,12 @@ export default function Booking() {
             </div>
 
             <div className="card p-5">
-              <div className="label">M-Pesa phone</div>
-              <div className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5 text-mute" />
-                <input className="input flex-1" placeholder="07XX XXX XXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </div>
-              <p className="text-xs text-mute mt-2">You'll get an STK push to authorise the deposit.</p>
+              <p className="text-sm text-mute">You'll be taken to Paystack's secure checkout to pay the deposit by M-Pesa or card.</p>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="btn-outline">Back</button>
-              <button disabled={busy || !phone} onClick={confirm} className="btn-primary flex-1">
+              <button disabled={busy} onClick={confirm} className="btn-primary flex-1">
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />}
                 Pay deposit & confirm
               </button>
