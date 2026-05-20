@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { KES, isValidPhone, withTimeout } from "@/lib/utils";
+import { KES, withTimeout } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -51,27 +51,26 @@ export default function Bookings() {
   }, [user]);
 
   const payDeposit = async (b: Row) => {
-    const phone = (profile?.phone || window.prompt("M-Pesa phone (07XX XXX XXX)") || "").trim();
-    if (!phone) return;
-    if (!isValidPhone(phone)) {
-      toast.error("That phone number doesn't look right. Update it in your Profile.");
-      return;
-    }
     setPayingId(b.id);
     try {
       const { data, error } = await withTimeout(
-        supabase.functions.invoke("mpesa-stk", {
-          body: { booking_id: b.id, phone, amount: b.deposit_kes },
+        supabase.functions.invoke("paystack-initialize", {
+          body: {
+            booking_id: b.id,
+            callback_url: `${window.location.origin}/payment/callback`,
+          },
         }),
         20000,
-        "Starting M-Pesa",
+        "Starting Paystack",
       );
       if (error) throw error;
       if ((data as any)?.simulated) {
         toast.success("Deposit confirmed (demo).");
         setRows((rs) => rs.map((r) => (r.id === b.id ? { ...r, status: "confirmed", payment_status: "deposit_paid" } : r)));
+      } else if ((data as any)?.authorization_url) {
+        window.location.href = (data as any).authorization_url;
       } else {
-        toast.success("Check your phone for the M-Pesa prompt 📲");
+        toast.error("Couldn't start payment. Try again.");
       }
     } catch (e: any) {
       toast.error(e.message || "Couldn't start payment. Try again.");

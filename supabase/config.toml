@@ -1,7 +1,10 @@
-project_id = "wdqpmyhtyhlwkkdrkjwv"
+project_id = "dpzdltvxgbwepxbjpqnz"
 
-[functions.mpesa-stk]
+[functions.paystack-initialize]
 verify_jwt = true
 
-[functions.mpesa-callback]
+[functions.paystack-verify]
+verify_jwt = true
+
+[functions.paystack-webhook]
 verify_jwt = false

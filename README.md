@@ -1,12 +1,12 @@
 # Kichana
 
-Hair, brilliantly booked. A Nairobi-first booking platform for hairstylists and the women who love them — with a community feed, Hair Vault, M-Pesa deposits, group bookings, and a stylist studio.
+Hair, brilliantly booked. A Nairobi-first booking platform for hairstylists and the women who love them — with a community feed, Hair Vault, Paystack deposits, group bookings, and a stylist studio.
 
 ## Stack
 
 - **Vite + React 18 + TypeScript** — fast, lean, no framework bloat.
 - **Tailwind CSS** — custom Kichana design system (terracotta + cream + aubergine).
-- **Supabase** — auth, Postgres + RLS, Storage (4 buckets), Edge Functions (M-Pesa STK).
+- **Supabase** — auth, Postgres + RLS, Storage (4 buckets), Edge Functions (Paystack).
 - **TanStack Query**, **react-router**, **sonner**, **lucide-react**, **date-fns**.
 
 ## What's in here
@@ -18,7 +18,7 @@ Hair, brilliantly booked. A Nairobi-first booking platform for hairstylists and 
 - `/home` Community feed (hair posts, save to vault, jump to booking)
 - `/discover` Browse stylists by Nairobi neighbourhood + service category
 - `/stylist/:id` Stylist profile, services, portfolio, group-booking entry
-- `/book/:stylistId` 3-step wizard (service → date/place → M-Pesa deposit)
+- `/book/:stylistId` 3-step wizard (service → date/place → Paystack deposit)
 - `/bookings` Customer's upcoming + past bookings
 - `/vault` Saved hair inspirations (the "show your stylist exactly what you want" tool)
 - `/profile` Customer profile (hair type, allergies — travels with every booking) + loyalty
@@ -29,7 +29,7 @@ Hair, brilliantly booked. A Nairobi-first booking platform for hairstylists and 
 ### Database (`supabase/migrations/20260509120000_kichana_v1.sql`)
 - `profiles` (1:1 with `auth.users`, role + Nairobi area + language + loyalty + hair history)
 - `stylists`, `services`, `availability_slots`
-- `bookings` (M-Pesa deposit tracking)
+- `bookings` (Paystack deposit tracking)
 - `reviews`, `portfolio_items` (verified after-service photos)
 - `feed_posts` + `feed_reactions` + `feed_comments` (90-day TTL via `expires_at`)
 - `vault_items`, `follows`
@@ -38,8 +38,9 @@ Hair, brilliantly booked. A Nairobi-first booking platform for hairstylists and 
 - Full RLS, plus a `prune_expired_feed_posts()` SQL function for the 90-day cleanup cron.
 
 ### Edge functions
-- `mpesa-stk` — Daraja STK push initiator. **Falls back to "simulated success" if `MPESA_*` env vars aren't set**, so the app is fully usable end-to-end in dev without merchant credentials.
-- `mpesa-callback` — Daraja STK callback handler.
+- `paystack-initialize` — creates a Paystack transaction and returns the hosted-checkout URL. **Falls back to "simulated success" if `PAYSTACK_SECRET_KEY` isn't set**, so the app is fully usable end-to-end in dev without merchant credentials. Reads the deposit amount from the database, never from the client.
+- `paystack-verify` — verifies a transaction by reference (called from the `/payment/callback` page) and confirms the booking.
+- `paystack-webhook` — handles the `charge.success` webhook (HMAC-SHA512 signature verified) as an idempotent backstop to the verify call.
 
 ## Setup
 
@@ -59,53 +60,23 @@ supabase db push
 
 ### 3. Deploy edge functions
 ```bash
-supabase functions deploy mpesa-stk
-supabase functions deploy mpesa-callback
+supabase functions deploy paystack-initialize
+supabase functions deploy paystack-verify
+supabase functions deploy paystack-webhook
 ```
 
-### 4. M-Pesa setup (Daraja)
+### 4. Paystack (when ready to take real money)
+1. Set the secret key as a Supabase function secret (use `sk_test_...` first, then `sk_live_...` to go live):
+   ```
+   PAYSTACK_SECRET_KEY
+   ```
+2. In the Paystack Dashboard → **Settings → API Keys & Webhooks**, set the Webhook URL to:
+   ```
+   https://dpzdltvxgbwepxbjpqnz.supabase.co/functions/v1/paystack-webhook
+   ```
+   Paystack has separate **Test** and **Live** webhook fields — set the Test one while using `sk_test_`, and the Live one before going live.
 
-M-Pesa secrets are **server-side only** — they live as Supabase Edge
-Function secrets, never in `.env`. Until they are set, the app silently
-falls back to **demo M-Pesa** so you can keep testing the full flow.
-
-The integration uses a **Buy Goods (Till)** STK push. Get the credentials
-from the Daraja portal (https://developer.safaricom.co.ke): your app's
-Consumer Key and Consumer Secret, the store/Head Office number, the till
-number, and the Lipa Na M-Pesa Online passkey. For **sandbox** testing the
-shared passkey is
-`bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919`.
-
-Set them as function secrets:
-```bash
-supabase secrets set \
-  MPESA_CONSUMER_KEY=...        MPESA_CONSUMER_SECRET=... \
-  MPESA_STORE_NUMBER=...        MPESA_TILL_NUMBER=... \
-  MPESA_PASSKEY=bfb279f9aa9b... MPESA_TRANSACTION_TYPE=CustomerBuyGoodsOnline \
-  MPESA_CALLBACK_URL=https://dpzdltvxgbwepxbjpqnz.supabase.co/functions/v1/mpesa-callback \
-  MPESA_ENV=sandbox
-```
-
-| Secret | Notes |
-|---|---|
-| `MPESA_CONSUMER_KEY` / `MPESA_CONSUMER_SECRET` | From the Daraja app's Keys tab |
-| `MPESA_STORE_NUMBER` | Head Office / store number — used as `BusinessShortCode` and in the password |
-| `MPESA_TILL_NUMBER` | Buy Goods till number — used as `PartyB` |
-| `MPESA_PASSKEY` | Lipa Na M-Pesa Online passkey |
-| `MPESA_TRANSACTION_TYPE` | `CustomerBuyGoodsOnline` (default) or `CustomerPayBillOnline` |
-| `MPESA_CALLBACK_URL` | `https://<project>.supabase.co/functions/v1/mpesa-callback` |
-| `MPESA_ENV` | `sandbox` while testing, `production` once live |
-
-`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
-
-**Sandbox test:** book a service and pay with Safaricom's test number
-`254708374149` — the STK auto-completes and the callback confirms the
-booking. The callback verifies the paid amount covers the expected
-deposit before marking a booking paid.
-
-**Going live:** complete Daraja "Go Live", then re-run `supabase secrets
-set` with the production Consumer Key/Secret, real shortcode + passkey,
-and `MPESA_ENV=production`.
+Until `PAYSTACK_SECRET_KEY` is set, the app silently falls back to **demo mode** (instant simulated success) so you can keep testing the full flow. Customers pay the deposit by M-Pesa or card on Paystack's hosted checkout.
 
 ### 5. Run
 ```bash
