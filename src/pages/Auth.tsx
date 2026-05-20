@@ -9,7 +9,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import { withTimeout } from "@/lib/utils";
 
 export default function Auth() {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, profileLoaded } = useAuth();
   const [params] = useSearchParams();
   const presetRole = params.get("role") === "stylist" ? "stylist" : "customer";
 
@@ -25,6 +25,9 @@ export default function Auth() {
 
   if (loading) return <LoadingScreen />;
   if (session) {
+    // Never decide the destination from a transient null profile. Wait until
+    // the fetch resolves so already-onboarded users are not sent to /onboarding.
+    if (!profileLoaded) return <LoadingScreen />;
     const dest = profile?.onboarding_complete ? (from || "/home") : "/onboarding";
     return <Navigate to={dest} replace />;
   }

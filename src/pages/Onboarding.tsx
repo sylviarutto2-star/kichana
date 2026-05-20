@@ -13,7 +13,7 @@ type Role = "customer" | "stylist";
 const HAIR_TYPES = ["3a", "3b", "3c", "4a", "4b", "4c", "relaxed", "locs", "wig wearer"];
 
 export default function Onboarding() {
-  const { user, profile, loading, refreshProfile } = useAuth();
+  const { user, profile, loading, profileLoaded, refreshProfile } = useAuth();
   const [params] = useSearchParams();
   const presetRole: Role = params.get("role") === "stylist" ? "stylist" : "customer";
 
@@ -142,6 +142,9 @@ export default function Onboarding() {
   // ── Guards ─────────────────────────────────────────────────────────────
   if (loading) return <LoadingScreen />;
   if (!user) return <LoadingScreen />;
+  // Never render the role picker before we know whether this user has
+  // already onboarded. A transient null profile must never show onboarding.
+  if (!profileLoaded) return <LoadingScreen />;
   if (profile?.onboarding_complete) {
     return <Navigate to={profile.role === "stylist" ? "/studio" : "/home"} replace />;
   }
