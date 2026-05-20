@@ -36,16 +36,20 @@ export default function StylistProfile() {
           setLoading(false);
           return;
         }
-        const [{ data: s }, { data: svc }, { data: pf }] = await Promise.all([
+        const [sRes, svcRes, pfRes] = await Promise.all([
           supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),
           supabase.from("portfolio_images").select("id, image_url").eq("stylist_id", id).order("sort_order").limit(12),
         ]);
         if (cancelled) return;
-        setStylist(s as any);
-        setServices((svc as Service[]) || []);
-        setPortfolio((pf as any) || []);
-      } catch {
+        if (sRes.error) console.error("StylistProfile: stylist query failed", sRes.error);
+        if (svcRes.error) console.error("StylistProfile: services query failed", svcRes.error);
+        if (pfRes.error) console.error("StylistProfile: portfolio query failed", pfRes.error);
+        setStylist(sRes.data as any);
+        setServices((svcRes.data as Service[]) || []);
+        setPortfolio((pfRes.data as any) || []);
+      } catch (e) {
+        console.error("StylistProfile: fetch threw", e);
         if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setLoading(false);

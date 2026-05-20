@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { PageHeader } from "@/components/PageHeader";
-import { SERVICE_CATEGORIES, cn } from "@/lib/utils";
+import { SERVICE_CATEGORIES, cn, withTimeout } from "@/lib/utils";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -29,17 +29,27 @@ export default function PostCreate() {
     if (!user || !file) return toast.error("Pick an image first");
     setBusy(true);
     try {
-      const path = `${user.id}/${Date.now()}-${file.name}`;
-      const { error: upErr } = await supabase.storage.from("feed").upload(path, file, { cacheControl: "3600", upsert: false });
+      const safeName = file.name.replace(/[^a-z0-9.]/gi, "_");
+      const path = `${user.id}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await withTimeout(
+        supabase.storage.from("feed").upload(path, file, { cacheControl: "3600", upsert: false }),
+        30000,
+        "Uploading image",
+      );
       if (upErr) throw upErr;
       const { data: pub } = supabase.storage.from("feed").getPublicUrl(path);
-      const { error } = await supabase.from("feed_posts").insert({
-        author_id: user.id, image_url: pub.publicUrl, caption, category,
-      });
+      const { error } = await withTimeout(
+        supabase.from("feed_posts").insert({
+          author_id: user.id, image_url: pub.publicUrl, caption, category,
+        }),
+        15000,
+        "Posting",
+      );
       if (error) throw error;
       toast.success("Posted ✨");
       nav("/home");
     } catch (e: any) {
+      console.error("Post failed:", e);
       toast.error(e.message || "Couldn't post");
     } finally {
       setBusy(false);

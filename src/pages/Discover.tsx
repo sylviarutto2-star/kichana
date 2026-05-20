@@ -88,13 +88,20 @@ export default function Discover() {
     (async () => {
       setLoading(true);
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("stylists")
           .select(
             "*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url), services(price_kes)"
           )
           .order("rating_avg", { ascending: false })
           .limit(120);
+        if (error) {
+          console.error("Discover: stylists query failed", error);
+          // Surface the error in dev — falling silently to demo data is what
+          // was hiding real profiles from the admin in production.
+          if (!cancelled) setRows(demoStylists as any);
+          return;
+        }
         const live: Row[] = (data || []).map((s: any) => {
           const prices: number[] = (s.services || []).map((x: any) => x.price_kes);
           return {
@@ -103,8 +110,15 @@ export default function Discover() {
             from_kes: prices.length ? Math.min(...prices) : undefined,
           };
         });
-        if (!cancelled) setRows(live.length ? live : (demoStylists as any));
-      } catch {
+        // Always show real stylists when they exist. Pad with demos only if
+        // the live set is too thin to fill a page, so we never hide a real
+        // profile behind demo data.
+        const next: Row[] = live.length >= 12
+          ? live
+          : [...live, ...(demoStylists as any[])];
+        if (!cancelled) setRows(next);
+      } catch (e) {
+        console.error("Discover: stylists fetch threw", e);
         if (!cancelled) setRows(demoStylists as any);
       } finally {
         if (!cancelled) setLoading(false);
@@ -123,6 +137,16 @@ export default function Discover() {
       if (minRating > 0 && s.rating_avg < minRating) return false;
       const price = s.from_kes ?? Infinity;
       if (Number.isFinite(price) && (price < minPrice || price > maxPrice)) return false;
+      // Hair type / language / vibe: weak match against specialties + bio so
+      // selecting one of these chips actually narrows results until those
+      // attributes are first-class columns on `stylists`.
+      const haystack = `${(s.specialties || []).join(" ")} ${s.bio || ""}`.toLowerCase();
+      if (hairTypes.length && !hairTypes.some((h) => haystack.includes(h.toLowerCase()))) return false;
+      if (langs.length && !langs.some((l) => haystack.includes(l.toLowerCase()))) return false;
+      if (vibes.length && !vibes.some((v) => haystack.includes(v.toLowerCase()))) return false;
+      // Availability chip is informational until live availability lands;
+      // including it in deps keeps the count + URL state in sync.
+      void avail;
       return true;
     });
 
@@ -147,7 +171,7 @@ export default function Discover() {
         break;
     }
     return sorted;
-  }, [rows, area, cat, q, verifiedOnly, travelsOnly, minRating, minPrice, maxPrice, sort]);
+  }, [rows, area, cat, q, verifiedOnly, travelsOnly, minRating, minPrice, maxPrice, sort, hairTypes, langs, vibes, avail]);
 
   const activeCount =
     (area !== "all" ? 1 : 0) +

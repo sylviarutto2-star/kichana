@@ -13,17 +13,22 @@ export default function Vault() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("vault_items")
           .select("*")
           .eq("owner_id", user.id)
           .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Vault: query failed", error);
+          if (!cancelled) toast.error(error.message || "Couldn't load your Vault.");
+        }
         if (!cancelled) setItems(data || []);
-      } catch {
+      } catch (e) {
+        console.error("Vault: fetch threw", e);
         if (!cancelled) toast.error("Couldn't load your Vault. Please try again.");
       } finally {
         if (!cancelled) setLoading(false);
@@ -33,8 +38,15 @@ export default function Vault() {
   }, [user]);
 
   const remove = async (id: string) => {
-    await supabase.from("vault_items").delete().eq("id", id);
+    if (!window.confirm("Remove this from your Vault?")) return;
+    const prev = items;
     setItems((s) => s.filter((x) => x.id !== id));
+    const { error } = await supabase.from("vault_items").delete().eq("id", id);
+    if (error) {
+      setItems(prev);
+      toast.error("Couldn't remove — try again.");
+      return;
+    }
     toast.success("Removed");
   };
 

@@ -89,8 +89,10 @@ export default function Business() {
   const [activated, setActivated] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
     if (profile && profile.role && profile.role !== "stylist") {
+      setLoading(false);
       nav("/home");
       return;
     }
@@ -145,8 +147,8 @@ export default function Business() {
   const offers = useMemo(() => buildOffers(customers), [customers]);
 
   const activate = async (offer: SuggestedOffer) => {
-    setActivated((a) => ({ ...a, [offer.id]: true }));
     if (isDemo || !stylist) {
+      setActivated((a) => ({ ...a, [offer.id]: true }));
       toast.success(`"${offer.title}" is live — opted-in customers will see it.`);
       return;
     }
@@ -159,9 +161,11 @@ export default function Business() {
         audience: offer.audience,
       });
       if (error) throw error;
+      setActivated((a) => ({ ...a, [offer.id]: true }));
       toast.success(`"${offer.title}" is live ✨`);
     } catch (e: any) {
-      toast.success(`"${offer.title}" queued — it will go live shortly.`);
+      console.error("Promotion activate failed:", e);
+      toast.error(e?.message || "Couldn't activate this offer. Try again.");
     }
   };
 

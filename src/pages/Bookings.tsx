@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { KES } from "@/lib/utils";
+import { KES, isValidPhone, withTimeout } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -26,17 +26,22 @@ export default function Bookings() {
   }, [profile, nav]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("bookings")
           .select("*, services(title), stylists(display_name, base_location)")
           .eq("customer_id", user.id)
           .order("scheduled_for", { ascending: false });
+        if (error) {
+          console.error("Bookings: query failed", error);
+          if (!cancelled) toast.error(error.message || "Couldn't load your bookings.");
+        }
         if (!cancelled) setRows(data || []);
-      } catch {
+      } catch (e) {
+        console.error("Bookings: fetch threw", e);
         if (!cancelled) toast.error("Couldn't load your bookings. Please try again.");
       } finally {
         if (!cancelled) setLoading(false);
@@ -48,11 +53,19 @@ export default function Bookings() {
   const payDeposit = async (b: Row) => {
     const phone = (profile?.phone || window.prompt("M-Pesa phone (07XX XXX XXX)") || "").trim();
     if (!phone) return;
+    if (!isValidPhone(phone)) {
+      toast.error("That phone number doesn't look right. Update it in your Profile.");
+      return;
+    }
     setPayingId(b.id);
     try {
-      const { data, error } = await supabase.functions.invoke("mpesa-stk", {
-        body: { booking_id: b.id, phone, amount: b.deposit_kes },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("mpesa-stk", {
+          body: { booking_id: b.id, phone, amount: b.deposit_kes },
+        }),
+        20000,
+        "Starting M-Pesa",
+      );
       if (error) throw error;
       if ((data as any)?.simulated) {
         toast.success("Deposit confirmed (demo).");
