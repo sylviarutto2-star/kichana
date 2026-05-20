@@ -33,8 +33,10 @@ export default function Studio() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
     if (profile && profile.role && profile.role !== "stylist") {
+      setLoading(false);
       nav("/profile");
       return;
     }
@@ -583,7 +585,7 @@ function PortfolioTab({
                 >
                   <option value="">Tag a service…</option>
                   {services.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{s.title}</option>
                   ))}
                 </select>
                 <div className="flex items-center justify-between">

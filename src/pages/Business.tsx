@@ -89,8 +89,10 @@ export default function Business() {
   const [activated, setActivated] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (authLoading || !user) return;
+    if (authLoading) return;
+    if (!user) { setLoading(false); return; }
     if (profile && profile.role && profile.role !== "stylist") {
+      setLoading(false);
       nav("/home");
       return;
     }

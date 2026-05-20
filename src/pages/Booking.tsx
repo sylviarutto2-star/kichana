@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { demoServices, demoStylists, isDemo } from "@/lib/demoData";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
-import { KES, cn } from "@/lib/utils";
+import { KES, cn, isValidPhone } from "@/lib/utils";
 import { addDays, format, setHours, setMinutes } from "date-fns";
 import { Check, Loader2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
@@ -58,12 +58,31 @@ export default function Booking() {
   const dates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
   const times = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00"];
 
-  const deposit = service ? Math.max(500, Math.round(service.price_kes * 0.3 / 100) * 100) : 0;
+  const deposit = service
+    ? Math.min(
+        service.price_kes,
+        Math.max(500, Math.round((service.price_kes * 0.3) / 100) * 100),
+      )
+    : 0;
+
+  // If user navigates back and the service is no longer selected, regress steps
+  // so they can't land on Review with a half-empty summary.
+  useEffect(() => {
+    if (step > 0 && !service) setStep(0);
+  }, [step, service]);
 
   const confirm = async () => {
     if (!user || !service || !stylist) return;
     if (isDemo(stylist.id)) {
       toast.error("This is a demo stylist. Please pick a real, onboarded stylist to book.");
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      toast.error("Please enter a valid M-Pesa phone number.");
+      return;
+    }
+    if (locationType === "home" && !address.trim()) {
+      toast.error("Please add an address for the home call.");
       return;
     }
     setBusy(true);
@@ -216,7 +235,7 @@ export default function Booking() {
 
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="btn-outline">Back</button>
-              <button disabled={busy || !phone} onClick={confirm} className="btn-primary flex-1">
+              <button disabled={busy || !isValidPhone(phone)} onClick={confirm} className="btn-primary flex-1">
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />}
                 Pay deposit & confirm
               </button>

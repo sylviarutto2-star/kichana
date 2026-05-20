@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { KES } from "@/lib/utils";
+import { KES, isValidPhone } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ export default function Bookings() {
   }, [profile, nav]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -48,6 +48,10 @@ export default function Bookings() {
   const payDeposit = async (b: Row) => {
     const phone = (profile?.phone || window.prompt("M-Pesa phone (07XX XXX XXX)") || "").trim();
     if (!phone) return;
+    if (!isValidPhone(phone)) {
+      toast.error("That phone number doesn't look right. Update it in your Profile.");
+      return;
+    }
     setPayingId(b.id);
     try {
       const { data, error } = await supabase.functions.invoke("mpesa-stk", {

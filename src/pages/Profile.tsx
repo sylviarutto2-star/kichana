@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { LogOut, Award, Languages, Phone, MapPin, Settings, Scissors } from "lucide-react";
-import { NAIROBI_AREAS } from "@/lib/utils";
+import { NAIROBI_AREAS, isValidPhone } from "@/lib/utils";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function Profile() {
@@ -34,9 +34,16 @@ export default function Profile() {
     });
   }, [profile]);
 
+  const [saving, setSaving] = useState(false);
   const save = async () => {
     if (!user) return;
+    if (form.phone && !isValidPhone(form.phone)) {
+      toast.error("Please enter a valid phone number.");
+      return;
+    }
+    setSaving(true);
     const { error } = await supabase.from("profiles").update(form).eq("id", user.id);
+    setSaving(false);
     if (error) return toast.error(error.message);
     await refreshProfile();
     setEditing(false);
@@ -113,7 +120,9 @@ export default function Profile() {
                 <Field label="Allergies" value={form.allergies} onChange={(v) => setForm({ ...form, allergies: v })} />
               </>
             )}
-            <button className="btn-primary w-full" onClick={save}>Save</button>
+            <button className="btn-primary w-full" onClick={save} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </button>
           </div>
         ) : (
           <div className="card p-5 mt-4 space-y-3 text-sm">

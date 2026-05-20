@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { NAIROBI_AREAS, SERVICE_CATEGORIES, cn } from "@/lib/utils";
+import { NAIROBI_AREAS, SERVICE_CATEGORIES, cn, isValidPhone } from "@/lib/utils";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -11,12 +11,6 @@ import { ArrowRight, ArrowLeft, Loader2, Scissors, User, Check } from "lucide-re
 type Role = "customer" | "stylist";
 
 const HAIR_TYPES = ["3a", "3b", "3c", "4a", "4b", "4c", "relaxed", "locs", "wig wearer"];
-
-// Accepts Kenyan-style numbers: 07XX XXX XXX, 01XX…, or +254 / 254 prefixed.
-function isValidPhone(raw: string) {
-  const digits = raw.replace(/\D/g, "");
-  return digits.length >= 9 && digits.length <= 12;
-}
 
 export default function Onboarding() {
   const { user, profile, loading, refreshProfile } = useAuth();

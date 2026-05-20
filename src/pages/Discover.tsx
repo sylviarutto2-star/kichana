@@ -123,6 +123,16 @@ export default function Discover() {
       if (minRating > 0 && s.rating_avg < minRating) return false;
       const price = s.from_kes ?? Infinity;
       if (Number.isFinite(price) && (price < minPrice || price > maxPrice)) return false;
+      // Hair type / language / vibe: weak match against specialties + bio so
+      // selecting one of these chips actually narrows results until those
+      // attributes are first-class columns on `stylists`.
+      const haystack = `${(s.specialties || []).join(" ")} ${s.bio || ""}`.toLowerCase();
+      if (hairTypes.length && !hairTypes.some((h) => haystack.includes(h.toLowerCase()))) return false;
+      if (langs.length && !langs.some((l) => haystack.includes(l.toLowerCase()))) return false;
+      if (vibes.length && !vibes.some((v) => haystack.includes(v.toLowerCase()))) return false;
+      // Availability chip is informational until live availability lands;
+      // including it in deps keeps the count + URL state in sync.
+      void avail;
       return true;
     });
 
@@ -147,7 +157,7 @@ export default function Discover() {
         break;
     }
     return sorted;
-  }, [rows, area, cat, q, verifiedOnly, travelsOnly, minRating, minPrice, maxPrice, sort]);
+  }, [rows, area, cat, q, verifiedOnly, travelsOnly, minRating, minPrice, maxPrice, sort, hairTypes, langs, vibes, avail]);
 
   const activeCount =
     (area !== "all" ? 1 : 0) +

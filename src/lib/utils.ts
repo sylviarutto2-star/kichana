@@ -11,6 +11,12 @@ export const KES = (n: number) =>
 export const initials = (name?: string | null) =>
   (name || "").split(" ").map((s) => s[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "K";
 
+// Accepts Kenyan-style numbers: 07XX XXX XXX, 01XX…, or +254 / 254 prefixed.
+export function isValidPhone(raw: string) {
+  const digits = (raw || "").replace(/\D/g, "");
+  return digits.length >= 9 && digits.length <= 12;
+}
+
 export const NAIROBI_AREAS = [
   "Westlands", "Kilimani", "Lavington", "Karen", "Runda", "Parklands",
   "South B", "South C", "Langata", "Kileleshwa", "Hurlingham", "Upperhill",

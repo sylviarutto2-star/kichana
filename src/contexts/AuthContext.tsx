@@ -27,10 +27,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async (userId: string) => {
+    const fetchOnce = () =>
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
     try {
-      // profiles.id is the PK and references auth.users(id) directly — there is
-      // no separate user_id column (see kichana_v1 schema).
-      const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+      let { data, error } = await fetchOnce();
+      if (error && !(error.code === "42P01" || /relation .* does not exist/i.test(error.message))) {
+        // One retry on transient errors (network blip, RLS warm-up).
+        await new Promise((r) => setTimeout(r, 400));
+        ({ data, error } = await fetchOnce());
+      }
       if (error && (error.code === "42P01" || /relation .* does not exist/i.test(error.message))) {
         setProfile({ id: userId, role: "customer" } as Profile);
         return;
@@ -42,8 +47,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Watchdog: if the session lookup ever stalls (e.g. network hang), force
-    // the app out of its loading state so it can never strand on a blank screen.
+    // Watchdog: if the session lookup ever stalls, release the loading gate
+    // so the app can render /auth instead of a permanent blank screen.
+    // We do NOT null out session here — the real getSession promise can still
+    // resolve and update state, which avoids a sign-in/sign-out flicker.
     const watchdog = setTimeout(() => setLoading(false), 8000);
 
     supabase.auth
@@ -53,8 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (data.session?.user) await loadProfile(data.session.user.id);
       })
       .catch(() => {
-        // Never let a failed session lookup leave the app stuck on a blank
-        // screen — fall back to a signed-out state.
         setSession(null);
         setProfile(null);
       })

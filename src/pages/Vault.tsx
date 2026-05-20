@@ -13,7 +13,7 @@ export default function Vault() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -33,8 +33,15 @@ export default function Vault() {
   }, [user]);
 
   const remove = async (id: string) => {
-    await supabase.from("vault_items").delete().eq("id", id);
+    if (!window.confirm("Remove this from your Vault?")) return;
+    const prev = items;
     setItems((s) => s.filter((x) => x.id !== id));
+    const { error } = await supabase.from("vault_items").delete().eq("id", id);
+    if (error) {
+      setItems(prev);
+      toast.error("Couldn't remove — try again.");
+      return;
+    }
     toast.success("Removed");
   };
 

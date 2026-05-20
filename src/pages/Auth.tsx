@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,10 +19,13 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
   const nav = useNavigate();
+  const loc = useLocation();
+  const from = (loc.state as { from?: string } | null)?.from;
 
   if (loading) return <LoadingScreen />;
   if (session) {
-    return <Navigate to={profile?.onboarding_complete ? "/home" : "/onboarding"} replace />;
+    const dest = profile?.onboarding_complete ? (from || "/home") : "/onboarding";
+    return <Navigate to={dest} replace />;
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -63,7 +66,7 @@ export default function Auth() {
           throw error;
         }
         toast.success("Welcome back");
-        nav("/home");
+        nav(from || "/home");
       }
     } catch (err: any) {
       // Surface the real error so we can debug
