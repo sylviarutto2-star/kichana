@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Kichana brand mark — a stylised afro with an afro-pick comb at its centre,
@@ -45,25 +47,40 @@ export function Logo({
   className,
   mark = false,
   size = "md",
+  linked = true,
 }: {
   className?: string;
   mark?: boolean;
   size?: "sm" | "md" | "lg";
+  linked?: boolean;
 }) {
+  const { session, profile } = useAuth();
   const markSize =
     size === "lg" ? "h-12 w-12" : size === "sm" ? "h-7 w-7" : "h-9 w-9";
   const textSize =
     size === "lg" ? "text-3xl" : size === "sm" ? "text-lg" : "text-2xl";
 
-  if (mark) {
-    return <LogoMark className={cn(markSize, className)} />;
-  }
-  return (
+  const to = !session
+    ? "/"
+    : profile?.role === "stylist"
+      ? "/studio"
+      : "/home";
+
+  const inner = mark ? (
+    <LogoMark className={cn(markSize, className)} />
+  ) : (
     <div className={cn("inline-flex items-center gap-2", className)}>
       <LogoMark className={markSize} />
       <span className={cn("font-display tracking-tight lowercase", textSize)}>
         kichana
       </span>
     </div>
+  );
+
+  if (!linked) return inner;
+  return (
+    <Link to={to} aria-label="Kichana home" className="inline-flex items-center">
+      {inner}
+    </Link>
   );
 }
