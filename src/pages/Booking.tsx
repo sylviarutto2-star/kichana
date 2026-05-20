@@ -40,19 +40,27 @@ export default function Booking() {
           setServices(demoServices[stylistId] || []);
           return;
         }
-        const [{ data: s }, { data: svc }] = await Promise.all([
+        const [sRes, svcRes] = await Promise.all([
           supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
         ]);
         if (cancelled) return;
-        setStylist(s as any);
-        setServices((svc as Service[]) || []);
-      } catch {
-        if (!cancelled) toast.error("Couldn't load this stylist. Please try again.");
+        if (sRes.error) console.error("Booking: stylist lookup failed", sRes.error);
+        if (svcRes.error) console.error("Booking: services query failed", svcRes.error);
+        if (!sRes.data) {
+          toast.error("That stylist isn't available — try another from Discover.");
+          nav("/discover", { replace: true });
+          return;
+        }
+        setStylist(sRes.data as any);
+        setServices((svcRes.data as Service[]) || []);
+      } catch (e: any) {
+        console.error("Booking: load threw", e);
+        if (!cancelled) toast.error(e?.message || "Couldn't load this stylist. Please try again.");
       }
     })();
     return () => { cancelled = true; };
-  }, [stylistId]);
+  }, [stylistId, nav]);
 
   const service = useMemo(() => services.find((s) => s.id === serviceId), [services, serviceId]);
   const dates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
@@ -85,10 +93,15 @@ export default function Booking() {
       toast.error("Please add an address for the home call.");
       return;
     }
+    const [h, m] = time.split(":").map(Number);
+    const scheduledDate = setMinutes(setHours(date, h), m);
+    if (scheduledDate.getTime() <= Date.now()) {
+      toast.error("That slot is in the past — pick a later time.");
+      return;
+    }
     setBusy(true);
     try {
-      const [h, m] = time.split(":").map(Number);
-      const scheduled = setMinutes(setHours(date, h), m).toISOString();
+      const scheduled = scheduledDate.toISOString();
 
       const { data: booking, error } = await withTimeout(
         supabase

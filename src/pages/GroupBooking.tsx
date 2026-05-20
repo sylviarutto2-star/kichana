@@ -27,16 +27,24 @@ export default function GroupBooking() {
     if (Number.isNaN(parsed.getTime())) return toast.error("That date or time looks invalid.");
     setBusy(true);
     try {
-      const inv = Math.random().toString(36).slice(2, 8).toUpperCase();
       const scheduled = parsed.toISOString();
-      const { error } = await withTimeout(
-        supabase.from("group_bookings").insert({
-          host_id: user.id, stylist_id: stylistId, scheduled_for: scheduled, invite_code: inv, notes,
-        }),
-        15000,
-        "Creating group session",
-      );
-      if (error) throw error;
+      let inv = "";
+      let lastErr: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        inv = Math.random().toString(36).slice(2, 8).toUpperCase();
+        const { error } = await withTimeout(
+          supabase.from("group_bookings").insert({
+            host_id: user.id, stylist_id: stylistId, scheduled_for: scheduled, invite_code: inv, notes,
+          }),
+          15000,
+          "Creating group session",
+        );
+        if (!error) { lastErr = null; break; }
+        lastErr = error;
+        // 23505 = unique_violation — retry with a fresh code.
+        if ((error as any).code !== "23505") break;
+      }
+      if (lastErr) throw lastErr;
       setCode(inv);
       toast.success("Group session created. Share the code!");
     } catch (e: any) {

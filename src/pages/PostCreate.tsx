@@ -29,7 +29,8 @@ export default function PostCreate() {
     if (!user || !file) return toast.error("Pick an image first");
     setBusy(true);
     try {
-      const path = `${user.id}/${Date.now()}-${file.name}`;
+      const safeName = file.name.replace(/[^a-z0-9.]/gi, "_");
+      const path = `${user.id}/${Date.now()}-${safeName}`;
       const { error: upErr } = await withTimeout(
         supabase.storage.from("feed").upload(path, file, { cacheControl: "3600", upsert: false }),
         30000,
