@@ -25,7 +25,9 @@ export function withTimeout<T>(p: PromiseLike<T>, ms = 15000, label = "Request")
       () => reject(new Error(`${label} took too long — please check your connection and try again.`)),
       ms,
     );
-    Promise.resolve(p).then(
+    // Call .then directly on the thenable so supabase query builders kick
+    // off their fetch immediately instead of going through Promise.resolve.
+    p.then(
       (v) => { clearTimeout(t); resolve(v); },
       (e) => { clearTimeout(t); reject(e); },
     );

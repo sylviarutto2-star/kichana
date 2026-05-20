@@ -165,7 +165,7 @@ export default function Home() {
                       </span>
                     </div>
                   </div>
-                  {p.stylist_id && (
+                  {p.stylist_id && profile?.role !== "stylist" && (
                     <Link
                       to={
                         p.stylist_id.startsWith("demo-")
@@ -255,23 +255,43 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="card p-5 bg-aubergine-700 text-cream relative overflow-hidden">
-              <div className="absolute inset-0 opacity-30 [background:radial-gradient(circle_at_80%_20%,rgba(216,168,90,0.6),transparent_55%)]" />
-              <div className="relative">
-                <div className="flex items-center gap-2 text-cream/70 text-[11px] font-semibold uppercase tracking-[0.18em]">
-                  <Calendar className="h-3.5 w-3.5" /> Book again
+            {profile?.role === "stylist" ? (
+              <div className="card p-5 bg-aubergine-700 text-cream relative overflow-hidden">
+                <div className="absolute inset-0 opacity-30 [background:radial-gradient(circle_at_80%_20%,rgba(216,168,90,0.6),transparent_55%)]" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 text-cream/70 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                    <Scissors className="h-3.5 w-3.5" /> Your studio
+                  </div>
+                  <p className="mt-3 font-display text-2xl leading-tight">
+                    Manage bookings, services and your portfolio.
+                  </p>
+                  <Link
+                    to="/studio"
+                    className="mt-4 inline-flex btn-primary !bg-cream !text-ink hover:!bg-white"
+                  >
+                    Go to Studio <ArrowRight className="h-4 w-4" />
+                  </Link>
                 </div>
-                <p className="mt-3 font-display text-2xl leading-tight">
-                  Loved your last look? One tap to rebook your stylist.
-                </p>
-                <Link
-                  to="/bookings"
-                  className="mt-4 inline-flex btn-primary !bg-cream !text-ink hover:!bg-white"
-                >
-                  See past bookings <ArrowRight className="h-4 w-4" />
-                </Link>
               </div>
-            </div>
+            ) : (
+              <div className="card p-5 bg-aubergine-700 text-cream relative overflow-hidden">
+                <div className="absolute inset-0 opacity-30 [background:radial-gradient(circle_at_80%_20%,rgba(216,168,90,0.6),transparent_55%)]" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 text-cream/70 text-[11px] font-semibold uppercase tracking-[0.18em]">
+                    <Calendar className="h-3.5 w-3.5" /> Book again
+                  </div>
+                  <p className="mt-3 font-display text-2xl leading-tight">
+                    Loved your last look? One tap to rebook your stylist.
+                  </p>
+                  <Link
+                    to="/bookings"
+                    className="mt-4 inline-flex btn-primary !bg-cream !text-ink hover:!bg-white"
+                  >
+                    See past bookings <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            )}
 
             <div className="card p-5">
               <div className="h-eyebrow">Categories</div>

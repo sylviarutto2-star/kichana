@@ -57,29 +57,25 @@ export default function Onboarding() {
     }
     setBusy(true);
     try {
-      // Create the stylist row FIRST so we never mark a profile complete
-      // without its accompanying studio record. If this fails the user can
-      // retry from the same step.
+      // Stylists: upsert the studio row in a single request, keyed on the
+      // unique profile_id column. Avoids a pre-lookup that previously hung
+      // on flaky networks.
       if (role === "stylist") {
-        const { data: existing, error: lookupErr } = await withTimeout(
-          supabase.from("stylists").select("id").eq("profile_id", user.id).maybeSingle(),
-          15000,
-          "Looking up your studio",
-        );
-        if (lookupErr) throw lookupErr;
-
-        const studioPayload = {
-          display_name: displayName.trim() || "My Studio",
-          bio: bio.trim() || null,
-          specialties,
-          neighborhoods: [neighborhood],
-          base_location: neighborhood,
-          travels,
-        };
         const { error: sErr } = await withTimeout(
-          existing
-            ? supabase.from("stylists").update(studioPayload).eq("id", (existing as any).id)
-            : supabase.from("stylists").insert({ profile_id: user.id, ...studioPayload }),
+          supabase
+            .from("stylists")
+            .upsert(
+              {
+                profile_id: user.id,
+                display_name: displayName.trim() || "My Studio",
+                bio: bio.trim() || null,
+                specialties,
+                neighborhoods: [neighborhood],
+                base_location: neighborhood,
+                travels,
+              },
+              { onConflict: "profile_id" },
+            ),
           15000,
           "Creating your studio",
         );
@@ -105,8 +101,9 @@ export default function Onboarding() {
       );
       if (pErr) throw pErr;
 
-      // refreshProfile is best-effort — don't block navigation on it.
-      void refreshProfile();
+      // Wait for the refreshed profile so the post-redirect guard sees
+      // onboarding_complete=true and doesn't bounce back here.
+      await refreshProfile();
       toast.success(role === "stylist" ? "Studio created — add your services next." : "You're all set!");
       nav(role === "stylist" ? "/studio" : "/home", { replace: true });
     } catch (e: any) {
