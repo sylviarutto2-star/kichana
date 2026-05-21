@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { Calendar, MapPin, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
 import { LeaveReviewModal } from "@/components/LeaveReviewModal";
+import { CancelBookingModal } from "@/components/CancelBookingModal";
 import { ReviewStars } from "@/components/ReviewStars";
 
 type Row = any;
@@ -22,6 +23,7 @@ export default function Bookings() {
   const [payingId, setPayingId] = useState<string | null>(null);
   const [reviewed, setReviewed] = useState<Record<string, { rating: number }>>({});
   const [reviewingBooking, setReviewingBooking] = useState<Row | null>(null);
+  const [cancellingBooking, setCancellingBooking] = useState<Row | null>(null);
 
   // Stylists/vendors don't have a customer "Bookings" page — their client
   // appointments live in Studio. Send them there.
@@ -154,6 +156,15 @@ export default function Bookings() {
                   {payingId === b.id ? "Starting payment…" : `Pay deposit ${KES(b.deposit_kes)}`}
                 </button>
               )}
+              {!["cancelled", "completed", "no_show"].includes(b.status) &&
+                new Date(b.scheduled_for).getTime() > Date.now() && (
+                  <button
+                    onClick={() => setCancellingBooking(b)}
+                    className="btn-outline w-full mt-2 !text-terracotta-600"
+                  >
+                    Cancel booking
+                  </button>
+                )}
               {b.status === "completed" && (
                 reviewed[b.id] ? (
                   <div className="mt-3 flex items-center justify-between rounded-2xl bg-cream/70 border border-line px-3 py-2">
@@ -174,6 +185,26 @@ export default function Bookings() {
         </div>
       </div>
       <BottomNav />
+      <CancelBookingModal
+        open={!!cancellingBooking}
+        onClose={() => setCancellingBooking(null)}
+        booking={
+          cancellingBooking
+            ? {
+                id: cancellingBooking.id,
+                stylist_id: cancellingBooking.stylist_id,
+                scheduled_for: cancellingBooking.scheduled_for,
+                deposit_kes: cancellingBooking.deposit_kes || 0,
+                payment_status: cancellingBooking.payment_status || "unpaid",
+              }
+            : null
+        }
+        onCancelled={(patch) => {
+          setRows((rs) =>
+            rs.map((r) => (r.id === cancellingBooking?.id ? { ...r, ...patch } : r)),
+          );
+        }}
+      />
       <LeaveReviewModal
         open={!!reviewingBooking}
         onClose={() => setReviewingBooking(null)}
