@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/database.types";
@@ -28,6 +28,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  // Tracks which user id we last loaded a profile for. Used to ignore
+  // onAuthStateChange events that don't actually change identity
+  // (TOKEN_REFRESHED fires on every tab refocus and was retriggering the
+  // global loading gate, causing the "glitches on tab switch" symptom).
+  const loadedUserIdRef = useRef<string | null>(null);
 
   const loadProfile = async (userId: string) => {
     setProfileLoaded(false);
@@ -76,8 +81,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .getSession()
       .then(async ({ data }) => {
         setSession(data.session);
-        if (data.session?.user) await loadProfile(data.session.user.id);
-        else setProfileLoaded(true);
+        if (data.session?.user) {
+          loadedUserIdRef.current = data.session.user.id;
+          await loadProfile(data.session.user.id);
+        } else {
+          setProfileLoaded(true);
+        }
       })
       .catch(() => {
         setSession(null);
@@ -88,10 +97,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(watchdog);
         setLoading(false);
       });
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, s) => {
       setSession(s);
-      if (s?.user) await loadProfile(s.user.id);
-      else { setProfile(null); setProfileLoaded(true); }
+      const nextUserId = s?.user?.id ?? null;
+      // TOKEN_REFRESHED fires on every tab refocus. The profile is still
+      // valid; only the access token rotated. Touching profileLoaded here
+      // is what made the app flash its loading screen on every tab switch.
+      if (event === "TOKEN_REFRESHED") return;
+      if (!nextUserId) {
+        loadedUserIdRef.current = null;
+        setProfile(null);
+        setProfileLoaded(true);
+        return;
+      }
+      if (nextUserId !== loadedUserIdRef.current) {
+        loadedUserIdRef.current = nextUserId;
+        await loadProfile(nextUserId);
+      }
     });
     return () => {
       clearTimeout(watchdog);
