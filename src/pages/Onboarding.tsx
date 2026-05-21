@@ -129,7 +129,7 @@ export default function Onboarding() {
 
       // refreshProfile is best-effort — don't block navigation on it.
       void refreshProfile();
-      toast.success(role === "stylist" ? "Studio created — add your services next." : "You're all set!");
+      toast.success(role === "stylist" ? "Studio is live — let's get your services up next." : "You're in. Welcome to the circle 💛");
       nav(role === "stylist" ? "/studio" : "/home", { replace: true });
     } catch (e: any) {
       console.error("Onboarding finish failed:", e);
@@ -176,8 +176,8 @@ export default function Onboarding() {
         {/* Step 0 — account type */}
         {step === 0 && (
           <div className="animate-fade-up">
-            <h1 className="font-display text-3xl">How will you use Kichana?</h1>
-            <p className="text-mute mt-2">Choose the account that fits you.</p>
+            <h1 className="font-display text-3xl">Welcome, gorgeous. How will you use Kichana?</h1>
+            <p className="text-mute mt-2">Tell us where you're coming in from — we'll take it from there.</p>
             <div className="grid gap-3 mt-6">
               <button
                 onClick={() => pickRole("customer")}
@@ -190,8 +190,8 @@ export default function Onboarding() {
                   <User className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="font-semibold">I'm booking hair</div>
-                  <p className="text-sm text-mute mt-1">Discover stylists, book appointments and save inspirations.</p>
+                  <div className="font-semibold">I'm booking my next look</div>
+                  <p className="text-sm text-mute mt-1">Find stylists your girls would vouch for, save your dream looks, book in seconds.</p>
                 </div>
               </button>
               <button
@@ -206,7 +206,7 @@ export default function Onboarding() {
                 </div>
                 <div>
                   <div className="font-semibold">I'm a stylist or salon</div>
-                  <p className="text-sm text-mute mt-1">List your services, manage bookings and build a portfolio.</p>
+                  <p className="text-sm text-mute mt-1">Show your craft, fill your chair, and build a name across Nairobi.</p>
                 </div>
               </button>
             </div>
@@ -216,8 +216,8 @@ export default function Onboarding() {
         {/* ── CUSTOMER ───────────────────────────────────────────────────── */}
         {role === "customer" && step === 1 && (
           <LocationStep
-            title="Where in Nairobi?"
-            subtitle="We'll show you stylists nearby first."
+            title="Where in Nairobi are you?"
+            subtitle="So we can put the stylists closest to you first."
             neighborhood={neighborhood} setNeighborhood={setNeighborhood}
             phone={phone} setPhone={setPhone}
             language={language} setLanguage={setLanguage}
@@ -227,8 +227,8 @@ export default function Onboarding() {
 
         {role === "customer" && step === 2 && (
           <div className="animate-fade-up">
-            <h1 className="font-display text-3xl">A bit about your hair</h1>
-            <p className="text-mute mt-2">This travels with you to every booking so stylists can prep.</p>
+            <h1 className="font-display text-3xl">Tell us about your hair</h1>
+            <p className="text-mute mt-2">This rides with you to every booking, so your stylist comes ready for you — not guessing.</p>
             <div className="mt-6">
               <label className="label">Hair type</label>
               <div className="flex flex-wrap gap-2">
@@ -259,8 +259,8 @@ export default function Onboarding() {
         {/* ── STYLIST ────────────────────────────────────────────────────── */}
         {role === "stylist" && step === 1 && (
           <div className="animate-fade-up">
-            <h1 className="font-display text-3xl">Set up your studio</h1>
-            <p className="text-mute mt-2">You can change all of this later in Studio.</p>
+            <h1 className="font-display text-3xl">Let's set up your studio</h1>
+            <p className="text-mute mt-2">This is how clients will meet you. Take your time — you can polish it all later in Studio.</p>
             <div className="mt-6 space-y-4">
               <div>
                 <label className="label">Display name</label>
@@ -282,8 +282,8 @@ export default function Onboarding() {
 
         {role === "stylist" && step === 2 && (
           <div className="animate-fade-up">
-            <h1 className="font-display text-3xl">What do you do?</h1>
-            <p className="text-mute mt-2">Pick at least one specialty. Clients filter by these.</p>
+            <h1 className="font-display text-3xl">What's your magic?</h1>
+            <p className="text-mute mt-2">Pick the looks you do best — this is how the right clients find you.</p>
             <div className="mt-6 flex flex-wrap gap-2">
               {SERVICE_CATEGORIES.map((c) => {
                 const on = specialties.includes(c.id);
@@ -310,8 +310,8 @@ export default function Onboarding() {
         {role === "stylist" && step === 3 && (
           <div className="animate-fade-up">
             <LocationStep
-              title="Where are you based?"
-              subtitle="Your home base. Clients near here see you first."
+              title="Where do you work from?"
+              subtitle="Your home base. Clients nearby see you first."
               neighborhood={neighborhood} setNeighborhood={setNeighborhood}
               phone={phone} setPhone={setPhone}
               language={language} setLanguage={setLanguage}
@@ -319,8 +319,8 @@ export default function Onboarding() {
             />
             <label className="mt-6 flex items-center justify-between rounded-2xl border border-line p-3">
               <div>
-                <div className="font-semibold text-sm">Offer home visits</div>
-                <div className="text-xs text-mute">Travel to clients instead of salon-only.</div>
+                <div className="font-semibold text-sm">I'll travel to clients</div>
+                <div className="text-xs text-mute">Home appointments, not just salon. Some women need their stylist to come to them.</div>
               </div>
               <input
                 type="checkbox" className="h-5 w-5"

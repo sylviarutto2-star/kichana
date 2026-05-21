@@ -311,9 +311,9 @@ export default function Discover() {
           )}
           {!loading && filtered.length === 0 && (
             <div className="card p-8 text-center">
-              <p className="font-display text-xl">No matches.</p>
+              <p className="font-display text-xl">Nothing matches — yet.</p>
               <p className="text-mute text-sm mt-1">
-                Try widening your area, raising your price ceiling, or clearing a filter.
+                Stretch your area a bit, bump up your budget, or drop a filter. Your girl is out there.
               </p>
               <button onClick={clearAll} className="btn-outline mt-4">
                 Clear all filters

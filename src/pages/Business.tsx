@@ -197,8 +197,9 @@ export default function Business() {
           <div className="card p-4 bg-aubergine-700 text-cream flex items-start gap-3">
             <Sparkles className="h-5 w-5 shrink-0 mt-0.5" />
             <p className="text-sm">
-              This is a live preview with sample numbers. As real bookings come
-              in, your dashboard fills with your own data automatically.
+              This is a preview with sample numbers, so you can feel what's coming.
+              As real clients book you in, your dashboard fills with your story —
+              your revenue, your regulars, your growth.
             </p>
           </div>
         )}
@@ -231,7 +232,7 @@ export default function Business() {
             <div className="mt-3 space-y-2">
               {stats.upcoming.length === 0 && (
                 <div className="card p-6 text-center text-mute text-sm">
-                  No upcoming bookings yet.
+                  Calendar's quiet for now — the right clients are on their way.
                 </div>
               )}
               {stats.upcoming.slice(0, 8).map((b) => (
@@ -262,7 +263,7 @@ export default function Business() {
             </SectionTitle>
             <div className="card p-5 mt-3 space-y-4">
               {stats.topServices.length === 0 && (
-                <p className="text-sm text-mute">No completed services yet.</p>
+                <p className="text-sm text-mute">No finished services yet — your best sellers will show up here once you're rolling.</p>
               )}
               {stats.topServices.map((s, i) => (
                 <div key={s.title}>

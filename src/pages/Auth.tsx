@@ -62,7 +62,7 @@ export default function Auth() {
             return;
           }
         }
-        toast.success("Welcome to Kichana!");
+        toast.success("Welcome in 💛 Let's get you set up.");
         nav(`/onboarding?role=${presetRole}`);
       } else {
         const { error } = await withTimeout(
@@ -77,7 +77,7 @@ export default function Auth() {
           }
           throw error;
         }
-        toast.success("Welcome back");
+        toast.success("Welcome back, gorgeous.");
         nav(from || "/home");
       }
     } catch (err: any) {
@@ -112,9 +112,10 @@ export default function Auth() {
       <div className="hidden md:block bg-aubergine-700 text-cream p-10">
         <Logo className="text-cream" />
         <div className="mt-20">
-          <h2 className="font-display text-5xl leading-tight">A new chapter for Nairobi hair.</h2>
+          <h2 className="font-display text-5xl leading-tight">Built by women, for women.</h2>
           <p className="mt-4 text-cream/80 max-w-md">
-            From a quick fade in South B to a 6-hour boho install in Lavington — book it all in one place.
+            A quick fade in South B. A 6-hour boho install in Lavington. The most trusted hands
+            in Nairobi — and the sisters who'll tell you the truth about them. All in one place.
           </p>
         </div>
       </div>
@@ -126,9 +127,9 @@ export default function Auth() {
           {needsEmailConfirm ? (
             <div className="card p-6 text-center">
               <MailCheck className="h-10 w-10 mx-auto text-terracotta-600" />
-              <h1 className="font-display text-2xl mt-3">Check your email</h1>
+              <h1 className="font-display text-2xl mt-3">One quick check — your inbox.</h1>
               <p className="text-mute text-sm mt-2">
-                We've sent a confirmation link to <strong className="text-ink">{email}</strong>. Click it to finish creating your account, then come back here to sign in.
+                We sent a confirmation link to <strong className="text-ink">{email}</strong>. Click it, then come right back here. We'll be waiting.
               </p>
               <button onClick={resendConfirmation} className="btn-outline w-full mt-4 text-sm">Resend email</button>
               <button
@@ -138,9 +139,9 @@ export default function Auth() {
             </div>
           ) : (
             <>
-              <h1 className="font-display text-3xl">{mode === "signup" ? "Create account" : "Welcome back"}</h1>
+              <h1 className="font-display text-3xl">{mode === "signup" ? "Come on in." : "Welcome back, gorgeous."}</h1>
               <p className="text-mute text-sm mt-1">
-                {mode === "signup" ? "Quickest way: continue with Google." : "Sign in to your account."}
+                {mode === "signup" ? "Fastest way in — continue with Google." : "Pick up where you left off."}
               </p>
 
               <button onClick={signInWithGoogle} className="btn-outline w-full mt-5">

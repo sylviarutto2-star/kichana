@@ -262,7 +262,7 @@ export default function Home() {
                   <Calendar className="h-3.5 w-3.5" /> Book again
                 </div>
                 <p className="mt-3 font-display text-2xl leading-tight">
-                  Loved your last look? One tap to rebook your stylist.
+                  Felt good last time? She's a tap away — rebook your girl.
                 </p>
                 <Link
                   to="/bookings"
