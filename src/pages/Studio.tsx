@@ -220,17 +220,31 @@ function TodayTab({
 }: { bookings: any[]; upcoming: any[]; onChange: (b: any[]) => void }) {
   const setStatus = async (id: string, status: string) => {
     try {
+      const patch: any = { status };
+      if (status === "cancelled" || status === "no_show") {
+        patch.cancelled_at = new Date().toISOString();
+        patch.cancelled_by = "stylist";
+      }
       const { error } = await withTimeout(
-        supabase.from("bookings" as any).update({ status }).eq("id", id),
+        supabase.from("bookings" as any).update(patch).eq("id", id),
         15000, "Updating booking",
       );
       if (error) { console.error(error); return toast.error(error.message); }
-      onChange(bookings.map((b) => (b.id === id ? { ...b, status } : b)));
-      toast.success(`Booking ${status}`);
+      onChange(bookings.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+      toast.success(
+        status === "no_show"
+          ? "Marked as no-show. The no-show fee applies per your policy."
+          : `Booking ${status}`,
+      );
     } catch (e: any) {
       console.error("setStatus failed:", e);
       toast.error(e.message || "Couldn't update booking.");
     }
+  };
+
+  const markNoShow = (id: string) => {
+    if (!confirm("Mark this client as a no-show? Your configured no-show fee applies.")) return;
+    setStatus(id, "no_show");
   };
 
   return (
@@ -274,9 +288,14 @@ function TodayTab({
                 </>
               )}
               {b.status === "confirmed" && (
-                <button onClick={() => setStatus(b.id, "completed")} className="btn-dark !py-2 !px-3 text-xs">
-                  Mark complete
-                </button>
+                <>
+                  <button onClick={() => setStatus(b.id, "completed")} className="btn-dark !py-2 !px-3 text-xs">
+                    Mark complete
+                  </button>
+                  <button onClick={() => markNoShow(b.id)} className="btn-outline !py-2 !px-3 text-xs !text-terracotta-600">
+                    No-show
+                  </button>
+                </>
               )}
               <span className="ml-auto chip text-[10px] uppercase tracking-wider">{b.status}</span>
             </div>
@@ -292,11 +311,8 @@ function TodayTab({
           </div>
           <p className="text-xs text-mute mt-1">Confirm within 2h to stay in fast-responders list.</p>
         </div>
-        <div className="card p-4">
-          <div className="label">No-show rate</div>
-          <div className="font-display text-3xl">—</div>
-          <p className="text-xs text-mute mt-1">Tracked from Phase 3.</p>
-        </div>
+        <NoShowStat bookings={bookings} />
+        <CancellationStat bookings={bookings} />
       </aside>
     </div>
   );
@@ -951,6 +967,42 @@ function ProfileTab({ stylist, onChange }: { stylist: any; onChange: (s: any) =>
       <button onClick={save} disabled={busy} className="btn-primary w-full">
         {busy && <Loader2 className="h-4 w-4 animate-spin" />} Save profile
       </button>
+    </div>
+  );
+}
+
+function NoShowStat({ bookings }: { bookings: any[] }) {
+  // Denominator = completed + no_show. Pending / confirmed don't count yet.
+  const decided = bookings.filter((b) => ["completed", "no_show"].includes(b.status));
+  const noShows = decided.filter((b) => b.status === "no_show").length;
+  const pct = decided.length > 0 ? (noShows / decided.length) * 100 : 0;
+  return (
+    <div className="card p-4">
+      <div className="label">No-show rate</div>
+      <div className="font-display text-3xl">
+        {decided.length === 0 ? "—" : `${pct.toFixed(0)}%`}
+      </div>
+      <p className="text-xs text-mute mt-1">
+        {decided.length === 0
+          ? "No completed bookings yet."
+          : `${noShows} of ${decided.length} completed-or-no-show.`}
+      </p>
+    </div>
+  );
+}
+
+function CancellationStat({ bookings }: { bookings: any[] }) {
+  const cancellations = bookings.filter((b) => b.status === "cancelled");
+  const lateCancels = cancellations.filter((b) => b.cancelled_by === "customer").length;
+  return (
+    <div className="card p-4">
+      <div className="label">Cancellations</div>
+      <div className="font-display text-3xl">{cancellations.length}</div>
+      <p className="text-xs text-mute mt-1">
+        {cancellations.length === 0
+          ? "Nothing cancelled — great."
+          : `${lateCancels} by client, ${cancellations.length - lateCancels} by you.`}
+      </p>
     </div>
   );
 }
