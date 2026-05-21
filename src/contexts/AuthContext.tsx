@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/lib/database.types";
@@ -28,9 +28,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  // Remember which user we've already loaded a profile for, so background
+  // auth events (TOKEN_REFRESHED, SIGNED_IN on tab focus) don't yank the
+  // app back to a loading screen and unmount the current page.
+  const loadedForUserId = useRef<string | null>(null);
 
-  const loadProfile = async (userId: string) => {
-    setProfileLoaded(false);
+  const loadProfile = async (userId: string, { force = false } = {}) => {
+    if (!force && loadedForUserId.current === userId) {
+      setProfileLoaded(true);
+      return;
+    }
+    loadedForUserId.current = userId;
     const fetchOnce = () =>
       supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
     // Hard ceiling so the UI never spins forever if the query hangs.
@@ -90,8 +98,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
       setSession(s);
-      if (s?.user) await loadProfile(s.user.id);
-      else { setProfile(null); setProfileLoaded(true); }
+      if (s?.user) {
+        await loadProfile(s.user.id);
+      } else {
+        loadedForUserId.current = null;
+        setProfile(null);
+        setProfileLoaded(true);
+      }
     });
     return () => {
       clearTimeout(watchdog);
@@ -119,11 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } catch (e) {
             console.warn("signOut: forcing local clear after error", e);
           }
+          loadedForUserId.current = null;
           setSession(null);
           setProfile(null);
           setProfileLoaded(true);
         },
-        refreshProfile: async () => { if (session?.user) await loadProfile(session.user.id); },
+        refreshProfile: async () => { if (session?.user) await loadProfile(session.user.id, { force: true }); },
       }}
     >
       {children}
