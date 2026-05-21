@@ -29,11 +29,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
 
-  const loadProfile = async (userId: string) => {
-    setProfileLoaded(false);
+  // When `background` is true (a refresh while we already have a profile),
+  // we keep the existing profile visible and never flip profileLoaded back
+  // to false — otherwise RequireAuth unmounts the current page on every
+  // token refresh / tab-focus event, which causes pages like Studio to
+  // refetch from scratch and (on transient failure) bounce to /onboarding.
+  const loadProfile = async (userId: string, background = false) => {
+    if (!background) setProfileLoaded(false);
     const fetchOnce = () =>
       supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-    // Hard ceiling so the UI never spins forever if the query hangs.
     const withDeadline = <T,>(p: PromiseLike<T>, ms: number): Promise<T> =>
       new Promise((resolve, reject) => {
         const t = setTimeout(() => reject(new Error("profile load timeout")), ms);
@@ -45,7 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       let { data, error } = await withDeadline(fetchOnce(), 6000);
       if (error && !(error.code === "42P01" || /relation .* does not exist/i.test(error.message))) {
-        // One retry on transient errors (network blip, RLS warm-up).
         await new Promise((r) => setTimeout(r, 400));
         ({ data, error } = await withDeadline(fetchOnce(), 6000));
       }
@@ -53,12 +56,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile({ id: userId, role: "customer" } as Profile);
         return;
       }
-      setProfile((data as Profile) ?? null);
+      // On a background refresh, only overwrite the profile when the fetch
+      // actually returned a row. A null result here usually means a momentary
+      // RLS / replica blip — keep the prior profile rather than nulling it
+      // out and forcing the user into onboarding.
+      if (background) {
+        if (data) setProfile(data as Profile);
+      } else {
+        setProfile((data as Profile) ?? null);
+      }
     } catch (e) {
-      console.warn("loadProfile failed/timed out — releasing the loading gate", e);
-      setProfile(null);
+      console.warn("loadProfile failed/timed out", e);
+      if (!background) setProfile(null);
     } finally {
-      setProfileLoaded(true);
+      if (!background) setProfileLoaded(true);
     }
   };
 
@@ -88,10 +99,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(watchdog);
         setLoading(false);
       });
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, s) => {
+      // Only react to events that actually change *who* is signed in.
+      // TOKEN_REFRESHED / USER_UPDATED / INITIAL_SESSION fire frequently
+      // (including on tab focus) and triggering a profile reload on those
+      // unmounted the active page and, on transient failures, kicked
+      // onboarded users back to /onboarding.
       setSession(s);
-      if (s?.user) await loadProfile(s.user.id);
-      else { setProfile(null); setProfileLoaded(true); }
+      if (event === "SIGNED_OUT" || !s?.user) {
+        setProfile(null);
+        setProfileLoaded(true);
+        return;
+      }
+      if (event === "SIGNED_IN") {
+        // Only do a fresh load (with the loading gate) if this is a
+        // different user than the one we already have cached.
+        setProfile((prev) => {
+          if (prev && prev.id === s.user.id) {
+            // Same user — refresh quietly in the background.
+            void loadProfile(s.user.id, true);
+            return prev;
+          }
+          void loadProfile(s.user.id);
+          return prev;
+        });
+      }
     });
     return () => {
       clearTimeout(watchdog);
@@ -123,7 +155,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null);
           setProfileLoaded(true);
         },
-        refreshProfile: async () => { if (session?.user) await loadProfile(session.user.id); },
+        refreshProfile: async () => {
+          if (!session?.user) return;
+          // Refresh quietly when we already have a profile so the UI doesn't
+          // flash a loading screen / unmount the current page.
+          await loadProfile(session.user.id, !!profile);
+        },
       }}
     >
       {children}
