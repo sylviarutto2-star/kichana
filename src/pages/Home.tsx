@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Avatar } from "@/components/Avatar";
 import { Logo } from "@/components/Logo";
 import { SmartImage } from "@/components/SmartImage";
+import { CommentSheet } from "@/components/CommentSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { demoFeed, demoStylists } from "@/lib/demoData";
@@ -26,10 +27,15 @@ type FeedRow = {
   avatar_url?: string;
 };
 
+type ReactionKind = "heart" | "scissors";
+const isDemo = (id: string) => id.startsWith("demo-");
+
 export default function Home() {
   const { profile } = useAuth();
   const [posts, setPosts] = useState<FeedRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [myReactions, setMyReactions] = useState<Record<string, Set<ReactionKind>>>({});
+  const [openComments, setOpenComments] = useState<FeedRow | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +72,91 @@ export default function Home() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!profile) {
+      setMyReactions({});
+      return;
+    }
+    const realIds = posts.map((p) => p.id).filter((id) => !isDemo(id));
+    if (realIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("feed_reactions")
+        .select("post_id, kind")
+        .eq("user_id", profile.id)
+        .in("post_id", realIds);
+      if (cancelled || error || !data) return;
+      const map: Record<string, Set<ReactionKind>> = {};
+      for (const r of data as { post_id: string; kind: string }[]) {
+        if (r.kind !== "heart" && r.kind !== "scissors") continue;
+        (map[r.post_id] ??= new Set()).add(r.kind as ReactionKind);
+      }
+      setMyReactions(map);
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.id, posts.length]);
+
+  const toggleReaction = async (post: FeedRow, kind: ReactionKind) => {
+    if (!profile) {
+      toast.error("Sign in to react");
+      return;
+    }
+    const prevSet = myReactions[post.id] ?? new Set<ReactionKind>();
+    const active = prevSet.has(kind);
+    const nextSet = new Set(prevSet);
+    if (active) nextSet.delete(kind); else nextSet.add(kind);
+
+    setMyReactions((m) => ({ ...m, [post.id]: nextSet }));
+    if (kind === "heart") {
+      setPosts((ps) =>
+        ps.map((x) =>
+          x.id === post.id ? { ...x, likes_count: x.likes_count + (active ? -1 : 1) } : x
+        )
+      );
+    }
+
+    if (isDemo(post.id)) return;
+
+    const revert = () => {
+      setMyReactions((m) => ({ ...m, [post.id]: prevSet }));
+      if (kind === "heart") {
+        setPosts((ps) =>
+          ps.map((x) =>
+            x.id === post.id ? { ...x, likes_count: x.likes_count + (active ? 1 : -1) } : x
+          )
+        );
+      }
+    };
+
+    if (active) {
+      const { error } = await supabase
+        .from("feed_reactions")
+        .delete()
+        .match({ post_id: post.id, user_id: profile.id, kind });
+      if (error) { revert(); toast.error(error.message); return; }
+    } else {
+      const { error } = await supabase
+        .from("feed_reactions")
+        .insert({ post_id: post.id, user_id: profile.id, kind });
+      if (error) { revert(); toast.error(error.message); return; }
+      if (kind === "scissors" && post.stylist_id) {
+        toast.success("Stylist notified ✂️");
+      }
+    }
+
+    if (kind === "heart") {
+      const newCount = post.likes_count + (active ? -1 : 1);
+      await supabase.from("feed_posts").update({ likes_count: newCount }).eq("id", post.id);
+    }
+  };
+
+  const bumpCommentsCount = (postId: string) => {
+    setPosts((ps) =>
+      ps.map((x) => (x.id === postId ? { ...x, comments_count: x.comments_count + 1 } : x))
+    );
+  };
 
   const saveToVault = async (
     image_url: string,
@@ -188,16 +279,35 @@ export default function Home() {
                 <div className="p-4 flex-1 flex flex-col">
                   {p.caption && <p className="text-sm">{p.caption}</p>}
                   <div className="mt-3 flex items-center gap-4 text-mute">
-                    <button className="flex items-center gap-1 text-xs hover:text-terracotta-600">
-                      <Heart className="h-4 w-4" /> {p.likes_count}
-                    </button>
-                    <button className="flex items-center gap-1 text-xs">
-                      <MessageCircle className="h-4 w-4" /> {p.comments_count}
-                    </button>
-                    <button className="flex items-center gap-1 text-xs">
-                      <Scissors className="h-4 w-4" />
-                      <span className="hidden xl:inline">book intent</span>
-                    </button>
+                    {(() => {
+                      const heartActive = myReactions[p.id]?.has("heart");
+                      const scissorsActive = myReactions[p.id]?.has("scissors");
+                      return (
+                        <>
+                          <button
+                            onClick={() => toggleReaction(p, "heart")}
+                            className={`flex items-center gap-1 text-xs hover:text-terracotta-600 ${heartActive ? "text-terracotta-600" : ""}`}
+                            aria-pressed={heartActive}
+                          >
+                            <Heart className="h-4 w-4" fill={heartActive ? "currentColor" : "none"} /> {p.likes_count}
+                          </button>
+                          <button
+                            onClick={() => setOpenComments(p)}
+                            className="flex items-center gap-1 text-xs hover:text-terracotta-600"
+                          >
+                            <MessageCircle className="h-4 w-4" /> {p.comments_count}
+                          </button>
+                          <button
+                            onClick={() => toggleReaction(p, "scissors")}
+                            className={`flex items-center gap-1 text-xs hover:text-aubergine-700 ${scissorsActive ? "text-aubergine-700" : ""}`}
+                            aria-pressed={scissorsActive}
+                          >
+                            <Scissors className="h-4 w-4" fill={scissorsActive ? "currentColor" : "none"} />
+                            <span className="hidden xl:inline">I'd book this</span>
+                          </button>
+                        </>
+                      );
+                    })()}
                     <button
                       onClick={() =>
                         saveToVault(p.image_url, p.id, p.category)
@@ -299,6 +409,15 @@ export default function Home() {
           </div>
         </aside>
       </div>
+
+      {openComments && (
+        <CommentSheet
+          postId={openComments.id}
+          postCommentsCount={openComments.comments_count}
+          onClose={() => setOpenComments(null)}
+          onCommentAdded={() => bumpCommentsCount(openComments.id)}
+        />
+      )}
 
       <BottomNav />
     </div>
