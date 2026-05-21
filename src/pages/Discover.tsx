@@ -54,6 +54,7 @@ export default function Discover() {
     (sp.get("view") as "grid" | "map") || "grid"
   );
   const [me, setMe] = useState<{ lat: number; lng: number } | null>(null);
+  const [radiusKm, setRadiusKm] = useState<number>(Number(sp.get("radius") || 0));
 
   const locateMe = () => {
     if (!navigator.geolocation) return;
@@ -81,8 +82,9 @@ export default function Discover() {
     if (avail !== "Any") next.set("avail", avail);
     if (sort !== "rating") next.set("sort", sort);
     if (view !== "grid") next.set("view", view);
+    if (radiusKm > 0) next.set("radius", String(radiusKm));
     setSp(next, { replace: true });
-  }, [q, area, cat, hairTypes, langs, vibes, minPrice, maxPrice, minRating, verifiedOnly, travelsOnly, avail, sort, view, setSp]);
+  }, [q, area, cat, hairTypes, langs, vibes, minPrice, maxPrice, minRating, verifiedOnly, travelsOnly, avail, sort, view, radiusKm, setSp]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,6 +141,17 @@ export default function Discover() {
     return () => { cancelled = true; };
   }, []);
 
+  const distanceKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const s =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  };
+
   const filtered = useMemo(() => {
     const out = rows.filter((s) => {
       if (area !== "all" && !(s.neighborhoods || []).includes(area)) return false;
@@ -159,6 +172,13 @@ export default function Discover() {
       // Availability chip is informational until live availability lands;
       // including it in deps keeps the count + URL state in sync.
       void avail;
+      // Radius filter: requires both me-coords and stylist coords. Stylists
+      // without coords drop out — we can't honestly say they're inside the
+      // radius if we don't know where they are.
+      if (radiusKm > 0 && me) {
+        if (s.lat == null || s.lng == null) return false;
+        if (distanceKm(me, { lat: s.lat, lng: s.lng }) > radiusKm) return false;
+      }
       return true;
     });
 
@@ -174,8 +194,16 @@ export default function Discover() {
         sorted.sort((a, b) => (b.from_kes ?? 0) - (a.from_kes ?? 0));
         break;
       case "nearest":
-        // Placeholder — true distance lands when geolocation does.
-        sorted.sort((a, b) => a.display_name.localeCompare(b.display_name));
+        if (me) {
+          sorted.sort((a, b) => {
+            const da = a.lat != null && a.lng != null ? distanceKm(me, { lat: a.lat, lng: a.lng }) : Infinity;
+            const db = b.lat != null && b.lng != null ? distanceKm(me, { lat: b.lat, lng: b.lng }) : Infinity;
+            return da - db;
+          });
+        } else {
+          // No location yet — fall back to rating so the list still feels sensible.
+          sorted.sort((a, b) => b.rating_avg - a.rating_avg);
+        }
         break;
       case "next":
         // Placeholder — real next-slot derives from bookings in Phase 3.
@@ -183,7 +211,7 @@ export default function Discover() {
         break;
     }
     return sorted;
-  }, [rows, area, cat, q, verifiedOnly, travelsOnly, minRating, minPrice, maxPrice, sort, hairTypes, langs, vibes, avail]);
+  }, [rows, area, cat, q, verifiedOnly, travelsOnly, minRating, minPrice, maxPrice, sort, hairTypes, langs, vibes, avail, me, radiusKm]);
 
   const activeCount =
     (area !== "all" ? 1 : 0) +
@@ -196,12 +224,14 @@ export default function Discover() {
     (minRating > 0 ? 1 : 0) +
     (verifiedOnly ? 1 : 0) +
     (travelsOnly ? 1 : 0) +
-    (avail !== "Any" ? 1 : 0);
+    (avail !== "Any" ? 1 : 0) +
+    (radiusKm > 0 ? 1 : 0);
 
   const clearAll = () => {
     setQ(""); setArea("all"); setCat("all"); setHairTypes([]); setLangs([]);
     setVibes([]); setMinPrice(0); setMaxPrice(25000); setMinRating(0);
     setVerifiedOnly(false); setTravelsOnly(false); setAvail("Any"); setSort("rating");
+    setRadiusKm(0);
   };
 
   const FilterRail = (
@@ -217,6 +247,8 @@ export default function Discover() {
       verifiedOnly={verifiedOnly} setVerifiedOnly={setVerifiedOnly}
       travelsOnly={travelsOnly} setTravelsOnly={setTravelsOnly}
       avail={avail} setAvail={setAvail}
+      radiusKm={radiusKm} setRadiusKm={setRadiusKm}
+      hasMe={!!me} locateMe={locateMe}
       activeCount={activeCount} clearAll={clearAll}
     />
   );
@@ -468,6 +500,8 @@ type FilterProps = {
   verifiedOnly: boolean; setVerifiedOnly: (v: boolean) => void;
   travelsOnly: boolean; setTravelsOnly: (v: boolean) => void;
   avail: Avail; setAvail: (v: Avail) => void;
+  radiusKm: number; setRadiusKm: (v: number) => void;
+  hasMe: boolean; locateMe: () => void;
   activeCount: number; clearAll: () => void;
 };
 
@@ -530,6 +564,42 @@ function FilterPanel(p: FilterProps) {
           />
           Travels to me (home calls)
         </label>
+
+        <div className="mt-3">
+          {!p.hasMe ? (
+            <button
+              onClick={p.locateMe}
+              className="chip text-xs"
+            >
+              Use my location for radius
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-mute">
+                  {p.radiusKm > 0 ? `Within ${p.radiusKm} km of me` : "Any distance"}
+                </span>
+                {p.radiusKm > 0 && (
+                  <button onClick={() => p.setRadiusKm(0)} className="text-terracotta-600">
+                    Clear
+                  </button>
+                )}
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={25}
+                step={1}
+                value={p.radiusKm}
+                onChange={(e) => p.setRadiusKm(Number(e.target.value))}
+                className="w-full mt-1.5"
+              />
+              <div className="flex justify-between text-[10px] text-mute">
+                <span>Off</span><span>5</span><span>15</span><span>25 km</span>
+              </div>
+            </>
+          )}
+        </div>
       </Group>
 
       <Group label={`Price (from KES ${p.minPrice.toLocaleString()} – ${p.maxPrice >= 25000 ? "25k+" : p.maxPrice.toLocaleString()})`}>

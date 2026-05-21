@@ -2,6 +2,9 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 // Nairobi CBD — map default centre.
 const NAIROBI: [number, number] = [-1.2864, 36.8172];
@@ -57,6 +60,7 @@ export function StylistMap({
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
+  const meMarkerRef = useRef<L.Marker | null>(null);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -70,7 +74,29 @@ export function StylistMap({
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
     }).addTo(map);
-    layerRef.current = L.layerGroup().addTo(map);
+    // Cluster pins at lower zooms so CBD doesn't turn into a pile. The
+    // disabledClusteringAtZoom unwraps the cluster once you're close
+    // enough that individual price tags are readable.
+    layerRef.current = (L as any).markerClusterGroup({
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      disableClusteringAtZoom: 15,
+      maxClusterRadius: 50,
+      iconCreateFunction: (cluster: any) => {
+        const count = cluster.getChildCount();
+        return L.divIcon({
+          className: "kichana-cluster",
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+          html: `<div style="
+            display:grid;place-items:center;width:40px;height:40px;
+            border-radius:999px;background:#1A1512;color:#FBF6EE;
+            font:700 13px/1 'Plus Jakarta Sans',sans-serif;
+            box-shadow:0 4px 12px rgba(0,0,0,.3);border:3px solid #FBF6EE;">
+            ${count}</div>`,
+        });
+      },
+    }).addTo(map);
     mapRef.current = map;
     return () => {
       map.remove();
@@ -112,9 +138,16 @@ export function StylistMap({
       });
     });
 
+    if (meMarkerRef.current) {
+      map.removeLayer(meMarkerRef.current);
+      meMarkerRef.current = null;
+    }
     if (me) {
-      L.marker([me.lat, me.lng], { icon: meIcon() })
-        .addTo(layer)
+      // The "you are here" dot lives on the bare map, not in the cluster,
+      // so it stays visible at all zoom levels and never gets bundled
+      // into a count badge with the stylist pins.
+      meMarkerRef.current = L.marker([me.lat, me.lng], { icon: meIcon() })
+        .addTo(map)
         .bindPopup("You are here");
       pts.push([me.lat, me.lng]);
     }
