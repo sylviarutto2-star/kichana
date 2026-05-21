@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Star, MapPin, Clock, Verified, Users, ArrowLeft } from "lucide-react";
+import { Star, MapPin, Clock, Verified, Users, ArrowLeft, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { demoStylists, demoServices, isDemo } from "@/lib/demoData";
 import { Avatar } from "@/components/Avatar";
 import { SmartImage } from "@/components/SmartImage";
 import { StylistMap } from "@/components/StylistMap";
+import { ReviewsSection } from "@/components/ReviewsSection";
+import { DEFAULT_POLICY, policySummary, type StylistPolicy } from "@/lib/policy";
 import { KES } from "@/lib/utils";
 import type { Stylist, Service } from "@/lib/database.types";
 
@@ -14,6 +16,7 @@ export default function StylistProfile() {
   const [stylist, setStylist] = useState<(Stylist & { profile?: any }) | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [portfolio, setPortfolio] = useState<{ id: string; image_url: string }[]>([]);
+  const [policy, setPolicy] = useState<StylistPolicy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -36,10 +39,11 @@ export default function StylistProfile() {
           setLoading(false);
           return;
         }
-        const [sRes, svcRes, pfRes] = await Promise.all([
+        const [sRes, svcRes, pfRes, polRes] = await Promise.all([
           supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),
           supabase.from("portfolio_images").select("id, image_url").eq("stylist_id", id).order("sort_order").limit(12),
+          supabase.from("stylist_policies" as any).select("*").eq("stylist_id", id).maybeSingle(),
         ]);
         if (cancelled) return;
         if (sRes.error) console.error("StylistProfile: stylist query failed", sRes.error);
@@ -48,6 +52,7 @@ export default function StylistProfile() {
         setStylist(sRes.data as any);
         setServices((svcRes.data as Service[]) || []);
         setPortfolio((pfRes.data as any) || []);
+        if (polRes.data) setPolicy({ ...DEFAULT_POLICY, ...(polRes.data as any) });
       } catch (e) {
         console.error("StylistProfile: fetch threw", e);
         if (!cancelled) setError(true);
@@ -136,6 +141,27 @@ export default function StylistProfile() {
           ) : (
             <div className="col-span-3 text-mute text-sm">No portfolio images yet.</div>
           )}
+        </div>
+
+        {policy && (
+          <div className="card p-5 mt-8">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck className="h-4 w-4 text-terracotta-600" />
+              <h2 className="font-display text-lg">What to expect</h2>
+            </div>
+            <p className="text-sm text-mute">{policySummary(policy)}</p>
+            {policy.custom_terms && (
+              <p className="text-xs text-mute mt-2 italic whitespace-pre-wrap">"{policy.custom_terms}"</p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-8">
+          <ReviewsSection
+            stylistId={stylist.id}
+            ratingAvg={Number(stylist.rating_avg ?? 0)}
+            ratingCount={Number(stylist.rating_count ?? 0)}
+          />
         </div>
 
         {stylist.lat != null && stylist.lng != null && (

@@ -12,6 +12,7 @@ import { demoStylists } from "@/lib/demoData";
 type Row = Stylist & {
   profile?: { full_name: string | null; avatar_url: string | null };
   from_kes?: number;
+  is_featured?: boolean;
 };
 
 type SortKey = "rating" | "nearest" | "price_asc" | "price_desc" | "next";
@@ -102,13 +103,24 @@ export default function Discover() {
           if (!cancelled) setRows(demoStylists as any);
           return;
         }
+        const now = Date.now();
         const live: Row[] = (data || []).map((s: any) => {
           const prices: number[] = (s.services || []).map((x: any) => x.price_kes);
           return {
             ...s,
             profile: s.profiles,
             from_kes: prices.length ? Math.min(...prices) : undefined,
+            // Boolean — easier to read in filter UI than parsing the date twice.
+            is_featured:
+              !!s.featured_until && new Date(s.featured_until).getTime() > now,
           };
+        });
+        // Currently-featured stylists float to the top. Expired featureds
+        // fall back into the normal rating-sorted list — paying for a boost
+        // should not be a permanent advantage.
+        live.sort((a, b) => {
+          if (a.is_featured !== b.is_featured) return a.is_featured ? -1 : 1;
+          return (b.rating_avg || 0) - (a.rating_avg || 0);
         });
         // Always show real stylists when they exist. Pad with demos only if
         // the live set is too thin to fill a page, so we never hide a real

@@ -9,16 +9,21 @@ import { addDays, format, setHours, setMinutes } from "date-fns";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Service, Stylist } from "@/lib/database.types";
+import { DEFAULT_POLICY, policySummary, type StylistPolicy } from "@/lib/policy";
+import { ShieldCheck, Users } from "lucide-react";
 
 export default function Booking() {
   const { stylistId } = useParams();
   const [params] = useSearchParams();
   const initialServiceId = params.get("service") || undefined;
+  const groupCode = params.get("group") || undefined;
   const nav = useNavigate();
   const { user } = useAuth();
 
   const [stylist, setStylist] = useState<Stylist | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [policy, setPolicy] = useState<StylistPolicy>(DEFAULT_POLICY);
+  const [group, setGroup] = useState<{ id: string; scheduled_for: string; host_name?: string | null } | null>(null);
   const [serviceId, setServiceId] = useState<string | undefined>(initialServiceId);
   const [step, setStep] = useState(0);
   const [date, setDate] = useState<Date>(addDays(new Date(), 1));
@@ -39,9 +44,10 @@ export default function Booking() {
           setServices(demoServices[stylistId] || []);
           return;
         }
-        const [sRes, svcRes] = await Promise.all([
+        const [sRes, svcRes, polRes] = await Promise.all([
           supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
+          supabase.from("stylist_policies" as any).select("*").eq("stylist_id", stylistId).maybeSingle(),
         ]);
         if (cancelled) return;
         if (sRes.error) console.error("Booking: stylist lookup failed", sRes.error);
@@ -53,13 +59,34 @@ export default function Booking() {
         }
         setStylist(sRes.data as any);
         setServices((svcRes.data as Service[]) || []);
+        if (polRes.data) setPolicy({ ...DEFAULT_POLICY, ...(polRes.data as any) });
+
+        if (groupCode) {
+          const gRes = await supabase
+            .from("group_bookings" as any)
+            .select("id, scheduled_for, stylist_id, host:profiles!group_bookings_host_id_fkey(full_name)")
+            .eq("invite_code", groupCode.toUpperCase())
+            .maybeSingle();
+          if (gRes.error) console.error("Booking: group lookup failed", gRes.error);
+          const g = gRes.data as any;
+          if (!g) {
+            toast.error("That group code doesn't match an active session.");
+          } else if (g.stylist_id !== stylistId) {
+            toast.error("That group code is for a different stylist.");
+          } else {
+            const dt = new Date(g.scheduled_for);
+            setGroup({ id: g.id, scheduled_for: g.scheduled_for, host_name: g.host?.full_name });
+            setDate(dt);
+            setTime(format(dt, "HH:mm"));
+          }
+        }
       } catch (e: any) {
         console.error("Booking: load threw", e);
         if (!cancelled) toast.error(e?.message || "Couldn't load this stylist. Please try again.");
       }
     })();
     return () => { cancelled = true; };
-  }, [stylistId, nav]);
+  }, [stylistId, nav, groupCode]);
 
   const service = useMemo(() => services.find((s) => s.id === serviceId), [services, serviceId]);
   const dates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
@@ -111,7 +138,8 @@ export default function Booking() {
             amount_kes: service.price_kes,
             deposit_kes: deposit,
             notes,
-          })
+            group_id: group?.id || null,
+          } as any)
           .select()
           .single(),
         15000,
@@ -156,6 +184,15 @@ export default function Booking() {
       <PageHeader title="Book" subtitle={stylist?.display_name || "—"} back backTo="/discover" />
 
       <div className="container-app">
+        {group && (
+          <div className="card p-3 mt-2 flex items-center gap-2 bg-sage/15 border-sage/40">
+            <Users className="h-4 w-4 text-aubergine-700 shrink-0" />
+            <div className="text-xs">
+              <span className="font-semibold">Joining {group.host_name || "a"} group session</span>
+              <span className="text-mute"> · {format(new Date(group.scheduled_for), "EEE d MMM · HH:mm")} (locked)</span>
+            </div>
+          </div>
+        )}
         <Stepper step={step} />
 
         {step === 0 && (
@@ -185,32 +222,44 @@ export default function Booking() {
 
         {step === 1 && (
           <div className="mt-6 animate-fade-up">
-            <div className="label">Pick a day</div>
-            <div className="-mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar">
-              {dates.map((d) => (
-                <button
-                  key={d.toISOString()}
-                  onClick={() => setDate(d)}
-                  className={cn(
-                    "shrink-0 rounded-2xl border px-3 py-2 text-center min-w-[70px]",
-                    format(d, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
-                      ? "bg-ink text-cream border-ink"
-                      : "bg-white border-line"
-                  )}
-                >
-                  <div className="text-[10px] uppercase">{format(d, "EEE")}</div>
-                  <div className="font-display text-lg">{format(d, "d")}</div>
-                  <div className="text-[10px]">{format(d, "MMM")}</div>
-                </button>
-              ))}
-            </div>
+            {group ? (
+              <div className="card p-4 mb-2">
+                <div className="label">Locked to your group</div>
+                <div className="font-display text-xl mt-1">
+                  {format(new Date(group.scheduled_for), "EEE d MMM · HH:mm")}
+                </div>
+                <p className="text-xs text-mute mt-1">Everyone in the group books for the same time slot.</p>
+              </div>
+            ) : (
+              <>
+                <div className="label">Pick a day</div>
+                <div className="-mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar">
+                  {dates.map((d) => (
+                    <button
+                      key={d.toISOString()}
+                      onClick={() => setDate(d)}
+                      className={cn(
+                        "shrink-0 rounded-2xl border px-3 py-2 text-center min-w-[70px]",
+                        format(d, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
+                          ? "bg-ink text-cream border-ink"
+                          : "bg-white border-line"
+                      )}
+                    >
+                      <div className="text-[10px] uppercase">{format(d, "EEE")}</div>
+                      <div className="font-display text-lg">{format(d, "d")}</div>
+                      <div className="text-[10px]">{format(d, "MMM")}</div>
+                    </button>
+                  ))}
+                </div>
 
-            <div className="label mt-6">Time</div>
-            <div className="grid grid-cols-4 gap-2">
-              {times.map((t) => (
-                <button key={t} onClick={() => setTime(t)} className={cn(t === time ? "chip-active" : "chip", "justify-center")}>{t}</button>
-              ))}
-            </div>
+                <div className="label mt-6">Time</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {times.map((t) => (
+                    <button key={t} onClick={() => setTime(t)} className={cn(t === time ? "chip-active" : "chip", "justify-center")}>{t}</button>
+                  ))}
+                </div>
+              </>
+            )}
 
             <div className="label mt-6">Where?</div>
             <div className="grid grid-cols-2 gap-2">
@@ -251,6 +300,17 @@ export default function Booking() {
 
             <div className="card p-5">
               <p className="text-sm text-mute">You'll be taken to Paystack's secure checkout to pay the deposit by M-Pesa or card.</p>
+            </div>
+
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="h-4 w-4 text-terracotta-600" />
+                <div className="font-display text-base">Cancellation policy</div>
+              </div>
+              <p className="text-sm text-mute">{policySummary(policy)}</p>
+              {policy.custom_terms && (
+                <p className="text-xs text-mute mt-2 italic whitespace-pre-wrap">"{policy.custom_terms}"</p>
+              )}
             </div>
 
             <div className="flex gap-3">
