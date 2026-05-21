@@ -9,6 +9,8 @@ import { addDays, format, setHours, setMinutes } from "date-fns";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Service, Stylist } from "@/lib/database.types";
+import { DEFAULT_POLICY, policySummary, type StylistPolicy } from "@/lib/policy";
+import { ShieldCheck } from "lucide-react";
 
 export default function Booking() {
   const { stylistId } = useParams();
@@ -19,6 +21,7 @@ export default function Booking() {
 
   const [stylist, setStylist] = useState<Stylist | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [policy, setPolicy] = useState<StylistPolicy>(DEFAULT_POLICY);
   const [serviceId, setServiceId] = useState<string | undefined>(initialServiceId);
   const [step, setStep] = useState(0);
   const [date, setDate] = useState<Date>(addDays(new Date(), 1));
@@ -39,9 +42,10 @@ export default function Booking() {
           setServices(demoServices[stylistId] || []);
           return;
         }
-        const [sRes, svcRes] = await Promise.all([
+        const [sRes, svcRes, polRes] = await Promise.all([
           supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
+          supabase.from("stylist_policies" as any).select("*").eq("stylist_id", stylistId).maybeSingle(),
         ]);
         if (cancelled) return;
         if (sRes.error) console.error("Booking: stylist lookup failed", sRes.error);
@@ -53,6 +57,7 @@ export default function Booking() {
         }
         setStylist(sRes.data as any);
         setServices((svcRes.data as Service[]) || []);
+        if (polRes.data) setPolicy({ ...DEFAULT_POLICY, ...(polRes.data as any) });
       } catch (e: any) {
         console.error("Booking: load threw", e);
         if (!cancelled) toast.error(e?.message || "Couldn't load this stylist. Please try again.");
@@ -251,6 +256,17 @@ export default function Booking() {
 
             <div className="card p-5">
               <p className="text-sm text-mute">You'll be taken to Paystack's secure checkout to pay the deposit by M-Pesa or card.</p>
+            </div>
+
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="h-4 w-4 text-terracotta-600" />
+                <div className="font-display text-base">Cancellation policy</div>
+              </div>
+              <p className="text-sm text-mute">{policySummary(policy)}</p>
+              {policy.custom_terms && (
+                <p className="text-xs text-mute mt-2 italic whitespace-pre-wrap">"{policy.custom_terms}"</p>
+              )}
             </div>
 
             <div className="flex gap-3">
