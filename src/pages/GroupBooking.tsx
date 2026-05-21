@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { PageHeader } from "@/components/PageHeader";
 import { addDays } from "date-fns";
 import { toast } from "sonner";
-import { Loader2, Copy } from "lucide-react";
+import { Loader2, Copy, Share2 } from "lucide-react";
 import { isDemo } from "@/lib/demoData";
 import { withTimeout } from "@/lib/utils";
 
@@ -82,12 +82,43 @@ export default function GroupBooking() {
           <div className="card p-6 text-center">
             <div className="h-eyebrow">Group code</div>
             <div className="font-display text-5xl mt-2 tracking-wider">{code}</div>
-            <p className="text-mute text-sm mt-3">Share this code with your group. They'll book individually with the stylist using this code.</p>
-            <button
-              onClick={() => { navigator.clipboard.writeText(code); toast.success("Copied"); }}
-              className="btn-outline mt-4"
-            ><Copy className="h-4 w-4" /> Copy code</button>
-            <button onClick={() => nav("/bookings")} className="btn-primary mt-3 w-full">Done</button>
+            <p className="text-mute text-sm mt-3">
+              Share the link below — anyone who opens it lands on the booking flow with this date and time locked in.
+            </p>
+            {(() => {
+              const link = `${window.location.origin}/book/${stylistId}?group=${code}`;
+              const share = async () => {
+                if (navigator.share) {
+                  try {
+                    await navigator.share({
+                      title: "Join my group booking on Kichana",
+                      text: `Book your spot with us — code ${code}`,
+                      url: link,
+                    });
+                    return;
+                  } catch (e) {
+                    // user dismissed share sheet — fall through to clipboard
+                  }
+                }
+                navigator.clipboard.writeText(link);
+                toast.success("Link copied");
+              };
+              return (
+                <div className="mt-4 grid gap-2">
+                  <div className="rounded-2xl border border-line bg-white p-2 text-xs text-mute break-all">{link}</div>
+                  <button onClick={share} className="btn-primary">
+                    <Share2 className="h-4 w-4" /> Share link
+                  </button>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(code); toast.success("Code copied"); }}
+                    className="btn-outline"
+                  >
+                    <Copy className="h-4 w-4" /> Copy code only
+                  </button>
+                </div>
+              );
+            })()}
+            <button onClick={() => nav("/bookings")} className="btn-dark mt-4 w-full">Done</button>
           </div>
         )}
       </div>
