@@ -249,15 +249,25 @@ export default function Booking() {
               <Row k="Balance (after service)" v={KES(service.price_kes - deposit)} muted />
             </div>
 
-            <div className="card p-5">
-              <p className="text-sm text-mute">You'll be taken to Paystack's secure checkout to pay the deposit by M-Pesa or card.</p>
+            <div className="card p-5 space-y-2">
+              <p className="text-sm font-semibold">A small note on this deposit 💛</p>
+              <p className="text-sm text-mute leading-relaxed">
+                This is a quiet agreement between women. We're building the most trusted
+                network of hair and beauty specialists in Kenya — and you're part of that
+                by booking, showing up, and leaving an honest review afterwards.
+                Your stylist holds the chair for you. You hold up your end. That's how
+                we keep this thing ours.
+              </p>
+              <p className="text-xs text-mute pt-1">
+                Secure M-Pesa or card checkout via Paystack. Balance is paid after the service.
+              </p>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="btn-outline">Back</button>
               <button disabled={busy} onClick={confirm} className="btn-primary flex-1">
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                Pay deposit & confirm
+                Lock it in & pay deposit
               </button>
             </div>
           </div>

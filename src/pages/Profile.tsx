@@ -69,8 +69,8 @@ export default function Profile() {
         <PageHeader title="Me" />
         <div className="container-app">
           <div className="card p-5 mt-4 text-sm space-y-3">
-            <div className="font-display text-lg">Finish setting up your account</div>
-            <p className="text-mute">We couldn't load your profile yet.</p>
+            <div className="font-display text-lg">Let's finish setting you up</div>
+            <p className="text-mute">A few quick details and you're in the door.</p>
             <button className="btn-primary w-full" onClick={() => nav("/onboarding")}>
               Complete onboarding
             </button>

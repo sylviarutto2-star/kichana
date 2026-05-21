@@ -102,9 +102,9 @@ export default function Studio() {
       <div className="container-app py-10 with-sidenav">
         <div className="card p-8 text-center">
           <Sparkles className="h-8 w-8 mx-auto text-terracotta-600" />
-          <h2 className="font-display text-2xl mt-2">Studio isn't set up yet</h2>
-          <p className="text-mute text-sm mt-1">Finish your stylist onboarding to manage services, portfolio and hours.</p>
-          <button onClick={() => nav("/onboarding?role=stylist")} className="btn-primary mt-5">Finish setup</button>
+          <h2 className="font-display text-2xl mt-2">Let's open your studio.</h2>
+          <p className="text-mute text-sm mt-1">A few more details and your chair goes live — services, portfolio, the whole thing.</p>
+          <button onClick={() => nav("/onboarding?role=stylist")} className="btn-primary mt-5">Finish setting up</button>
         </div>
         <BottomNav />
       </div>
@@ -232,7 +232,7 @@ function TodayTab({
       <div className="lg:col-span-2 space-y-3">
         <div className="label">Upcoming</div>
         {upcoming.length === 0 && (
-          <div className="card p-8 text-center text-mute">No upcoming bookings yet.</div>
+          <div className="card p-8 text-center text-mute">No bookings on the calendar yet — the right clients are on their way.</div>
         )}
         {upcoming.map((b) => (
           <div key={b.id} className="card p-4">
@@ -450,7 +450,7 @@ function ServicesTab({
       <div className="lg:col-span-3 space-y-2">
         <div className="label">Your menu ({services.length})</div>
         {services.length === 0 && (
-          <div className="card p-8 text-center text-mute">No services yet. Add your first on the left.</div>
+          <div className="card p-8 text-center text-mute">Your menu is empty — add your first service on the left and let the girls see what you do.</div>
         )}
         {services.map((s) => (
           <div key={s.id} className={cn("card p-4", !s.active && "opacity-60")}>
