@@ -8,13 +8,15 @@ import { SERVICE_CATEGORIES, KES, cn, withTimeout } from "@/lib/utils";
 import {
   Plus, Trash2, Star, Calendar, Loader2, Image as ImageIcon, Sparkles,
   GripVertical, Check, X, ChevronUp, ChevronDown, Settings as SettingsIcon,
-  Scissors, ListChecks, Clock, Shield,
+  Scissors, ListChecks, Clock, Shield, MessageSquare, Send,
 } from "lucide-react";
+import { ReviewStars } from "@/components/ReviewStars";
+import { Avatar } from "@/components/Avatar";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
-type Tab = "today" | "services" | "portfolio" | "hours" | "policies" | "profile";
+type Tab = "today" | "services" | "portfolio" | "hours" | "policies" | "reviews" | "profile";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -126,6 +128,7 @@ export default function Studio() {
     { id: "portfolio", label: "Portfolio", Icon: ImageIcon },
     { id: "hours", label: "Hours", Icon: Clock },
     { id: "policies", label: "Policies", Icon: Shield },
+    { id: "reviews", label: "Reviews", Icon: MessageSquare },
     { id: "profile", label: "Profile", Icon: SettingsIcon },
   ];
 
@@ -194,6 +197,9 @@ export default function Studio() {
         )}
         {tab === "policies" && (
           <PoliciesTab stylistId={stylist.id} policies={policies} onChange={setPolicies} />
+        )}
+        {tab === "reviews" && (
+          <ReviewsTab stylistId={stylist.id} />
         )}
         {tab === "profile" && (
           <ProfileTab stylist={stylist} onChange={setStylist} />
@@ -946,6 +952,267 @@ function ProfileTab({ stylist, onChange }: { stylist: any; onChange: (s: any) =>
         {busy && <Loader2 className="h-4 w-4 animate-spin" />} Save profile
       </button>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Reviews                                                              */
+/* ------------------------------------------------------------------ */
+
+type ReviewRow = {
+  id: string;
+  rating: number;
+  body: string | null;
+  photo_urls: string[] | null;
+  reply: string | null;
+  reply_at: string | null;
+  created_at: string;
+  customer: { full_name: string | null; avatar_url: string | null } | null;
+};
+
+function ReviewsTab({ stylistId }: { stylistId: string }) {
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "unreplied">("all");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("reviews" as any)
+        .select(
+          "id, rating, body, photo_urls, reply, reply_at, created_at, customer:profiles!reviews_customer_id_fkey(full_name, avatar_url)",
+        )
+        .eq("stylist_id", stylistId)
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        console.error("Studio reviews: query failed", error);
+        toast.error("Couldn't load reviews.");
+      }
+      setReviews(((data as any) || []) as ReviewRow[]);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [stylistId]);
+
+  const onReplyChanged = (id: string, reply: string | null, reply_at: string | null) => {
+    setReviews((rs) => rs.map((r) => (r.id === id ? { ...r, reply, reply_at } : r)));
+  };
+
+  const shown = filter === "unreplied" ? reviews.filter((r) => !r.reply) : reviews;
+  const unrepliedCount = reviews.filter((r) => !r.reply).length;
+  const avg = reviews.length
+    ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+    : 0;
+
+  return (
+    <div className="mt-6">
+      <div className="card p-5 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <div className="font-display text-lg">Your reviews</div>
+          <p className="text-xs text-mute">
+            Reply within 48 hours — clients see replies as a sign you care.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFilter("all")}
+            className={cn(filter === "all" ? "chip-active" : "chip", "text-xs")}
+          >
+            All ({reviews.length})
+          </button>
+          <button
+            onClick={() => setFilter("unreplied")}
+            className={cn(filter === "unreplied" ? "chip-active" : "chip", "text-xs")}
+          >
+            Needs reply ({unrepliedCount})
+          </button>
+        </div>
+      </div>
+
+      {!loading && reviews.length > 0 && (
+        <div className="card p-5 mt-3 flex items-center gap-4">
+          <div className="text-center">
+            <div className="font-display text-4xl leading-none">{avg.toFixed(1)}</div>
+            <ReviewStars value={avg} size={16} className="mt-1.5" />
+          </div>
+          <div className="flex-1 text-xs text-mute">
+            Across {reviews.length} review{reviews.length === 1 ? "" : "s"}.
+            {unrepliedCount > 0 && ` ${unrepliedCount} waiting for a reply.`}
+          </div>
+        </div>
+      )}
+
+      {loading && <div className="skeleton h-24 rounded-2xl mt-3" />}
+
+      {!loading && reviews.length === 0 && (
+        <div className="card p-10 text-center text-mute mt-3">
+          <MessageSquare className="h-7 w-7 mx-auto mb-2 text-mute" />
+          No reviews yet. They'll appear here after clients rate their completed bookings.
+        </div>
+      )}
+
+      <ul className="space-y-3 mt-3">
+        {shown.map((r) => (
+          <ReviewRowCard key={r.id} review={r} onReplyChanged={onReplyChanged} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ReviewRowCard({
+  review,
+  onReplyChanged,
+}: {
+  review: ReviewRow;
+  onReplyChanged: (id: string, reply: string | null, reply_at: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(review.reply || "");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    const next = draft.trim();
+    if (!next) return toast.error("Write something before posting.");
+    setSaving(true);
+    const reply_at = new Date().toISOString();
+    const { error } = await withTimeout(
+      supabase
+        .from("reviews" as any)
+        .update({ reply: next, reply_at })
+        .eq("id", review.id),
+      15000,
+      "Posting reply",
+    );
+    setSaving(false);
+    if (error) {
+      console.error("review reply failed", error);
+      toast.error(error.message || "Couldn't post reply.");
+      return;
+    }
+    onReplyChanged(review.id, next, reply_at);
+    setEditing(false);
+    toast.success("Reply posted");
+  };
+
+  const remove = async () => {
+    if (!confirm("Delete your reply?")) return;
+    const { error } = await supabase
+      .from("reviews" as any)
+      .update({ reply: null, reply_at: null })
+      .eq("id", review.id);
+    if (error) return toast.error(error.message);
+    onReplyChanged(review.id, null, null);
+    setDraft("");
+    toast.success("Reply removed");
+  };
+
+  return (
+    <li className="card p-4">
+      <div className="flex items-start gap-3">
+        <Avatar
+          src={review.customer?.avatar_url}
+          name={review.customer?.full_name || "Client"}
+          size={36}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm">
+              {review.customer?.full_name || "Verified client"}
+            </span>
+            <ReviewStars value={review.rating} size={14} />
+            <span className="text-[11px] text-mute">
+              {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
+            </span>
+          </div>
+          {review.body && (
+            <p className="text-sm text-ink/90 mt-1.5 whitespace-pre-wrap">{review.body}</p>
+          )}
+          {review.photo_urls && review.photo_urls.length > 0 && (
+            <div className="mt-2 grid grid-cols-4 gap-1.5">
+              {review.photo_urls.slice(0, 4).map((u, i) => (
+                <img
+                  key={i}
+                  src={u}
+                  alt=""
+                  className="aspect-square rounded-lg object-cover"
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Reply block */}
+          {review.reply && !editing ? (
+            <div className="mt-3 rounded-2xl bg-cream/70 border border-line p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] uppercase tracking-wider text-mute">Your reply</div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setEditing(true)} className="text-[11px] underline">
+                    Edit
+                  </button>
+                  <button onClick={remove} className="text-[11px] text-terracotta-600">
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <p className="text-sm mt-1 whitespace-pre-wrap">{review.reply}</p>
+              {review.reply_at && (
+                <div className="text-[11px] text-mute mt-1.5">
+                  {formatDistanceToNow(new Date(review.reply_at), { addSuffix: true })}
+                </div>
+              )}
+            </div>
+          ) : editing || !review.reply ? (
+            <div className="mt-3">
+              {!editing && !review.reply && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="chip text-xs"
+                >
+                  <MessageSquare className="h-3 w-3" /> Reply
+                </button>
+              )}
+              {editing && (
+                <div className="rounded-2xl border border-line p-3 bg-white">
+                  <textarea
+                    rows={3}
+                    className="input text-sm"
+                    placeholder="Thank you so much — see you next time! …"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    maxLength={600}
+                    autoFocus
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-[11px] text-mute">{draft.length}/600 · public</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setEditing(false); setDraft(review.reply || ""); }}
+                        className="chip text-xs"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={save}
+                        disabled={saving}
+                        className="btn-primary !py-2 !px-3 text-xs"
+                      >
+                        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                        Post reply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </li>
   );
 }
 
