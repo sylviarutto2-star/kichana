@@ -99,14 +99,10 @@ export default function Profile() {
           </button>
         </div>
 
-        <div className="card p-5 mt-4 flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/30 text-aubergine-700"><Award className="h-5 w-5" /></div>
-          <div className="flex-1">
-            <div className="text-xs text-mute">Loyalty points</div>
-            <div className="font-display text-2xl">{profile.loyalty_points}</div>
-          </div>
-          <div className="text-xs text-mute">Earn 1 pt per KES 100 spent</div>
-        </div>
+        <LoyaltyCard
+          points={profile.loyalty_points || 0}
+          tier={(profile as any).loyalty_tier || "bronze"}
+        />
 
         {editing ? (
           <div className="card p-5 mt-4 space-y-3">
@@ -161,6 +157,62 @@ export default function Profile() {
         </button>
       </div>
       <BottomNav />
+    </div>
+  );
+}
+
+const TIER_LADDER: Array<{ tier: "bronze" | "silver" | "gold" | "platinum"; min: number; label: string; perk: string }> = [
+  { tier: "bronze",   min: 0,   label: "Bronze",   perk: "Welcome perks unlocked." },
+  { tier: "silver",   min: 50,  label: "Silver",   perk: "5% off intro offers + early access to featured drops." },
+  { tier: "gold",     min: 200, label: "Gold",     perk: "Priority booking with featured stylists." },
+  { tier: "platinum", min: 500, label: "Platinum", perk: "Free monthly upgrade + concierge support." },
+];
+
+function LoyaltyCard({ points, tier }: { points: number; tier: string }) {
+  const currentIdx = Math.max(0, TIER_LADDER.findIndex((t) => t.tier === tier));
+  const current = TIER_LADDER[currentIdx] || TIER_LADDER[0];
+  const next = TIER_LADDER[currentIdx + 1];
+  const progress = next
+    ? Math.min(1, Math.max(0, (points - current.min) / (next.min - current.min)))
+    : 1;
+  const tierColor: Record<string, string> = {
+    bronze: "bg-terracotta-100 text-terracotta-700",
+    silver: "bg-line text-aubergine-700",
+    gold: "bg-gold-400/30 text-aubergine-700",
+    platinum: "bg-aubergine-700 text-cream",
+  };
+  return (
+    <div className="card p-5 mt-4">
+      <div className="flex items-start gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/30 text-aubergine-700">
+          <Award className="h-5 w-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`chip text-[10px] uppercase tracking-wider ${tierColor[current.tier]}`}>
+              {current.label} tier
+            </span>
+            <span className="text-xs text-mute">{points} pt{points === 1 ? "" : "s"}</span>
+          </div>
+          <p className="text-xs text-mute mt-1">{current.perk}</p>
+        </div>
+      </div>
+      {next ? (
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[11px] text-mute">
+            <span>{next.min - points} pts to {next.label}</span>
+            <span>{points} / {next.min}</span>
+          </div>
+          <div className="mt-1 h-2 rounded-full bg-line overflow-hidden">
+            <div className="h-full bg-gold-500" style={{ width: `${progress * 100}%` }} />
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-mute mt-3">You've hit the top tier — thank you.</p>
+      )}
+      <p className="text-[11px] text-mute mt-3">
+        Earn 1 point per KES 100 spent on completed bookings. Redemption rolls out soon.
+      </p>
     </div>
   );
 }
