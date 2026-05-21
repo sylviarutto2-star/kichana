@@ -6,8 +6,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { KES, withTimeout } from "@/lib/utils";
 import { format } from "date-fns";
-import { Calendar, MapPin, Clock } from "lucide-react";
+import { Calendar, MapPin, Clock, Star } from "lucide-react";
 import { toast } from "sonner";
+import { LeaveReviewModal } from "@/components/LeaveReviewModal";
+import { ReviewStars } from "@/components/ReviewStars";
 
 type Row = any;
 
@@ -18,6 +20,8 @@ export default function Bookings() {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [reviewed, setReviewed] = useState<Record<string, { rating: number }>>({});
+  const [reviewingBooking, setReviewingBooking] = useState<Row | null>(null);
 
   // Stylists/vendors don't have a customer "Bookings" page — their client
   // appointments live in Studio. Send them there.
@@ -40,6 +44,23 @@ export default function Bookings() {
           if (!cancelled) toast.error(error.message || "Couldn't load your bookings.");
         }
         if (!cancelled) setRows(data || []);
+
+        // Also fetch which of these bookings the customer already reviewed,
+        // so we show "Your rating" instead of the Leave-a-review CTA.
+        const ids = (data || []).map((b: any) => b.id);
+        if (ids.length > 0) {
+          const rv = await supabase
+            .from("reviews")
+            .select("booking_id, rating")
+            .in("booking_id", ids);
+          if (!cancelled && !rv.error && rv.data) {
+            const map: Record<string, { rating: number }> = {};
+            (rv.data as any[]).forEach((r) => {
+              map[r.booking_id] = { rating: r.rating };
+            });
+            setReviewed(map);
+          }
+        }
       } catch (e) {
         console.error("Bookings: fetch threw", e);
         if (!cancelled) toast.error("Couldn't load your bookings. Please try again.");
@@ -133,11 +154,46 @@ export default function Bookings() {
                   {payingId === b.id ? "Starting payment…" : `Pay deposit ${KES(b.deposit_kes)}`}
                 </button>
               )}
+              {b.status === "completed" && (
+                reviewed[b.id] ? (
+                  <div className="mt-3 flex items-center justify-between rounded-2xl bg-cream/70 border border-line px-3 py-2">
+                    <span className="text-xs text-mute">Your review</span>
+                    <ReviewStars value={reviewed[b.id].rating} size={14} />
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setReviewingBooking(b)}
+                    className="btn-outline w-full mt-3"
+                  >
+                    <Star className="h-4 w-4" /> Leave a review
+                  </button>
+                )
+              )}
             </div>
           ))}
         </div>
       </div>
       <BottomNav />
+      <LeaveReviewModal
+        open={!!reviewingBooking}
+        onClose={() => setReviewingBooking(null)}
+        booking={
+          reviewingBooking
+            ? {
+                id: reviewingBooking.id,
+                stylist_id: reviewingBooking.stylist_id,
+                customer_id: reviewingBooking.customer_id,
+                stylists: reviewingBooking.stylists,
+                services: reviewingBooking.services,
+              }
+            : null
+        }
+        onSubmitted={(rating) => {
+          if (reviewingBooking) {
+            setReviewed((m) => ({ ...m, [reviewingBooking.id]: { rating } }));
+          }
+        }}
+      />
     </div>
   );
 }

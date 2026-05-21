@@ -137,7 +137,7 @@ export default function Studio() {
         right={
           <div className="hidden lg:flex gap-2 items-center">
             <span className="chip">{stylist.verified ? "Verified" : "Pending verify"}</span>
-            <span className="chip">{Number(stylist.rating || 0).toFixed(1)}★</span>
+            <span className="chip">{Number(stylist.rating_avg || 0).toFixed(1)}★</span>
           </div>
         }
       />
@@ -145,7 +145,7 @@ export default function Studio() {
       <div className="container-shell">
         {/* KPI strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Stat label="Rating" value={`${Number(stylist.rating || 0).toFixed(1)}★`} sub={`${stylist.review_count || 0} reviews`} />
+          <Stat label="Rating" value={`${Number(stylist.rating_avg || 0).toFixed(1)}★`} sub={`${stylist.rating_count || 0} reviews`} />
           <Stat label="Today" value={today.length} sub={`${upcoming.length} upcoming`} />
           <Stat label="Pipeline" value={KES(upcomingRevenue)} sub="next 30 days" />
           <Stat label="Completed" value={stylist.completed_bookings_count || 0} sub="all-time" />

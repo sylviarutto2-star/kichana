@@ -6,6 +6,7 @@ import { demoStylists, demoServices, isDemo } from "@/lib/demoData";
 import { Avatar } from "@/components/Avatar";
 import { SmartImage } from "@/components/SmartImage";
 import { StylistMap } from "@/components/StylistMap";
+import { ReviewsSection } from "@/components/ReviewsSection";
 import { KES } from "@/lib/utils";
 import type { Stylist, Service } from "@/lib/database.types";
 
@@ -136,6 +137,14 @@ export default function StylistProfile() {
           ) : (
             <div className="col-span-3 text-mute text-sm">No portfolio images yet.</div>
           )}
+        </div>
+
+        <div className="mt-8">
+          <ReviewsSection
+            stylistId={stylist.id}
+            ratingAvg={Number(stylist.rating_avg ?? 0)}
+            ratingCount={Number(stylist.rating_count ?? 0)}
+          />
         </div>
 
         {stylist.lat != null && stylist.lng != null && (
