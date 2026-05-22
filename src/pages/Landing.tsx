@@ -35,10 +35,10 @@ export default function Landing() {
             Braids, wigs, locs, naturals, nails, barber. Salon or at-home.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/auth" className="btn-primary">
-              Get started <ArrowRight className="h-4 w-4" />
+            <Link to="/waitlist" className="btn-primary">
+              Join the waitlist <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/auth?role=stylist" className="btn-outline">I'm a stylist</Link>
+            <Link to="/waitlist?role=stylist" className="btn-outline">I'm a stylist</Link>
           </div>
 
           <div className="mt-10 grid grid-cols-3 gap-4 max-w-md">
@@ -63,13 +63,13 @@ export default function Landing() {
             <p className="h-eyebrow mb-2">Find your look</p>
             <h2 className="font-display text-3xl md:text-4xl">Browse by style</h2>
           </div>
-          <Link to="/auth" className="btn-ghost text-sm hidden sm:inline-flex">
+          <Link to="/waitlist" className="btn-ghost text-sm hidden sm:inline-flex">
             See all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {STYLES.map((s) => (
-            <Link key={s.src} to="/auth" className="group card p-0 overflow-hidden">
+            <Link key={s.src} to="/waitlist" className="group card p-0 overflow-hidden">
               <SmartImage
                 src={s.src}
                 fallbackKey={s.label}
@@ -92,11 +92,11 @@ export default function Landing() {
           <div className="relative max-w-lg">
             <h2 className="font-display text-3xl md:text-4xl">Ready when you are.</h2>
             <p className="mt-3 text-cream/80">
-              Join thousands of clients booking Nairobi's best — or grow your own chair with verified bookings and M-Pesa payouts.
+              Join the Nairobi waitlist — 10% off your first booking when we open. Stylists, get priority onboarding and M-Pesa payouts from day one.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/auth" className="btn-primary">Get started <ArrowRight className="h-4 w-4" /></Link>
-              <Link to="/auth?role=stylist" className="rounded-full bg-cream/10 text-cream px-4 py-2 text-sm font-semibold ring-1 ring-cream/25 hover:bg-cream/15">I'm a stylist</Link>
+              <Link to="/waitlist" className="btn-primary">Join the waitlist <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/waitlist?role=stylist" className="rounded-full bg-cream/10 text-cream px-4 py-2 text-sm font-semibold ring-1 ring-cream/25 hover:bg-cream/15">I'm a stylist</Link>
             </div>
           </div>
         </div>

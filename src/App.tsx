@@ -7,6 +7,7 @@ import { LoadingScreen } from "@/components/LoadingScreen";
 import Landing from "@/pages/Landing";
 import Auth from "@/pages/Auth";
 import Onboarding from "@/pages/Onboarding";
+import Waitlist from "@/pages/Waitlist";
 import Home from "@/pages/Home";
 import Discover from "@/pages/Discover";
 import StylistProfile from "@/pages/StylistProfile";
@@ -46,6 +47,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/waitlist" element={<Waitlist />} />
         <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
         <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
         <Route path="/discover" element={<RequireAuth><Discover /></RequireAuth>} />
