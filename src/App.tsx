@@ -9,6 +9,7 @@ import Landing from "@/pages/Landing";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 
+const Waitlist = lazy(() => import("@/pages/Waitlist"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const Home = lazy(() => import("@/pages/Home"));
 const Discover = lazy(() => import("@/pages/Discover"));
@@ -55,6 +56,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/waitlist" element={<Waitlist />} />
           <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
           <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
           <Route path="/discover" element={<RequireAuth><Discover /></RequireAuth>} />
