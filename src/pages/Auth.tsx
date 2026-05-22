@@ -28,7 +28,11 @@ export default function Auth() {
     // Never decide the destination from a transient null profile. Wait until
     // the fetch resolves so already-onboarded users are not sent to /onboarding.
     if (!profileLoaded) return <LoadingScreen />;
-    const dest = profile?.onboarding_complete ? (from || "/home") : "/onboarding";
+    const dest = profile?.waitlisted_at
+      ? "/waitlisted"
+      : profile?.onboarding_complete
+        ? (from || "/home")
+        : "/onboarding";
     return <Navigate to={dest} replace />;
   }
 
