@@ -79,34 +79,46 @@ export default function Onboarding() {
     }
     setBusy(true);
     try {
-      // Create the stylist row FIRST so we never mark a profile complete
-      // without its accompanying studio record. If this fails the user can
-      // retry from the same step.
-      if (role === "stylist") {
-        const { data: existing, error: lookupErr } = await withTimeout(
-          supabase.from("stylists").select("id").eq("profile_id", user.id).maybeSingle(),
-          15000,
-          "Looking up your studio",
-        );
-        if (lookupErr) throw lookupErr;
+      // Pre-launch: instead of opening the app, drop the signup into the
+      // appropriate waitlist table and gate them to /waitlisted. We keep
+      // the role + onboarding inputs on profiles so we have one record
+      // per user, but DON'T set onboarding_complete — that flag still
+      // marks "released into the app".
+      const fullName =
+        (user.user_metadata as any)?.full_name?.toString().trim() ||
+        (role === "stylist" ? displayName.trim() : "") ||
+        user.email ||
+        "Friend";
+      const emailLower = (user.email || "").toLowerCase();
 
-        const studioPayload = {
-          display_name: displayName.trim() || "My Studio",
-          bio: bio.trim() || null,
-          specialties,
-          neighborhoods: [neighborhood],
-          base_location: neighborhood,
-          travels,
-        };
-        const { error: sErr } = await withTimeout(
-          existing
-            ? supabase.from("stylists").update(studioPayload).eq("id", (existing as any).id)
-            : supabase.from("stylists").insert({ profile_id: user.id, ...studioPayload }),
-          15000,
-          "Creating your studio",
-        );
-        if (sErr) throw sErr;
-      }
+      const waitlistRow =
+        role === "customer"
+          ? {
+              full_name: fullName,
+              email: emailLower,
+              phone,
+              sms_opt_in: false,
+              email_opt_in: true,
+            }
+          : {
+              full_name: fullName,
+              email: emailLower,
+              phone,
+              area: neighborhood,
+              services: specialties,
+              years_experience: null,
+              work_mode: travels ? "both" : "salon",
+              instagram_url: null,
+            };
+      const table = role === "customer" ? "waitlist_customers" : "waitlist_stylists";
+      const { error: wErr } = (await withTimeout(
+        (supabase as any).from(table).insert(waitlistRow),
+        15000,
+        "Joining the waitlist",
+      )) as { error: any };
+      // 23505 = unique_violation. If they're already on the list (e.g. they
+      // re-ran onboarding) treat it as success rather than blocking them.
+      if (wErr && (wErr as any).code !== "23505") throw wErr;
 
       const { error: pErr } = await withTimeout(
         supabase
@@ -119,8 +131,8 @@ export default function Onboarding() {
             hair_type: role === "customer" ? hairType : null,
             allergies: role === "customer" ? allergies || null : null,
             birthday: role === "customer" && birthday ? birthday : null,
-            onboarding_complete: true,
-          })
+            waitlisted_at: new Date().toISOString(),
+          } as any)
           .eq("id", user.id),
         15000,
         "Saving your profile",
@@ -129,8 +141,12 @@ export default function Onboarding() {
 
       // refreshProfile is best-effort — don't block navigation on it.
       void refreshProfile();
-      toast.success(role === "stylist" ? "Studio is live — let's get your services up next." : "You're in. Welcome to the circle 💛");
-      nav(role === "stylist" ? "/studio" : "/home", { replace: true });
+      toast.success(
+        role === "stylist"
+          ? "You're on the stylist list — we'll be in touch when we open."
+          : "You're on the list 💛 We'll email you when we open.",
+      );
+      nav("/waitlisted", { replace: true });
     } catch (e: any) {
       console.error("Onboarding finish failed:", e);
       toast.error(e?.message || "Couldn't save your details. Please try again.");
@@ -145,6 +161,9 @@ export default function Onboarding() {
   // Never render the role picker before we know whether this user has
   // already onboarded. A transient null profile must never show onboarding.
   if (!profileLoaded) return <LoadingScreen />;
+  if (profile?.waitlisted_at) {
+    return <Navigate to="/waitlisted" replace />;
+  }
   if (profile?.onboarding_complete) {
     return <Navigate to={profile.role === "stylist" ? "/studio" : "/home"} replace />;
   }
