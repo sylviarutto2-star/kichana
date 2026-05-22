@@ -6,14 +6,26 @@ import { demoStylists, demoServices, isDemo } from "@/lib/demoData";
 import { Avatar } from "@/components/Avatar";
 import { SmartImage } from "@/components/SmartImage";
 import { StylistMap } from "@/components/StylistMap";
-import { KES } from "@/lib/utils";
+import { KES, cn } from "@/lib/utils";
+import { format } from "date-fns";
 import type { Stylist, Service } from "@/lib/database.types";
+
+type Review = {
+  id: string;
+  rating: number;
+  body: string | null;
+  created_at: string;
+  reply: string | null;
+  reply_at: string | null;
+  profiles: { full_name: string | null; avatar_url: string | null } | null;
+};
 
 export default function StylistProfile() {
   const { id } = useParams();
   const [stylist, setStylist] = useState<(Stylist & { profile?: any }) | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [portfolio, setPortfolio] = useState<{ id: string; image_url: string }[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -36,18 +48,26 @@ export default function StylistProfile() {
           setLoading(false);
           return;
         }
-        const [sRes, svcRes, pfRes] = await Promise.all([
+        const [sRes, svcRes, pfRes, revRes] = await Promise.all([
           supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),
           supabase.from("portfolio_images").select("id, image_url").eq("stylist_id", id).order("sort_order").limit(12),
+          (supabase as any)
+            .from("reviews")
+            .select("id, rating, body, created_at, reply, reply_at, profiles:profiles!reviews_customer_id_fkey(full_name, avatar_url)")
+            .eq("stylist_id", id)
+            .order("created_at", { ascending: false })
+            .limit(20),
         ]);
         if (cancelled) return;
         if (sRes.error) console.error("StylistProfile: stylist query failed", sRes.error);
         if (svcRes.error) console.error("StylistProfile: services query failed", svcRes.error);
         if (pfRes.error) console.error("StylistProfile: portfolio query failed", pfRes.error);
+        if (revRes.error) console.error("StylistProfile: reviews query failed", revRes.error);
         setStylist(sRes.data as any);
         setServices((svcRes.data as Service[]) || []);
         setPortfolio((pfRes.data as any) || []);
+        setReviews((revRes.data as Review[]) || []);
       } catch (e) {
         console.error("StylistProfile: fetch threw", e);
         if (!cancelled) setError(true);
@@ -138,6 +158,12 @@ export default function StylistProfile() {
           )}
         </div>
 
+        <ReviewsBlock
+          reviews={reviews}
+          ratingAvg={Number(stylist.rating_avg ?? 0)}
+          ratingCount={Number(stylist.rating_count ?? 0)}
+        />
+
         {stylist.lat != null && stylist.lng != null && (
           <>
             <h2 className="font-display text-2xl mt-8 mb-3">Where to find them</h2>
@@ -160,5 +186,127 @@ export default function StylistProfile() {
         )}
       </div>
     </div>
+  );
+}
+
+function ReviewsBlock({
+  reviews,
+  ratingAvg,
+  ratingCount,
+}: {
+  reviews: Review[];
+  ratingAvg: number;
+  ratingCount: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? reviews : reviews.slice(0, 5);
+
+  // Distribution count per star (1..5)
+  const dist = [1, 2, 3, 4, 5].map((star) => ({
+    star,
+    count: reviews.filter((r) => r.rating === star).length,
+  }));
+  const total = reviews.length;
+
+  return (
+    <>
+      <h2 className="font-display text-2xl mt-8 mb-3">Reviews</h2>
+      {ratingCount === 0 || reviews.length === 0 ? (
+        <div className="card p-6 text-mute text-sm">
+          No reviews yet. Be the first to share your experience after your appointment.
+        </div>
+      ) : (
+        <div className="card p-5">
+          <div className="grid sm:grid-cols-[auto_1fr] gap-6 items-center">
+            <div className="text-center sm:text-left">
+              <div className="font-display text-5xl leading-none">{ratingAvg.toFixed(1)}</div>
+              <div className="flex items-center justify-center sm:justify-start gap-0.5 mt-2">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star
+                    key={s}
+                    className={cn(
+                      "h-4 w-4",
+                      s <= Math.round(ratingAvg) ? "fill-gold-500 text-gold-500" : "text-line",
+                    )}
+                  />
+                ))}
+              </div>
+              <div className="text-xs text-mute mt-1">{ratingCount} review{ratingCount === 1 ? "" : "s"}</div>
+            </div>
+            <div className="space-y-1.5">
+              {dist.slice().reverse().map(({ star, count }) => {
+                const pct = total ? Math.round((count / total) * 100) : 0;
+                return (
+                  <div key={star} className="flex items-center gap-2 text-xs">
+                    <span className="w-3 text-mute">{star}</span>
+                    <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
+                    <div className="flex-1 h-1.5 rounded-full bg-line overflow-hidden">
+                      <div
+                        className="h-full bg-gold-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="w-8 text-right text-mute">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-5">
+            {visible.map((r) => (
+              <div key={r.id} className="border-t border-line pt-4 first:border-t-0 first:pt-0">
+                <div className="flex items-start gap-3">
+                  <Avatar src={r.profiles?.avatar_url} name={r.profiles?.full_name} size={36} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold text-sm truncate">
+                        {r.profiles?.full_name || "Kichana customer"}
+                      </div>
+                      <div className="text-[11px] text-mute shrink-0">
+                        {format(new Date(r.created_at), "d MMM yyyy")}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5 mt-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={cn(
+                            "h-3.5 w-3.5",
+                            s <= r.rating ? "fill-gold-500 text-gold-500" : "text-line",
+                          )}
+                        />
+                      ))}
+                    </div>
+                    {r.body && (
+                      <p className="text-sm text-ink/85 mt-2 leading-relaxed whitespace-pre-line">
+                        {r.body}
+                      </p>
+                    )}
+                    {r.reply && (
+                      <div className="mt-3 ml-1 pl-3 border-l-2 border-line">
+                        <div className="text-[11px] font-semibold text-mute uppercase tracking-wider">
+                          Reply from the stylist
+                        </div>
+                        <p className="text-sm text-mute mt-1 whitespace-pre-line">{r.reply}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {reviews.length > 5 && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="btn-outline w-full mt-5 text-sm"
+            >
+              {expanded ? "Show fewer" : `Show all ${reviews.length} reviews`}
+            </button>
+          )}
+        </div>
+      )}
+    </>
   );
 }

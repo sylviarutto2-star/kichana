@@ -18,6 +18,7 @@ const Discover = lazy(() => import("@/pages/Discover"));
 const StylistProfile = lazy(() => import("@/pages/StylistProfile"));
 const Booking = lazy(() => import("@/pages/Booking"));
 const Bookings = lazy(() => import("@/pages/Bookings"));
+const ReviewWrite = lazy(() => import("@/pages/ReviewWrite"));
 const PaymentCallback = lazy(() => import("@/pages/PaymentCallback"));
 const Vault = lazy(() => import("@/pages/Vault"));
 const Profile = lazy(() => import("@/pages/Profile"));
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/stylist/:id" element={<RequireAuth><StylistProfile /></RequireAuth>} />
           <Route path="/book/:stylistId" element={<RequireAuth><Booking /></RequireAuth>} />
           <Route path="/bookings" element={<RequireAuth><Bookings /></RequireAuth>} />
+          <Route path="/review/:bookingId" element={<RequireAuth><ReviewWrite /></RequireAuth>} />
           <Route path="/payment/callback" element={<RequireAuth><PaymentCallback /></RequireAuth>} />
           <Route path="/vault" element={<RequireAuth><Vault /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
