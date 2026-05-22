@@ -10,6 +10,7 @@ import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 
 const Waitlist = lazy(() => import("@/pages/Waitlist"));
+const Waitlisted = lazy(() => import("@/pages/Waitlisted"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const Home = lazy(() => import("@/pages/Home"));
 const Discover = lazy(() => import("@/pages/Discover"));
@@ -43,6 +44,11 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   if (!profile && loc.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }
+  // New signups land in the pre-launch waitlist, not the app. Until we open
+  // the doors, gate any onboarded-but-not-yet-released user to /waitlisted.
+  if (profile && profile.waitlisted_at && loc.pathname !== "/waitlisted") {
+    return <Navigate to="/waitlisted" replace />;
+  }
   if (profile && profile.onboarding_complete === false && loc.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }
@@ -57,6 +63,7 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/waitlist" element={<Waitlist />} />
+          <Route path="/waitlisted" element={<RequireAuth><Waitlisted /></RequireAuth>} />
           <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
           <Route path="/home" element={<RequireAuth><Home /></RequireAuth>} />
           <Route path="/discover" element={<RequireAuth><Discover /></RequireAuth>} />

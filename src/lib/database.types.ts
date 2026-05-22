@@ -15,6 +15,7 @@ export type Profile = {
   allergies: string | null;
   birthday: string | null;
   onboarding_complete: boolean;
+  waitlisted_at: ISO | null;
   created_at: ISO;
 };
 
