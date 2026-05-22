@@ -19,6 +19,8 @@ export default function Auth() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const nav = useNavigate();
   const loc = useLocation();
   const from = (loc.state as { from?: string } | null)?.from;
@@ -111,6 +113,29 @@ export default function Auth() {
     toast.success("Confirmation email re-sent");
   };
 
+  const sendResetLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Enter the email on your account.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await withTimeout(
+        supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + "/reset-password",
+        }),
+        15000,
+        "Send reset link",
+      );
+      // Don't leak whether the email exists. Always show the same confirmation.
+      if (error) console.error("resetPasswordForEmail:", error);
+      setResetSent(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="hidden md:block bg-aubergine-700 text-cream p-10">
@@ -141,6 +166,49 @@ export default function Auth() {
                 className="btn-ghost w-full mt-2 text-sm"
               >Already confirmed? Sign in</button>
             </div>
+          ) : forgotMode ? (
+            resetSent ? (
+              <div className="card p-6 text-center">
+                <MailCheck className="h-10 w-10 mx-auto text-terracotta-600" />
+                <h1 className="font-display text-2xl mt-3">Check your inbox.</h1>
+                <p className="text-mute text-sm mt-2">
+                  If an account exists for <strong className="text-ink">{email}</strong>, we sent a password reset link.
+                </p>
+                <button
+                  onClick={() => { setForgotMode(false); setResetSent(false); setMode("signin"); }}
+                  className="btn-outline w-full mt-4 text-sm"
+                >Back to sign in</button>
+              </div>
+            ) : (
+              <>
+                <h1 className="font-display text-3xl">Reset your password</h1>
+                <p className="text-mute text-sm mt-1">
+                  Enter your email and we'll send you a link to set a new password.
+                </p>
+                <form onSubmit={sendResetLink} className="space-y-3 mt-5">
+                  <div>
+                    <label className="label">Email</label>
+                    <input
+                      type="email"
+                      required
+                      className="input"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@email.com"
+                      autoComplete="email"
+                    />
+                  </div>
+                  <button disabled={busy} className="btn-primary w-full mt-2">
+                    {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Send reset link
+                  </button>
+                </form>
+                <button
+                  onClick={() => setForgotMode(false)}
+                  className="btn-ghost w-full mt-3 text-sm"
+                >Back to sign in</button>
+              </>
+            )
           ) : (
             <>
               <h1 className="font-display text-3xl">{mode === "signup" ? "Create your account" : "Welcome back"}</h1>
@@ -168,7 +236,16 @@ export default function Auth() {
                   <input type="email" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" />
                 </div>
                 <div>
-                  <label className="label">Password</label>
+                  <div className="flex items-baseline justify-between">
+                    <label className="label">Password</label>
+                    {mode === "signin" && (
+                      <button
+                        type="button"
+                        onClick={() => setForgotMode(true)}
+                        className="text-xs font-semibold text-terracotta-600 hover:underline"
+                      >Forgot password?</button>
+                    )}
+                  </div>
                   <input type="password" required minLength={6} className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
                 </div>
                 <button disabled={busy} className="btn-primary w-full mt-2">
