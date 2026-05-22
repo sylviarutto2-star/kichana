@@ -15,6 +15,7 @@ export default function Bookings() {
   const { user, profile } = useAuth();
   const nav = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
   const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -40,6 +41,21 @@ export default function Bookings() {
           if (!cancelled) toast.error(error.message || "Couldn't load your bookings.");
         }
         if (!cancelled) setRows(data || []);
+
+        // Pull review markers for completed bookings so the past tab can show
+        // a "Write a review" CTA only when one's actually missing.
+        const completedIds = (data || [])
+          .filter((b: any) => b.status === "completed")
+          .map((b: any) => b.id);
+        if (completedIds.length) {
+          const { data: revs } = await (supabase as any)
+            .from("reviews")
+            .select("booking_id")
+            .in("booking_id", completedIds);
+          if (!cancelled && revs) {
+            setReviewedIds(new Set(revs.map((r: any) => r.booking_id as string)));
+          }
+        }
       } catch (e) {
         console.error("Bookings: fetch threw", e);
         if (!cancelled) toast.error("Couldn't load your bookings. Please try again.");
@@ -133,6 +149,17 @@ export default function Bookings() {
                 >
                   {payingId === b.id ? "Starting payment…" : `Pay deposit ${KES(b.deposit_kes)}`}
                 </button>
+              )}
+              {b.status === "completed" && (
+                reviewedIds.has(b.id) ? (
+                  <Link to={`/review/${b.id}`} className="btn-outline w-full mt-3">
+                    Edit your review
+                  </Link>
+                ) : (
+                  <Link to={`/review/${b.id}`} className="btn-primary w-full mt-3">
+                    Write a review
+                  </Link>
+                )
               )}
             </div>
           ))}
