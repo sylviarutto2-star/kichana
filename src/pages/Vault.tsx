@@ -57,8 +57,8 @@ export default function Vault() {
         {loading && <div className="skeleton h-72 rounded-3xl" />}
         {!loading && items.length === 0 && (
           <div className="card p-8 text-center text-mute">
-            <div className="font-display text-xl text-ink">Your Vault is empty — for now.</div>
-            <p className="text-sm mt-2">Start saving the looks that move you. Tap <strong>Save</strong> on anything in the feed and your stylist will see exactly what you're dreaming about.</p>
+            <div className="font-display text-xl text-ink">Your Vault is empty</div>
+            <p className="text-sm mt-2">Tap <strong>Save</strong> on any post in the feed to save inspiration here. Your stylist sees it before your appointment.</p>
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">

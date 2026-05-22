@@ -38,15 +38,15 @@ export default function PaymentCallback() {
           {state === "checking" && (
             <>
               <Loader2 className="h-10 w-10 animate-spin text-terracotta-600" />
-              <div className="font-semibold">Holding your spot…</div>
-              <p className="text-xs text-mute">Just a second while we confirm with M-Pesa.</p>
+              <div className="font-semibold">Confirming your payment…</div>
+              <p className="text-xs text-mute">This usually takes a few seconds.</p>
             </>
           )}
           {state === "success" && (
             <>
               <div className="rounded-full bg-sage/20 p-3"><Check className="h-8 w-8 text-aubergine-700" /></div>
-              <div className="font-semibold">You're booked, babe ✨</div>
-              <p className="text-xs text-mute">Your stylist's been notified and your chair is held. We'll nudge you before the appointment.</p>
+              <div className="font-semibold">Booking confirmed 💛</div>
+              <p className="text-xs text-mute">Your stylist has been notified. We'll remind you before your appointment.</p>
               <div className="flex flex-col gap-2 w-full mt-2">
                 <button onClick={() => nav("/home")} className="btn-primary">Back to home</button>
                 <button onClick={() => nav("/bookings")} className="btn-outline">View my bookings</button>
@@ -56,8 +56,8 @@ export default function PaymentCallback() {
           {state === "failed" && (
             <>
               <div className="rounded-full bg-line p-3"><X className="h-8 w-8 text-mute" /></div>
-              <div className="font-semibold">Hmm, that didn't go through.</div>
-              <p className="text-xs text-mute">No stress — if your line was charged, it'll come back to you shortly. You can try again any time from My Bookings.</p>
+              <div className="font-semibold">Payment didn't go through</div>
+              <p className="text-xs text-mute">If you were charged, the amount will be refunded shortly. You can retry from My Bookings.</p>
               <div className="flex flex-col gap-2 w-full mt-2">
                 <button onClick={() => nav("/home")} className="btn-primary">Back to home</button>
                 <button onClick={() => nav("/bookings")} className="btn-outline">Go to my bookings</button>

@@ -46,7 +46,7 @@ export default function PostCreate() {
         "Posting",
       );
       if (error) throw error;
-      toast.success("Posted ✨");
+      toast.success("Posted.");
       nav("/home");
     } catch (e: any) {
       console.error("Post failed:", e);

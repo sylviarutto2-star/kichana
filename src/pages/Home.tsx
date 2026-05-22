@@ -90,7 +90,7 @@ export default function Home() {
       });
       if (error) return toast.error(error.message);
     }
-    toast.success("Saved to your Vault ✨");
+    toast.success("Saved to your Vault");
   };
 
   return (
@@ -262,7 +262,7 @@ export default function Home() {
                   <Calendar className="h-3.5 w-3.5" /> Book again
                 </div>
                 <p className="mt-3 font-display text-2xl leading-tight">
-                  Felt good last time? She's a tap away — rebook your girl.
+                  Loved your last look? Rebook in one tap.
                 </p>
                 <Link
                   to="/bookings"
