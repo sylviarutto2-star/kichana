@@ -19,7 +19,7 @@ export default function About() {
         <li><strong>Built for Nairobi.</strong> Browse by neighbourhood. Pay in KES on M-Pesa. Kiswahili first-class.</li>
         <li><strong>Verified, not faked.</strong> Every stylist is ID-checked. Portfolios build from completed bookings — no Pinterest borrowing.</li>
         <li><strong>The Hair Vault.</strong> Save looks you love. Your stylist sees them before you arrive.</li>
-        <li><strong>Group bookings.</strong> The girlies, the wedding party, the holiday crew — all booked in one go.</li>
+        <li><strong>Group bookings.</strong> Wedding parties, birthday crews, holiday groups — all booked in one go.</li>
       </ul>
 
       <h2>Our mission</h2>

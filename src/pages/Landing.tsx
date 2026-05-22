@@ -32,7 +32,7 @@ export default function Landing() {
           </h1>
           <p className="mt-5 text-lg text-mute max-w-md">
             The trusted network of hair and beauty specialists in Kenya — built by women, for women.
-            See their real work, hear from your girls, book in seconds, pay with M-Pesa.
+            Verified portfolios, honest reviews, M-Pesa deposits.
             Braids, wigs, locs, naturals, nails, barber. Salon or at-home.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -53,9 +53,9 @@ export default function Landing() {
       </main>
 
       <section className="container-wide pb-16 grid md:grid-cols-3 gap-4">
-        <Feature icon={<Calendar className="h-5 w-5" />} title="Book in 30 seconds" body="Pick your girl, pick your slot, pay your deposit on M-Pesa. Done." />
-        <Feature icon={<Sparkles className="h-5 w-5" />} title="Real work, honest reviews" body="Portfolios from actual bookings. Reviews from women who actually sat in the chair. No filters, no faking." />
-        <Feature icon={<Shield className="h-5 w-5" />} title="Held in trust" body="ID-verified stylists. Refund-protected deposits. Your data stays yours — always." />
+        <Feature icon={<Calendar className="h-5 w-5" />} title="Book in 30 seconds" body="Pick a stylist, pick a slot, pay your deposit on M-Pesa." />
+        <Feature icon={<Sparkles className="h-5 w-5" />} title="Real work, honest reviews" body="Portfolios from actual bookings. Reviews from women who actually sat in the chair." />
+        <Feature icon={<Shield className="h-5 w-5" />} title="Held in trust" body="ID-verified stylists. Refund-protected deposits. Your data stays yours." />
       </section>
 
       <section className="container-wide pb-20">
@@ -143,7 +143,7 @@ function HeroComposition() {
           <span className="text-xs h-eyebrow">Hair Vault</span>
         </div>
         <p className="text-sm leading-snug">
-          Save the looks that move you. <span className="text-mute">Your stylist sees them before the appointment — no awkward Pinterest scroll in the chair.</span>
+          Save the looks you want. <span className="text-mute">Your stylist sees them before the appointment — no Pinterest scroll in the chair.</span>
         </p>
         <div className="mt-1 grid grid-cols-3 gap-1.5">
           {STYLES.map((s) => (
@@ -183,7 +183,7 @@ function HeroComposition() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-xs h-eyebrow">Group bookings</div>
-          <p className="text-sm leading-snug">Bring the whole crew. Pre-wedding, birthdays, holidays — get the girls glowing together.</p>
+          <p className="text-sm leading-snug">Pre-weddings, birthdays, holidays. Book the whole group at once.</p>
         </div>
         <span className="chip text-[10px]">NEW</span>
       </div>

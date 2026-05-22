@@ -66,7 +66,7 @@ export default function Auth() {
             return;
           }
         }
-        toast.success("Welcome in 💛 Let's get you set up.");
+        toast.success("Welcome to Kichana. Let's get you set up.");
         nav(`/onboarding?role=${presetRole}`);
       } else {
         const { error } = await withTimeout(
@@ -81,7 +81,7 @@ export default function Auth() {
           }
           throw error;
         }
-        toast.success("Welcome back, gorgeous.");
+        toast.success("Welcome back.");
         nav(from || "/home");
       }
     } catch (err: any) {
@@ -118,8 +118,8 @@ export default function Auth() {
         <div className="mt-20">
           <h2 className="font-display text-5xl leading-tight">Built by women, for women.</h2>
           <p className="mt-4 text-cream/80 max-w-md">
-            A quick fade in South B. A 6-hour boho install in Lavington. The most trusted hands
-            in Nairobi — and the sisters who'll tell you the truth about them. All in one place.
+            A quick fade in South B. A 6-hour boho install in Lavington. Nairobi's most trusted
+            stylists, with honest reviews from the women who actually sat in the chair.
           </p>
         </div>
       </div>
@@ -131,9 +131,9 @@ export default function Auth() {
           {needsEmailConfirm ? (
             <div className="card p-6 text-center">
               <MailCheck className="h-10 w-10 mx-auto text-terracotta-600" />
-              <h1 className="font-display text-2xl mt-3">One quick check — your inbox.</h1>
+              <h1 className="font-display text-2xl mt-3">Check your inbox.</h1>
               <p className="text-mute text-sm mt-2">
-                We sent a confirmation link to <strong className="text-ink">{email}</strong>. Click it, then come right back here. We'll be waiting.
+                We sent a confirmation link to <strong className="text-ink">{email}</strong>. Click it, then come back to sign in.
               </p>
               <button onClick={resendConfirmation} className="btn-outline w-full mt-4 text-sm">Resend email</button>
               <button
@@ -143,9 +143,9 @@ export default function Auth() {
             </div>
           ) : (
             <>
-              <h1 className="font-display text-3xl">{mode === "signup" ? "Come on in." : "Welcome back, gorgeous."}</h1>
+              <h1 className="font-display text-3xl">{mode === "signup" ? "Create your account" : "Welcome back"}</h1>
               <p className="text-mute text-sm mt-1">
-                {mode === "signup" ? "Fastest way in — continue with Google." : "Pick up where you left off."}
+                {mode === "signup" ? "Continue with Google or use your email." : "Sign in to continue."}
               </p>
 
               <button onClick={signInWithGoogle} className="btn-outline w-full mt-5">

@@ -57,7 +57,7 @@ export default function GroupBooking() {
 
   return (
     <div className="pb-24 min-h-screen">
-      <PageHeader title="Group booking" subtitle="Bring the whole crew. Pre-wedding, birthdays, just-because. Everyone holds their own chair." back />
+      <PageHeader title="Group booking" subtitle="Pre-weddings, birthdays, holidays. Each person books and pays their own deposit." back />
       <div className="container-app">
         {!code ? (
           <div className="space-y-4">
@@ -82,7 +82,7 @@ export default function GroupBooking() {
           <div className="card p-6 text-center">
             <div className="h-eyebrow">Group code</div>
             <div className="font-display text-5xl mt-2 tracking-wider">{code}</div>
-            <p className="text-mute text-sm mt-3">Send this to your girls. Each of them books with this code and you're all set for the same day.</p>
+            <p className="text-mute text-sm mt-3">Share this code with your group. Each person books individually using it.</p>
             <button
               onClick={() => { navigator.clipboard.writeText(code); toast.success("Copied"); }}
               className="btn-outline mt-4"

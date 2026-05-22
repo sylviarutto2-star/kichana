@@ -162,7 +162,7 @@ export default function Business() {
       });
       if (error) throw error;
       setActivated((a) => ({ ...a, [offer.id]: true }));
-      toast.success(`"${offer.title}" is live ✨`);
+      toast.success(`"${offer.title}" is live.`);
     } catch (e: any) {
       console.error("Promotion activate failed:", e);
       toast.error(e?.message || "Couldn't activate this offer. Try again.");
@@ -197,9 +197,8 @@ export default function Business() {
           <div className="card p-4 bg-aubergine-700 text-cream flex items-start gap-3">
             <Sparkles className="h-5 w-5 shrink-0 mt-0.5" />
             <p className="text-sm">
-              This is a preview with sample numbers, so you can feel what's coming.
-              As real clients book you in, your dashboard fills with your story —
-              your revenue, your regulars, your growth.
+              This is a preview with sample numbers. As real bookings come in,
+              your dashboard fills with your own revenue, customers, and pipeline.
             </p>
           </div>
         )}
@@ -232,7 +231,7 @@ export default function Business() {
             <div className="mt-3 space-y-2">
               {stats.upcoming.length === 0 && (
                 <div className="card p-6 text-center text-mute text-sm">
-                  Calendar's quiet for now — the right clients are on their way.
+                  No upcoming bookings. Your pipeline will populate as clients book.
                 </div>
               )}
               {stats.upcoming.slice(0, 8).map((b) => (
@@ -263,7 +262,7 @@ export default function Business() {
             </SectionTitle>
             <div className="card p-5 mt-3 space-y-4">
               {stats.topServices.length === 0 && (
-                <p className="text-sm text-mute">No finished services yet — your best sellers will show up here once you're rolling.</p>
+                <p className="text-sm text-mute">No completed services yet. Top sellers appear here once you have bookings.</p>
               )}
               {stats.topServices.map((s, i) => (
                 <div key={s.title}>

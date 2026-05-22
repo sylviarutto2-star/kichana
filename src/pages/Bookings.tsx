@@ -65,7 +65,7 @@ export default function Bookings() {
       );
       if (error) throw error;
       if ((data as any)?.simulated) {
-        toast.success("Deposit in. Your chair is held 💛");
+        toast.success("Deposit received. Booking confirmed.");
         setRows((rs) => rs.map((r) => (r.id === b.id ? { ...r, status: "confirmed", payment_status: "deposit_paid" } : r)));
       } else if ((data as any)?.authorization_url) {
         window.location.href = (data as any).authorization_url;
@@ -98,10 +98,10 @@ export default function Bookings() {
 
         {!loading && filtered.length === 0 && (
           <div className="card p-8 text-center text-mute">
-            <div className="font-display text-xl text-ink">No bookings yet — your next look is waiting.</div>
-            <p className="text-sm mt-2">Find a stylist your girls would trust you with.</p>
+            <div className="font-display text-xl text-ink">No bookings yet</div>
+            <p className="text-sm mt-2">Browse stylists in Discover to book your first.</p>
             <div className="mt-4">
-              <Link to="/discover" className="btn-primary">Find your stylist</Link>
+              <Link to="/discover" className="btn-primary">Find a stylist</Link>
             </div>
           </div>
         )}

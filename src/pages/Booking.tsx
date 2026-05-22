@@ -250,7 +250,7 @@ export default function Booking() {
             </div>
 
             <div className="card p-5 space-y-2">
-              <p className="text-sm font-semibold">A small note on this deposit 💛</p>
+              <p className="text-sm font-semibold">A small note on this deposit</p>
               <p className="text-sm text-mute leading-relaxed">
                 This is a quiet agreement between women. We're building the most trusted
                 network of hair and beauty specialists in Kenya — and you're part of that

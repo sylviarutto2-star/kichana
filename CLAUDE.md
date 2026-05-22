@@ -12,6 +12,13 @@ causes. That stops here.
 - Payments: Paystack (deposits), with legacy M-Pesa STK code paths.
 - Main branch deploys to production automatically on merge.
 
+## Voice & tone
+
+Before writing any user-facing copy, read `docs/voice.md`. It's the contract
+for every string in the app. Hard rules: no pet-names ("babe", "gorgeous",
+"girlies"), no emoji except 💛 on the payment success screen, gender-neutral
+for stylists, action-oriented empty states.
+
 ## Where the important things live
 
 - Auth + profile loading: `src/contexts/AuthContext.tsx` — the single source
