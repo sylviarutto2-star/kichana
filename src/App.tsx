@@ -11,6 +11,7 @@ import NotFound from "@/pages/NotFound";
 
 const Waitlist = lazy(() => import("@/pages/Waitlist"));
 const Waitlisted = lazy(() => import("@/pages/Waitlisted"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const Home = lazy(() => import("@/pages/Home"));
 const Discover = lazy(() => import("@/pages/Discover"));
@@ -62,6 +63,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/waitlist" element={<Waitlist />} />
           <Route path="/waitlisted" element={<RequireAuth><Waitlisted /></RequireAuth>} />
           <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
