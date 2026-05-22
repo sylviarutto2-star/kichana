@@ -11,6 +11,27 @@ export const KES = (n: number) =>
 export const initials = (name?: string | null) =>
   (name || "").split(" ").map((s) => s[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "K";
 
+// Accepts Kenyan-style numbers: 07XX XXX XXX, 01XX…, or +254 / 254 prefixed.
+export function isValidPhone(raw: string) {
+  const digits = (raw || "").replace(/\D/g, "");
+  return digits.length >= 9 && digits.length <= 12;
+}
+
+// Race a promise against a timeout so the UI never hangs on a stuck network
+// call. Reject is the same shape supabase callers already handle via toast.
+export function withTimeout<T>(p: PromiseLike<T>, ms = 15000, label = "Request"): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(
+      () => reject(new Error(`${label} took too long — please check your connection and try again.`)),
+      ms,
+    );
+    Promise.resolve(p).then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
 export const NAIROBI_AREAS = [
   "Westlands", "Kilimani", "Lavington", "Karen", "Runda", "Parklands",
   "South B", "South C", "Langata", "Kileleshwa", "Hurlingham", "Upperhill",

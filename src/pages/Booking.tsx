@@ -4,9 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { demoServices, demoStylists, isDemo } from "@/lib/demoData";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
-import { KES, cn } from "@/lib/utils";
+import { KES, cn, withTimeout } from "@/lib/utils";
 import { addDays, format, setHours, setMinutes } from "date-fns";
-import { Check, Loader2, Smartphone } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Service, Stylist } from "@/lib/database.types";
 
@@ -15,7 +15,7 @@ export default function Booking() {
   const [params] = useSearchParams();
   const initialServiceId = params.get("service") || undefined;
   const nav = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
   const [stylist, setStylist] = useState<Stylist | null>(null);
   const [services, setServices] = useState<Service[]>([]);
@@ -25,7 +25,6 @@ export default function Booking() {
   const [time, setTime] = useState<string>("10:00");
   const [locationType, setLocationType] = useState<"salon" | "home">("salon");
   const [address, setAddress] = useState("");
-  const [phone, setPhone] = useState(profile?.phone || "");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -40,25 +39,44 @@ export default function Booking() {
           setServices(demoServices[stylistId] || []);
           return;
         }
-        const [{ data: s }, { data: svc }] = await Promise.all([
+        const [sRes, svcRes] = await Promise.all([
           supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
         ]);
         if (cancelled) return;
-        setStylist(s as any);
-        setServices((svc as Service[]) || []);
-      } catch {
-        if (!cancelled) toast.error("Couldn't load this stylist. Please try again.");
+        if (sRes.error) console.error("Booking: stylist lookup failed", sRes.error);
+        if (svcRes.error) console.error("Booking: services query failed", svcRes.error);
+        if (!sRes.data) {
+          toast.error("That stylist isn't available — try another from Discover.");
+          nav("/discover", { replace: true });
+          return;
+        }
+        setStylist(sRes.data as any);
+        setServices((svcRes.data as Service[]) || []);
+      } catch (e: any) {
+        console.error("Booking: load threw", e);
+        if (!cancelled) toast.error(e?.message || "Couldn't load this stylist. Please try again.");
       }
     })();
     return () => { cancelled = true; };
-  }, [stylistId]);
+  }, [stylistId, nav]);
 
   const service = useMemo(() => services.find((s) => s.id === serviceId), [services, serviceId]);
   const dates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
   const times = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00"];
 
-  const deposit = service ? Math.max(500, Math.round(service.price_kes * 0.3 / 100) * 100) : 0;
+  const deposit = service
+    ? Math.min(
+        service.price_kes,
+        Math.max(500, Math.round((service.price_kes * 0.3) / 100) * 100),
+      )
+    : 0;
+
+  // If user navigates back and the service is no longer selected, regress steps
+  // so they can't land on Review with a half-empty summary.
+  useEffect(() => {
+    if (step > 0 && !service) setStep(0);
+  }, [step, service]);
 
   const confirm = async () => {
     if (!user || !service || !stylist) return;
@@ -66,41 +84,67 @@ export default function Booking() {
       toast.error("This is a demo stylist. Please pick a real, onboarded stylist to book.");
       return;
     }
+    if (locationType === "home" && !address.trim()) {
+      toast.error("Please add an address for the home call.");
+      return;
+    }
+    const [h, m] = time.split(":").map(Number);
+    const scheduledDate = setMinutes(setHours(date, h), m);
+    if (scheduledDate.getTime() <= Date.now()) {
+      toast.error("That slot is in the past — pick a later time.");
+      return;
+    }
     setBusy(true);
     try {
-      const [h, m] = time.split(":").map(Number);
-      const scheduled = setMinutes(setHours(date, h), m).toISOString();
+      const scheduled = scheduledDate.toISOString();
 
-      const { data: booking, error } = await supabase
-        .from("bookings")
-        .insert({
-          customer_id: user.id,
-          stylist_id: stylist.id,
-          service_id: service.id,
-          scheduled_for: scheduled,
-          location_type: locationType,
-          address: locationType === "home" ? address : null,
-          amount_kes: service.price_kes,
-          deposit_kes: deposit,
-          notes,
-        })
-        .select()
-        .single();
+      const { data: booking, error } = await withTimeout(
+        supabase
+          .from("bookings")
+          .insert({
+            customer_id: user.id,
+            stylist_id: stylist.id,
+            service_id: service.id,
+            scheduled_for: scheduled,
+            location_type: locationType,
+            address: locationType === "home" ? address : null,
+            amount_kes: service.price_kes,
+            deposit_kes: deposit,
+            notes,
+          })
+          .select()
+          .single(),
+        15000,
+        "Saving booking",
+      );
       if (error) throw error;
 
-      // Trigger M-Pesa STK
-      const { data: mpesa, error: mErr } = await supabase.functions.invoke("mpesa-stk", {
-        body: { booking_id: booking.id, phone, amount: deposit },
-      });
-      if (mErr) {
+      // Start Paystack checkout
+      const { data: pay, error: pErr } = await withTimeout(
+        supabase.functions.invoke("paystack-initialize", {
+          body: {
+            booking_id: booking.id,
+            callback_url: `${window.location.origin}/payment/callback`,
+          },
+        }),
+        20000,
+        "Starting Paystack",
+      );
+      if (pErr) {
+        console.error("Paystack init failed:", pErr);
         toast.warning("Booking saved. Payment couldn't start — pay later in My Bookings.");
-      } else if ((mpesa as any)?.simulated) {
+        nav("/bookings");
+      } else if ((pay as any)?.simulated) {
         toast.success("Booking confirmed (demo). Check your bookings.");
+        nav("/bookings");
+      } else if ((pay as any)?.authorization_url) {
+        window.location.href = (pay as any).authorization_url;
       } else {
-        toast.success("Check your phone for the M-Pesa prompt 📲");
+        toast.warning("Booking saved. Payment couldn't start — pay later in My Bookings.");
+        nav("/bookings");
       }
-      nav("/bookings");
     } catch (e: any) {
+      console.error("Booking confirm failed:", e);
       toast.error(e.message || "Couldn't book. Try again.");
     } finally {
       setBusy(false);
@@ -205,20 +249,25 @@ export default function Booking() {
               <Row k="Balance (after service)" v={KES(service.price_kes - deposit)} muted />
             </div>
 
-            <div className="card p-5">
-              <div className="label">M-Pesa phone</div>
-              <div className="flex items-center gap-2">
-                <Smartphone className="h-5 w-5 text-mute" />
-                <input className="input flex-1" placeholder="07XX XXX XXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </div>
-              <p className="text-xs text-mute mt-2">You'll get an STK push to authorise the deposit.</p>
+            <div className="card p-5 space-y-2">
+              <p className="text-sm font-semibold">A small note on this deposit 💛</p>
+              <p className="text-sm text-mute leading-relaxed">
+                This is a quiet agreement between women. We're building the most trusted
+                network of hair and beauty specialists in Kenya — and you're part of that
+                by booking, showing up, and leaving an honest review afterwards.
+                Your stylist holds the chair for you. You hold up your end. That's how
+                we keep this thing ours.
+              </p>
+              <p className="text-xs text-mute pt-1">
+                Secure M-Pesa or card checkout via Paystack. Balance is paid after the service.
+              </p>
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="btn-outline">Back</button>
-              <button disabled={busy || !phone} onClick={confirm} className="btn-primary flex-1">
+              <button disabled={busy} onClick={confirm} className="btn-primary flex-1">
                 {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                Pay deposit & confirm
+                Lock it in & pay deposit
               </button>
             </div>
           </div>

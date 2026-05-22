@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { NAIROBI_AREAS, SERVICE_CATEGORIES } from "@/lib/utils";
 import { ArrowRight, Check, Instagram, MapPin, Sparkles } from "lucide-react";
 

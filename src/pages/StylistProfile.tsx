@@ -36,16 +36,20 @@ export default function StylistProfile() {
           setLoading(false);
           return;
         }
-        const [{ data: s }, { data: svc }, { data: pf }] = await Promise.all([
+        const [sRes, svcRes, pfRes] = await Promise.all([
           supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),
           supabase.from("portfolio_images").select("id, image_url").eq("stylist_id", id).order("sort_order").limit(12),
         ]);
         if (cancelled) return;
-        setStylist(s as any);
-        setServices((svc as Service[]) || []);
-        setPortfolio((pf as any) || []);
-      } catch {
+        if (sRes.error) console.error("StylistProfile: stylist query failed", sRes.error);
+        if (svcRes.error) console.error("StylistProfile: services query failed", svcRes.error);
+        if (pfRes.error) console.error("StylistProfile: portfolio query failed", pfRes.error);
+        setStylist(sRes.data as any);
+        setServices((svcRes.data as Service[]) || []);
+        setPortfolio((pfRes.data as any) || []);
+      } catch (e) {
+        console.error("StylistProfile: fetch threw", e);
         if (!cancelled) setError(true);
       } finally {
         if (!cancelled) setLoading(false);
@@ -58,8 +62,8 @@ export default function StylistProfile() {
   if (error || !stylist) {
     return (
       <div className="container-app py-16 text-center">
-        <div className="font-display text-3xl">Stylist not found</div>
-        <p className="text-mute mt-2 text-sm">This profile may have been removed or is unavailable.</p>
+        <div className="font-display text-3xl">We can't find this stylist.</div>
+        <p className="text-mute mt-2 text-sm">She may have stepped away from Kichana — but there are so many more we'd love you to meet.</p>
         <Link to="/discover" className="btn-primary mt-6 inline-flex">Back to Discover</Link>
       </div>
     );
@@ -119,7 +123,7 @@ export default function StylistProfile() {
               </div>
             </div>
           ))}
-          {services.length === 0 && <div className="text-mute text-sm">No services yet.</div>}
+          {services.length === 0 && <div className="text-mute text-sm">She hasn't listed services yet — check back soon.</div>}
         </div>
 
         <div className="flex items-center justify-between mt-8 mb-3">
@@ -130,7 +134,7 @@ export default function StylistProfile() {
           {portfolio.length > 0 ? (
             portfolio.map((p) => <img key={p.id} src={p.image_url} className="aspect-square rounded-xl object-cover" />)
           ) : (
-            <div className="col-span-3 text-mute text-sm">No portfolio images yet.</div>
+            <div className="col-span-3 text-mute text-sm">No portfolio shots yet — the work speaks for itself once she posts it.</div>
           )}
         </div>
 

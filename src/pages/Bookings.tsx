@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PageHeader } from "@/components/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { KES } from "@/lib/utils";
+import { KES, withTimeout } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -26,17 +26,22 @@ export default function Bookings() {
   }, [profile, nav]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("bookings")
           .select("*, services(title), stylists(display_name, base_location)")
           .eq("customer_id", user.id)
           .order("scheduled_for", { ascending: false });
+        if (error) {
+          console.error("Bookings: query failed", error);
+          if (!cancelled) toast.error(error.message || "Couldn't load your bookings.");
+        }
         if (!cancelled) setRows(data || []);
-      } catch {
+      } catch (e) {
+        console.error("Bookings: fetch threw", e);
         if (!cancelled) toast.error("Couldn't load your bookings. Please try again.");
       } finally {
         if (!cancelled) setLoading(false);
@@ -46,19 +51,26 @@ export default function Bookings() {
   }, [user]);
 
   const payDeposit = async (b: Row) => {
-    const phone = (profile?.phone || window.prompt("M-Pesa phone (07XX XXX XXX)") || "").trim();
-    if (!phone) return;
     setPayingId(b.id);
     try {
-      const { data, error } = await supabase.functions.invoke("mpesa-stk", {
-        body: { booking_id: b.id, phone, amount: b.deposit_kes },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke("paystack-initialize", {
+          body: {
+            booking_id: b.id,
+            callback_url: `${window.location.origin}/payment/callback`,
+          },
+        }),
+        20000,
+        "Starting Paystack",
+      );
       if (error) throw error;
       if ((data as any)?.simulated) {
-        toast.success("Deposit confirmed (demo).");
+        toast.success("Deposit in. Your chair is held 💛");
         setRows((rs) => rs.map((r) => (r.id === b.id ? { ...r, status: "confirmed", payment_status: "deposit_paid" } : r)));
+      } else if ((data as any)?.authorization_url) {
+        window.location.href = (data as any).authorization_url;
       } else {
-        toast.success("Check your phone for the M-Pesa prompt 📲");
+        toast.error("Couldn't start payment. Try again.");
       }
     } catch (e: any) {
       toast.error(e.message || "Couldn't start payment. Try again.");
@@ -86,9 +98,10 @@ export default function Bookings() {
 
         {!loading && filtered.length === 0 && (
           <div className="card p-8 text-center text-mute">
-            No bookings yet.
+            <div className="font-display text-xl text-ink">No bookings yet — your next look is waiting.</div>
+            <p className="text-sm mt-2">Find a stylist your girls would trust you with.</p>
             <div className="mt-4">
-              <Link to="/discover" className="btn-primary">Find a stylist</Link>
+              <Link to="/discover" className="btn-primary">Find your stylist</Link>
             </div>
           </div>
         )}

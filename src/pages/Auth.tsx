@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, MailCheck } from "lucide-react";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { withTimeout } from "@/lib/utils";
 
 export default function Auth() {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, profileLoaded } = useAuth();
   const [params] = useSearchParams();
   const presetRole = params.get("role") === "stylist" ? "stylist" : "customer";
 
@@ -19,10 +20,16 @@ export default function Auth() {
   const [busy, setBusy] = useState(false);
   const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
   const nav = useNavigate();
+  const loc = useLocation();
+  const from = (loc.state as { from?: string } | null)?.from;
 
   if (loading) return <LoadingScreen />;
   if (session) {
-    return <Navigate to={profile?.onboarding_complete ? "/home" : "/onboarding"} replace />;
+    // Never decide the destination from a transient null profile. Wait until
+    // the fetch resolves so already-onboarded users are not sent to /onboarding.
+    if (!profileLoaded) return <LoadingScreen />;
+    const dest = profile?.onboarding_complete ? (from || "/home") : "/onboarding";
+    return <Navigate to={dest} replace />;
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -30,31 +37,39 @@ export default function Auth() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await withTimeout(supabase.auth.signUp({
           email,
           password,
           options: {
             data: { full_name: name, intended_role: presetRole },
             emailRedirectTo: window.location.origin + "/onboarding",
           },
-        });
+        }), 15000, "Sign up");
         if (error) throw error;
 
         // The DB-level auto_confirm trigger already confirmed this user.
         // If Supabase didn't return a session (because mailer_autoconfirm
         // is off at the config level), sign them in directly.
         if (!data.session) {
-          const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+          const { error: signInErr } = await withTimeout(
+            supabase.auth.signInWithPassword({ email, password }),
+            15000,
+            "Sign in",
+          );
           if (signInErr) {
             // Last resort fallback: show the "check your email" card.
             setNeedsEmailConfirm(true);
             return;
           }
         }
-        toast.success("Welcome to Kichana!");
+        toast.success("Welcome in 💛 Let's get you set up.");
         nav(`/onboarding?role=${presetRole}`);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          15000,
+          "Sign in",
+        );
         if (error) {
           if (error.message.toLowerCase().includes("email not confirmed")) {
             setNeedsEmailConfirm(true);
@@ -62,8 +77,8 @@ export default function Auth() {
           }
           throw error;
         }
-        toast.success("Welcome back");
-        nav("/home");
+        toast.success("Welcome back, gorgeous.");
+        nav(from || "/home");
       }
     } catch (err: any) {
       // Surface the real error so we can debug
@@ -97,9 +112,10 @@ export default function Auth() {
       <div className="hidden md:block bg-aubergine-700 text-cream p-10">
         <Logo className="text-cream" />
         <div className="mt-20">
-          <h2 className="font-display text-5xl leading-tight">A new chapter for Nairobi hair.</h2>
+          <h2 className="font-display text-5xl leading-tight">Built by women, for women.</h2>
           <p className="mt-4 text-cream/80 max-w-md">
-            From a quick fade in South B to a 6-hour boho install in Lavington — book it all in one place.
+            A quick fade in South B. A 6-hour boho install in Lavington. The most trusted hands
+            in Nairobi — and the sisters who'll tell you the truth about them. All in one place.
           </p>
         </div>
       </div>
@@ -111,9 +127,9 @@ export default function Auth() {
           {needsEmailConfirm ? (
             <div className="card p-6 text-center">
               <MailCheck className="h-10 w-10 mx-auto text-terracotta-600" />
-              <h1 className="font-display text-2xl mt-3">Check your email</h1>
+              <h1 className="font-display text-2xl mt-3">One quick check — your inbox.</h1>
               <p className="text-mute text-sm mt-2">
-                We've sent a confirmation link to <strong className="text-ink">{email}</strong>. Click it to finish creating your account, then come back here to sign in.
+                We sent a confirmation link to <strong className="text-ink">{email}</strong>. Click it, then come right back here. We'll be waiting.
               </p>
               <button onClick={resendConfirmation} className="btn-outline w-full mt-4 text-sm">Resend email</button>
               <button
@@ -123,9 +139,9 @@ export default function Auth() {
             </div>
           ) : (
             <>
-              <h1 className="font-display text-3xl">{mode === "signup" ? "Create account" : "Welcome back"}</h1>
+              <h1 className="font-display text-3xl">{mode === "signup" ? "Come on in." : "Welcome back, gorgeous."}</h1>
               <p className="text-mute text-sm mt-1">
-                {mode === "signup" ? "Quickest way: continue with Google." : "Sign in to your account."}
+                {mode === "signup" ? "Fastest way in — continue with Google." : "Pick up where you left off."}
               </p>
 
               <button onClick={signInWithGoogle} className="btn-outline w-full mt-5">

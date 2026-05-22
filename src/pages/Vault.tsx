@@ -13,17 +13,22 @@ export default function Vault() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("vault_items")
           .select("*")
           .eq("owner_id", user.id)
           .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Vault: query failed", error);
+          if (!cancelled) toast.error(error.message || "Couldn't load your Vault.");
+        }
         if (!cancelled) setItems(data || []);
-      } catch {
+      } catch (e) {
+        console.error("Vault: fetch threw", e);
         if (!cancelled) toast.error("Couldn't load your Vault. Please try again.");
       } finally {
         if (!cancelled) setLoading(false);
@@ -33,8 +38,15 @@ export default function Vault() {
   }, [user]);
 
   const remove = async (id: string) => {
-    await supabase.from("vault_items").delete().eq("id", id);
+    if (!window.confirm("Remove this from your Vault?")) return;
+    const prev = items;
     setItems((s) => s.filter((x) => x.id !== id));
+    const { error } = await supabase.from("vault_items").delete().eq("id", id);
+    if (error) {
+      setItems(prev);
+      toast.error("Couldn't remove — try again.");
+      return;
+    }
     toast.success("Removed");
   };
 
@@ -45,7 +57,8 @@ export default function Vault() {
         {loading && <div className="skeleton h-72 rounded-3xl" />}
         {!loading && items.length === 0 && (
           <div className="card p-8 text-center text-mute">
-            Your Vault is empty. Tap <strong>Save</strong> on any post in the feed to add it here.
+            <div className="font-display text-xl text-ink">Your Vault is empty — for now.</div>
+            <p className="text-sm mt-2">Start saving the looks that move you. Tap <strong>Save</strong> on anything in the feed and your stylist will see exactly what you're dreaming about.</p>
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">

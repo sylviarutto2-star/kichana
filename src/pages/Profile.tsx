@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { LogOut, Award, Languages, Phone, MapPin, Settings, Scissors } from "lucide-react";
-import { NAIROBI_AREAS } from "@/lib/utils";
+import { NAIROBI_AREAS, isValidPhone, withTimeout } from "@/lib/utils";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function Profile() {
@@ -34,10 +34,28 @@ export default function Profile() {
     });
   }, [profile]);
 
+  const [saving, setSaving] = useState(false);
   const save = async () => {
     if (!user) return;
-    const { error } = await supabase.from("profiles").update(form).eq("id", user.id);
-    if (error) return toast.error(error.message);
+    if (form.phone && !isValidPhone(form.phone)) {
+      toast.error("Please enter a valid phone number.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await withTimeout(
+        supabase.from("profiles").update(form).eq("id", user.id),
+        15000,
+        "Saving profile",
+      );
+      if (error) { toast.error(error.message); setSaving(false); return; }
+    } catch (e: any) {
+      console.error("Profile save failed:", e);
+      toast.error(e.message || "Couldn't save");
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
     await refreshProfile();
     setEditing(false);
     toast.success("Saved");
@@ -51,8 +69,8 @@ export default function Profile() {
         <PageHeader title="Me" />
         <div className="container-app">
           <div className="card p-5 mt-4 text-sm space-y-3">
-            <div className="font-display text-lg">Finish setting up your account</div>
-            <p className="text-mute">We couldn't load your profile yet.</p>
+            <div className="font-display text-lg">Let's finish setting you up</div>
+            <p className="text-mute">A few quick details and you're in the door.</p>
             <button className="btn-primary w-full" onClick={() => nav("/onboarding")}>
               Complete onboarding
             </button>
@@ -113,7 +131,9 @@ export default function Profile() {
                 <Field label="Allergies" value={form.allergies} onChange={(v) => setForm({ ...form, allergies: v })} />
               </>
             )}
-            <button className="btn-primary w-full" onClick={save}>Save</button>
+            <button className="btn-primary w-full" onClick={save} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </button>
           </div>
         ) : (
           <div className="card p-5 mt-4 space-y-3 text-sm">

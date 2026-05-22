@@ -31,7 +31,8 @@ export default function Landing() {
             Hair, <em className="not-italic text-terracotta-600">brilliantly</em> booked.
           </h1>
           <p className="mt-5 text-lg text-mute max-w-md">
-            Discover Nairobi's best hairstylists, see their real work, book in seconds, and pay with M-Pesa.
+            The trusted network of hair and beauty specialists in Kenya — built by women, for women.
+            See their real work, hear from your girls, book in seconds, pay with M-Pesa.
             Braids, wigs, locs, naturals, nails, barber. Salon or at-home.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -52,9 +53,9 @@ export default function Landing() {
       </main>
 
       <section className="container-wide pb-16 grid md:grid-cols-3 gap-4">
-        <Feature icon={<Calendar className="h-5 w-5" />} title="Book in 30 seconds" body="Pick a stylist, a slot, pay deposit on M-Pesa. Done." />
-        <Feature icon={<Sparkles className="h-5 w-5" />} title="Real, verified work" body="Portfolios are built from actual completed bookings. No fake glow-ups." />
-        <Feature icon={<Shield className="h-5 w-5" />} title="Safe & secure" body="ID-verified stylists. Refund-protected deposits. Your data stays yours." />
+        <Feature icon={<Calendar className="h-5 w-5" />} title="Book in 30 seconds" body="Pick your girl, pick your slot, pay your deposit on M-Pesa. Done." />
+        <Feature icon={<Sparkles className="h-5 w-5" />} title="Real work, honest reviews" body="Portfolios from actual bookings. Reviews from women who actually sat in the chair. No filters, no faking." />
+        <Feature icon={<Shield className="h-5 w-5" />} title="Held in trust" body="ID-verified stylists. Refund-protected deposits. Your data stays yours — always." />
       </section>
 
       <section className="container-wide pb-20">
@@ -90,7 +91,7 @@ export default function Landing() {
         <div className="card relative overflow-hidden bg-aubergine-700 text-cream p-8 md:p-12">
           <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_85%_20%,rgba(216,168,90,0.5),transparent_50%)]" />
           <div className="relative max-w-lg">
-            <h2 className="font-display text-3xl md:text-4xl">Ready when you are.</h2>
+            <h2 className="font-display text-3xl md:text-4xl">We're saving you a seat.</h2>
             <p className="mt-3 text-cream/80">
               Join the Nairobi waitlist — 10% off your first booking when we open. Stylists, get priority onboarding and M-Pesa payouts from day one.
             </p>
@@ -142,7 +143,7 @@ function HeroComposition() {
           <span className="text-xs h-eyebrow">Hair Vault</span>
         </div>
         <p className="text-sm leading-snug">
-          Save inspirations. <span className="text-mute">Show your stylist exactly what you want — they see your saved looks before the appointment.</span>
+          Save the looks that move you. <span className="text-mute">Your stylist sees them before the appointment — no awkward Pinterest scroll in the chair.</span>
         </p>
         <div className="mt-1 grid grid-cols-3 gap-1.5">
           {STYLES.map((s) => (
@@ -182,7 +183,7 @@ function HeroComposition() {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-xs h-eyebrow">Group bookings</div>
-          <p className="text-sm leading-snug">Bring the girlies. Pre-wedding, birthdays, holidays — book the whole crew at once.</p>
+          <p className="text-sm leading-snug">Bring the whole crew. Pre-wedding, birthdays, holidays — get the girls glowing together.</p>
         </div>
         <span className="chip text-[10px]">NEW</span>
       </div>
