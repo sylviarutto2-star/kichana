@@ -65,12 +65,7 @@ export default function Booking() {
   const dates = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
   const times = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "17:00"];
 
-  const deposit = service
-    ? Math.min(
-        service.price_kes,
-        Math.max(500, Math.round((service.price_kes * 0.3) / 100) * 100),
-      )
-    : 0;
+  const deposit = service ? Math.round(service.price_kes * 0.1) : 0;
 
   // If user navigates back and the service is no longer selected, regress steps
   // so they can't land on Review with a half-empty summary.

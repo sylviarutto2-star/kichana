@@ -15,8 +15,8 @@ export default function Terms() {
       <h2>2. Bookings & payments</h2>
       <ul>
         <li>A booking is confirmed when the deposit is received via M-Pesa.</li>
-        <li>Deposit is typically 30% of the service price (minimum KES 500). Balance is paid to the stylist on completion.</li>
-        <li>Kichana takes a 10% commission on the booking value to operate the platform.</li>
+        <li>The deposit is 10% of the service price. Kichana retains the deposit as its platform fee.</li>
+        <li>The remaining 90% balance is paid directly to the stylist on completion of the service.</li>
       </ul>
 
       <h2>3. Cancellations & refunds</h2>
