@@ -102,7 +102,7 @@ export default function Bookings() {
   });
 
   return (
-    <div className="pb-28 min-h-screen">
+    <div className="pb-nav-cta min-h-screen">
       <PageHeader title="My bookings" />
       <div className="container-app">
         <div className="flex gap-2 mb-4">
@@ -138,7 +138,7 @@ export default function Bookings() {
                 <div className="text-right">
                   <Status s={b.status} />
                   <div className="font-display text-lg mt-2">{KES(b.amount_kes)}</div>
-                  <div className="text-[10px] text-mute uppercase">{(b.payment_status || "unpaid").replace("_", " ")}</div>
+                  <div className="text-[11px] text-mute uppercase">{(b.payment_status || "unpaid").replace("_", " ")}</div>
                 </div>
               </div>
               {(b.payment_status || "unpaid") === "unpaid" && !["cancelled", "completed", "no_show"].includes(b.status) && (
@@ -179,5 +179,5 @@ function Status({ s }: { s: string }) {
     cancelled: "bg-line text-mute",
     no_show: "bg-line text-mute",
   };
-  return <span className={`inline-block text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${map[s] || "bg-line"}`}>{s.replace("_", " ")}</span>;
+  return <span className={`inline-block text-[11px] uppercase tracking-wider rounded-full px-2 py-1 ${map[s] || "bg-line"}`}>{s.replace("_", " ")}</span>;
 }

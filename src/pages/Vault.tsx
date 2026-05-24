@@ -51,7 +51,7 @@ export default function Vault() {
   };
 
   return (
-    <div className="pb-28 min-h-screen">
+    <div className="pb-nav-cta min-h-screen">
       <PageHeader title="Hair Vault" subtitle="Save inspirations. Reference them when you book — the stylist sees exactly what you want." />
       <div className="container-app">
         {loading && <div className="skeleton h-72 rounded-3xl" />}
@@ -77,7 +77,7 @@ export default function Vault() {
               >
                 <Trash2 className="h-4 w-4 text-terracotta-600" />
               </button>
-              {it.category && <span className="absolute left-2 bottom-2 chip text-[10px]">{it.category}</span>}
+              {it.category && <span className="absolute left-2 bottom-2 chip text-[11px]">{it.category}</span>}
             </div>
           ))}
         </div>

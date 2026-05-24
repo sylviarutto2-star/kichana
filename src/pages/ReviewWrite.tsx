@@ -129,7 +129,7 @@ export default function ReviewWrite() {
 
   if (error) {
     return (
-      <div className="pb-24 min-h-screen">
+      <div className="pb-nav min-h-screen">
         <PageHeader title="Write a review" back />
         <div className="container-app">
           <div className="card p-8 text-center">
@@ -142,7 +142,7 @@ export default function ReviewWrite() {
   }
 
   return (
-    <div className="pb-24 min-h-screen">
+    <div className="pb-nav min-h-screen">
       <PageHeader title={existing ? "Edit your review" : "Write a review"} back />
       <div className="container-app">
         <div className="card p-5">

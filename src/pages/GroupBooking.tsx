@@ -56,7 +56,7 @@ export default function GroupBooking() {
   };
 
   return (
-    <div className="pb-24 min-h-screen">
+    <div className="pb-nav min-h-screen">
       <PageHeader title="Group booking" subtitle="Pre-weddings, birthdays, holidays. Each person books and pays their own deposit." back />
       <div className="container-app">
         {!code ? (

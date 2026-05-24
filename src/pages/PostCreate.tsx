@@ -57,7 +57,7 @@ export default function PostCreate() {
   };
 
   return (
-    <div className="pb-24 min-h-screen">
+    <div className="pb-nav min-h-screen">
       <PageHeader title="Post a look" subtitle="Photos auto-expire after 90 days." back />
       <div className="container-app space-y-4">
         <label className="card p-6 grid place-items-center text-center cursor-pointer">

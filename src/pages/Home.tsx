@@ -94,7 +94,7 @@ export default function Home() {
   };
 
   return (
-    <div className="pb-24 lg:pb-12 min-h-screen with-sidenav">
+    <div className="pb-nav lg:pb-12 min-h-screen with-sidenav">
       {/* Mobile header (sidebar shows logo on desktop) */}
       <header className="container-shell pt-6 flex items-center justify-between lg:hidden">
         <Logo />

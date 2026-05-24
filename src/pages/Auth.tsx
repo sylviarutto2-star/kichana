@@ -149,8 +149,8 @@ export default function Auth() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-6">
-        <div className="w-full max-w-sm">
+      <div className="flex items-center justify-center px-5 py-8 sm:p-6">
+        <div className="w-full max-w-md md:max-w-sm">
           <div className="md:hidden mb-8"><Logo /></div>
 
           {needsEmailConfirm ? (

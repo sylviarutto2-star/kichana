@@ -210,7 +210,7 @@ export default function Discover() {
   );
 
   return (
-    <div className="pb-28 lg:pb-12 min-h-screen with-sidenav">
+    <div className="pb-nav-cta lg:pb-12 min-h-screen with-sidenav">
       <div className="container-shell pt-6 lg:pt-10">
         <div className="flex items-end justify-between gap-4">
           <div>
