@@ -130,7 +130,7 @@ export default function Studio() {
   ];
 
   return (
-    <div className="pb-28 min-h-screen with-sidenav">
+    <div className="pb-nav-cta lg:pb-12 min-h-screen with-sidenav">
       <PageHeader
         title="Studio"
         subtitle={stylist.display_name || profile?.full_name || "Your business"}
@@ -144,7 +144,7 @@ export default function Studio() {
 
       <div className="container-shell">
         {/* KPI strip */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Stat label="Rating" value={`${Number(stylist.rating || 0).toFixed(1)}★`} sub={`${stylist.review_count || 0} reviews`} />
           <Stat label="Today" value={today.length} sub={`${upcoming.length} upcoming`} />
           <Stat label="Pipeline" value={KES(upcomingRevenue)} sub="next 30 days" />
@@ -152,7 +152,7 @@ export default function Studio() {
         </div>
 
         {/* Tabs */}
-        <div className="mt-5 overflow-x-auto no-scrollbar -mx-5 px-5">
+        <div className="mt-5 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-5 px-5">
           <div className="flex gap-2 min-w-max">
             {TABS.map((t) => {
               const active = tab === t.id;
@@ -161,7 +161,7 @@ export default function Studio() {
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition border",
+                    "snap-start inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition border",
                     active
                       ? "bg-ink text-cream border-ink"
                       : "bg-white text-ink border-line hover:bg-line/40",
@@ -251,7 +251,7 @@ function TodayTab({
               </div>
               <div className="text-right shrink-0">
                 <div className="font-display text-lg">{KES(b.amount_kes || 0)}</div>
-                <div className="text-[10px] uppercase text-mute tracking-wider">
+                <div className="text-[11px] uppercase text-mute tracking-wider">
                   {["deposit_paid", "paid"].includes(b.payment_status) ? "deposit paid" : "unpaid"}
                 </div>
               </div>
@@ -272,7 +272,7 @@ function TodayTab({
                   Mark complete
                 </button>
               )}
-              <span className="ml-auto chip text-[10px] uppercase tracking-wider">{b.status}</span>
+              <span className="ml-auto chip text-[11px] uppercase tracking-wider">{b.status}</span>
             </div>
           </div>
         ))}
@@ -459,11 +459,11 @@ function ServicesTab({
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="font-semibold truncate">{s.title}</div>
                   {s.intro_offer_active && (
-                    <span className="chip text-[10px] bg-mpesa-50 text-mpesa-700 border-mpesa-200">
+                    <span className="chip text-[11px] bg-mpesa-50 text-mpesa-700 border-mpesa-200">
                       Intro -{s.intro_offer_percent || 15}%
                     </span>
                   )}
-                  {!s.active && <span className="chip text-[10px]">Hidden</span>}
+                  {!s.active && <span className="chip text-[11px]">Hidden</span>}
                 </div>
                 <div className="text-xs text-mute mt-0.5">
                   {(SERVICE_CATEGORIES.find((c) => c.id === s.category)?.label) || s.category}
@@ -474,7 +474,7 @@ function ServicesTab({
                 {s.hair_type_tags?.length > 0 && (
                   <div className="flex gap-1 flex-wrap mt-2">
                     {s.hair_type_tags.map((h: string) => (
-                      <span key={h} className="text-[10px] px-1.5 py-0.5 rounded bg-line text-mute">{h}</span>
+                      <span key={h} className="text-[11px] px-1.5 py-0.5 rounded bg-line text-mute">{h}</span>
                     ))}
                   </div>
                 )}
@@ -634,7 +634,7 @@ function PortfolioTab({
               <div className="relative aspect-[4/5] bg-line">
                 <img src={it.image_url} alt={it.caption || "Portfolio"} className="w-full h-full object-cover" loading="lazy" />
                 {it.is_cover && (
-                  <span className="absolute top-2 left-2 chip-active text-[10px] tracking-wider">
+                  <span className="absolute top-2 left-2 chip-active text-[11px] tracking-wider">
                     <Star className="h-3 w-3" /> Cover
                   </span>
                 )}
@@ -806,7 +806,7 @@ function PoliciesTab({
         <div className="font-display text-lg">Booking policies</div>
         <p className="text-xs text-mute">Clients see these before they confirm. Clear policies = fewer no-shows.</p>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Free cancellation window (hours)">
           <input type="number" min={0} max={168} className="input"
             value={policies.cancellation_hours}
@@ -921,7 +921,7 @@ function ProfileTab({ stylist, onChange }: { stylist: any; onChange: (s: any) =>
           ))}
         </div>
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Default deposit (%)">
           <input type="number" min={0} max={100} className="input"
             value={form.deposit_percentage}
@@ -956,7 +956,7 @@ function ProfileTab({ stylist, onChange }: { stylist: any; onChange: (s: any) =>
 function Stat({ label, value, sub }: { label: string; value: any; sub?: string }) {
   return (
     <div className="card p-4">
-      <div className="text-[10px] uppercase tracking-wider text-mute">{label}</div>
+      <div className="text-[11px] uppercase tracking-wider text-mute">{label}</div>
       <div className="font-display text-2xl mt-1">{value}</div>
       {sub && <div className="text-[11px] text-mute mt-0.5">{sub}</div>}
     </div>
