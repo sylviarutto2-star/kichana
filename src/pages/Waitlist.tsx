@@ -201,6 +201,20 @@ function friendlyError(err: { code?: string; message?: string } | null) {
   return err.message || "Something went wrong. Please try again.";
 }
 
+async function sendConfirmation(args: { role: Role; email: string; full_name: string }) {
+  // Fire-and-forget: the waitlist row is already saved, so a failed
+  // confirmation email must not block the success UI. Errors are logged
+  // but never surfaced to the user.
+  try {
+    const { error } = await supabase.functions.invoke("send-waitlist-confirmation", {
+      body: args,
+    });
+    if (error) console.warn("send-waitlist-confirmation failed", error);
+  } catch (err) {
+    console.warn("send-waitlist-confirmation threw", err);
+  }
+}
+
 function CustomerForm() {
   const [full_name, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -231,6 +245,11 @@ function CustomerForm() {
       toast.error(friendlyError(error));
       return;
     }
+    void sendConfirmation({
+      role: "customer",
+      email: parsed.data.email.toLowerCase(),
+      full_name: parsed.data.full_name,
+    });
     toast.success("You're on the list — 10% off coming your way.");
     setDone(true);
   };
@@ -360,6 +379,11 @@ function StylistForm() {
       toast.error(friendlyError(error));
       return;
     }
+    void sendConfirmation({
+      role: "stylist",
+      email: parsed.data.email.toLowerCase(),
+      full_name: parsed.data.full_name,
+    });
     toast.success("Welcome — we'll be in touch before launch.");
     setDone(true);
   };
