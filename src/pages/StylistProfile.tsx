@@ -90,7 +90,7 @@ export default function StylistProfile() {
   }
 
   return (
-    <div className="pb-24 min-h-screen">
+    <div className="pb-nav min-h-screen">
       <div className="relative h-64 md:h-80">
         <SmartImage
           src={stylist.hero_image_url}

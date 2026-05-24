@@ -14,7 +14,10 @@ export function CookieBanner() {
     setShow(false);
   };
   return (
-    <div className="fixed bottom-4 inset-x-4 md:inset-x-auto md:right-6 md:bottom-6 md:max-w-sm z-50">
+    <div
+      className="fixed bottom-4 inset-x-4 md:inset-x-auto md:right-6 md:bottom-6 md:max-w-sm z-50"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="card p-4 shadow-pop">
         <p className="text-sm">
           We use essential cookies to keep you signed in and a tiny bit of optional analytics to improve the app. <Link to="/cookies" className="text-terracotta-600 underline">Read more</Link>.

@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { SmartImage } from "@/components/SmartImage";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin } from "lucide-react";
+import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin, Megaphone, BadgeCheck, Wallet } from "lucide-react";
 
 const STYLES = [
   { label: "Knotless braids", desc: "Box · boho · jumbo", src: "/landing/style-braids.webp" },
@@ -27,7 +27,7 @@ export default function Landing() {
       <main className="container-wide flex-1 grid md:grid-cols-2 gap-10 md:gap-16 items-center py-10">
         <div className="animate-fade-up">
           <p className="h-eyebrow mb-4">Built for Nairobi</p>
-          <h1 className="font-display text-5xl md:text-6xl leading-[1.02] tracking-tight">
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl leading-[1.02] tracking-tight">
             Hair, <em className="not-italic text-terracotta-600">brilliantly</em> booked.
           </h1>
           <p className="mt-5 text-lg text-mute max-w-md">
@@ -52,10 +52,27 @@ export default function Landing() {
         <HeroComposition />
       </main>
 
-      <section className="container-wide pb-16 grid md:grid-cols-3 gap-4">
+      <section className="container-wide pb-10 grid md:grid-cols-3 gap-4">
         <Feature icon={<Calendar className="h-5 w-5" />} title="Book in 30 seconds" body="Pick a stylist, pick a slot, pay your deposit on M-Pesa." />
         <Feature icon={<Sparkles className="h-5 w-5" />} title="Real work, honest reviews" body="Portfolios from actual bookings. Reviews from women who actually sat in the chair." />
         <Feature icon={<Shield className="h-5 w-5" />} title="Held in trust" body="ID-verified stylists. Refund-protected deposits. Your data stays yours." />
+      </section>
+
+      <section className="container-wide pb-16">
+        <div className="flex items-end justify-between mb-5">
+          <div>
+            <p className="h-eyebrow mb-2">For stylists</p>
+            <h2 className="font-display text-3xl md:text-4xl">We bring you the clients.</h2>
+          </div>
+          <Link to="/waitlist?role=stylist" className="btn-ghost text-sm hidden sm:inline-flex">
+            Join as a stylist <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Feature icon={<Megaphone className="h-5 w-5" />} title="We market you" body="Paid ads, Instagram features, and a launch spotlight — so your chair stays full." />
+          <Feature icon={<BadgeCheck className="h-5 w-5" />} title="Verified badge" body="ID and portfolio verification builds trust before clients even message you." />
+          <Feature icon={<Wallet className="h-5 w-5" />} title="M-Pesa payouts" body="Deposits land in your wallet on day one. No waiting on bank transfers." />
+        </div>
       </section>
 
       <section className="container-wide pb-20">
@@ -110,9 +127,9 @@ export default function Landing() {
 
 function HeroComposition() {
   return (
-    <div className="relative grid grid-cols-12 gap-3 md:gap-4 animate-fade-up">
+    <div className="relative grid grid-cols-1 sm:grid-cols-12 gap-3 md:gap-4 animate-fade-up">
       {/* Big stylist card */}
-      <div className="col-span-7 row-span-2 rounded-3xl overflow-hidden aspect-[4/5] relative shadow-card">
+      <div className="sm:col-span-7 sm:row-span-2 rounded-3xl overflow-hidden aspect-[4/5] relative shadow-card">
         <SmartImage
           src="/landing/hero.webp"
           fallbackKey="hero-featured"
@@ -120,64 +137,67 @@ function HeroComposition() {
           className="absolute inset-0 h-full w-full"
         />
         <div className="absolute inset-0 [background:linear-gradient(to_top,rgba(27,20,16,0.85),rgba(27,20,16,0.05)_55%,transparent)]" />
-        <div className="absolute top-4 left-4 chip text-[10px]">⭐ Featured</div>
+        <div className="absolute top-4 left-4 chip text-xs">⭐ Featured</div>
         <div className="absolute top-4 right-4 rounded-full bg-cream/95 px-2.5 py-1 text-xs font-semibold flex items-center gap-1">
           <Star className="h-3 w-3 fill-gold-500 text-gold-500" /> 4.9
         </div>
         <div className="absolute bottom-0 inset-x-0 p-4 text-cream">
           <div className="font-display text-xl">Amani Braids Studio</div>
           <div className="text-cream/80 text-xs flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3" /> Westlands · travels</div>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-wider text-cream/70">Knotless · boho · box</span>
-            <span className="rounded-full bg-cream text-ink text-xs font-semibold px-3 py-1">From KES 2,500</span>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="text-[11px] uppercase tracking-wider text-cream/70 truncate">Knotless · boho · box</span>
+            <span className="shrink-0 rounded-full bg-cream text-ink text-xs font-semibold px-3 py-1">From KES 2,500</span>
           </div>
         </div>
       </div>
 
-      {/* Vault USP card */}
-      <div className="col-span-5 card p-4 flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-xl bg-terracotta-50 text-terracotta-600">
-            <Bookmark className="h-4 w-4" />
+      {/* Right column: Vault + M-Pesa split the featured card's height */}
+      <div className="sm:col-span-5 sm:row-span-2 grid sm:grid-rows-2 gap-3 md:gap-4 min-h-0">
+        {/* Vault USP card */}
+        <div className="card p-4 flex flex-col gap-2 min-h-0 overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-terracotta-50 text-terracotta-600">
+              <Bookmark className="h-4 w-4" />
+            </div>
+            <span className="text-xs h-eyebrow">Hair Vault</span>
           </div>
-          <span className="text-xs h-eyebrow">Hair Vault</span>
+          <p className="text-sm leading-snug">
+            Save the looks you want. <span className="text-mute">Your stylist sees them before the appointment.</span>
+          </p>
+          <div className="mt-auto grid grid-cols-3 gap-1.5">
+            {STYLES.map((s) => (
+              <SmartImage
+                key={s.src}
+                src={s.src}
+                fallbackKey={s.label}
+                alt={s.label}
+                className="aspect-[4/3] rounded-lg"
+              />
+            ))}
+          </div>
         </div>
-        <p className="text-sm leading-snug">
-          Save the looks you want. <span className="text-mute">Your stylist sees them before the appointment — no Pinterest scroll in the chair.</span>
-        </p>
-        <div className="mt-1 grid grid-cols-3 gap-1.5">
-          {STYLES.map((s) => (
-            <SmartImage
-              key={s.src}
-              src={s.src}
-              fallbackKey={s.label}
-              alt={s.label}
-              className="aspect-square rounded-lg"
-            />
-          ))}
-        </div>
-      </div>
 
-      {/* M-Pesa USP */}
-      <div className="col-span-5 card p-4">
-        <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-xl bg-sage/20 text-sage">
-            <span className="font-bold text-xs">M</span>
+        {/* M-Pesa USP */}
+        <div className="card p-4 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-sage/20 text-sage">
+              <span className="font-bold text-xs">M</span>
+            </div>
+            <span className="text-xs h-eyebrow">M-Pesa</span>
           </div>
-          <span className="text-xs h-eyebrow">M-Pesa</span>
-        </div>
-        <p className="text-sm leading-snug mt-2">
-          One-tap deposit. Balance after the service.
-        </p>
-        <div className="mt-3 rounded-xl bg-ink text-cream p-3">
-          <div className="text-[10px] uppercase tracking-wider text-cream/60">STK Push</div>
-          <div className="font-display text-lg mt-0.5">KES 1,500</div>
-          <div className="text-[10px] text-cream/60">Pay 0712 345 678</div>
+          <p className="text-sm leading-snug mt-2">
+            One-tap deposit. Balance after the service.
+          </p>
+          <div className="mt-auto rounded-xl bg-ink text-cream p-3">
+            <div className="text-[11px] uppercase tracking-wider text-cream/60">STK Push</div>
+            <div className="font-display text-lg mt-0.5">KES 150</div>
+            <div className="text-[11px] text-cream/60">Pay 0712 345 678</div>
+          </div>
         </div>
       </div>
 
       {/* Group booking USP */}
-      <div className="col-span-12 card p-4 flex items-center gap-3">
+      <div className="sm:col-span-12 card p-4 flex items-center gap-3">
         <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/20 text-gold-500">
           <Heart className="h-5 w-5" />
         </div>
@@ -185,7 +205,7 @@ function HeroComposition() {
           <div className="text-xs h-eyebrow">Group bookings</div>
           <p className="text-sm leading-snug">Pre-weddings, birthdays, holidays. Book the whole group at once.</p>
         </div>
-        <span className="chip text-[10px]">NEW</span>
+        <span className="chip text-xs">NEW</span>
       </div>
     </div>
   );

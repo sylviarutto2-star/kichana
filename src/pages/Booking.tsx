@@ -152,7 +152,7 @@ export default function Booking() {
   };
 
   return (
-    <div className="pb-24 min-h-screen">
+    <div className="pb-nav min-h-screen">
       <PageHeader title="Book" subtitle={stylist?.display_name || "—"} back backTo="/discover" />
 
       <div className="container-app">
@@ -186,29 +186,29 @@ export default function Booking() {
         {step === 1 && (
           <div className="mt-6 animate-fade-up">
             <div className="label">Pick a day</div>
-            <div className="-mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar">
+            <div className="-mx-5 px-5 flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory">
               {dates.map((d) => (
                 <button
                   key={d.toISOString()}
                   onClick={() => setDate(d)}
                   className={cn(
-                    "shrink-0 rounded-2xl border px-3 py-2 text-center min-w-[70px]",
+                    "shrink-0 snap-start rounded-2xl border px-3 py-2.5 text-center min-w-[68px]",
                     format(d, "yyyy-MM-dd") === format(date, "yyyy-MM-dd")
                       ? "bg-ink text-cream border-ink"
                       : "bg-white border-line"
                   )}
                 >
-                  <div className="text-[10px] uppercase">{format(d, "EEE")}</div>
-                  <div className="font-display text-lg">{format(d, "d")}</div>
-                  <div className="text-[10px]">{format(d, "MMM")}</div>
+                  <div className="text-[11px] uppercase">{format(d, "EEE")}</div>
+                  <div className="font-display text-lg leading-none mt-0.5">{format(d, "d")}</div>
+                  <div className="text-[11px] mt-0.5">{format(d, "MMM")}</div>
                 </button>
               ))}
             </div>
 
             <div className="label mt-6">Time</div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {times.map((t) => (
-                <button key={t} onClick={() => setTime(t)} className={cn(t === time ? "chip-active" : "chip", "justify-center")}>{t}</button>
+                <button key={t} onClick={() => setTime(t)} className={cn(t === time ? "chip-active" : "chip", "justify-center py-2.5")}>{t}</button>
               ))}
             </div>
 

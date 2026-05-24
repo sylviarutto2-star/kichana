@@ -31,7 +31,7 @@ export default function PaymentCallback() {
   }, [params]);
 
   return (
-    <div className="pb-24 min-h-screen">
+    <div className="pb-nav min-h-screen">
       <PageHeader title="Payment" />
       <div className="container-app">
         <div className="card p-8 text-center mt-6 flex flex-col items-center gap-4">

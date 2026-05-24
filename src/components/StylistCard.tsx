@@ -40,7 +40,7 @@ export function StylistCard({
           imgClassName="transition-transform duration-500 group-hover:scale-[1.03]"
         />
         {s.featured_until && new Date(s.featured_until) > new Date() && (
-          <span className="absolute left-3 top-3 rounded-full bg-gold-500 text-ink text-[10px] font-bold uppercase tracking-wider px-2 py-1 z-10">
+          <span className="absolute left-3 top-3 rounded-full bg-gold-500 text-ink text-[11px] font-bold uppercase tracking-wider px-2 py-1 z-10">
             Featured
           </span>
         )}
@@ -58,7 +58,7 @@ export function StylistCard({
           />
         </div>
         {/* Next-available pill */}
-        <div className="absolute right-3 bottom-3 z-10 rounded-full bg-ink/85 text-cream text-[10px] font-semibold px-2.5 py-1 flex items-center gap-1 backdrop-blur">
+        <div className="absolute right-3 bottom-3 z-10 rounded-full bg-ink/85 text-cream text-[11px] font-semibold px-2.5 py-1 flex items-center gap-1 backdrop-blur">
           <Clock className="h-3 w-3" /> {nextSlot}
         </div>
       </div>
@@ -78,7 +78,7 @@ export function StylistCard({
           </div>
           {fromKes != null && Number.isFinite(fromKes) && (
             <div className="text-right shrink-0">
-              <div className="text-[10px] uppercase text-mute leading-none">from</div>
+              <div className="text-[11px] uppercase text-mute leading-none">from</div>
               <div className="font-display text-base leading-tight">{KES(fromKes)}</div>
             </div>
           )}
@@ -96,7 +96,7 @@ export function StylistCard({
             {s.specialties.slice(0, 3).map((sp) => (
               <span
                 key={sp}
-                className="text-[10px] uppercase tracking-wider text-mute"
+                className="text-[11px] uppercase tracking-wider text-mute"
               >
                 {sp}
               </span>

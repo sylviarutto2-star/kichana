@@ -65,7 +65,7 @@ export default function Profile() {
 
   if (!profile) {
     return (
-      <div className="pb-28 min-h-screen">
+      <div className="pb-nav-cta min-h-screen">
         <PageHeader title="Me" />
         <div className="container-app">
           <div className="card p-5 mt-4 text-sm space-y-3">
@@ -85,7 +85,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="pb-28 min-h-screen">
+    <div className="pb-nav-cta min-h-screen">
       <PageHeader title="Me" />
       <div className="container-app">
         <div className="card p-5 flex items-center gap-4">

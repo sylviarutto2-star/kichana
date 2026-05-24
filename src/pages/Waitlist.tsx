@@ -6,7 +6,7 @@ import { Logo } from "@/components/Logo";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/lib/supabase";
 import { NAIROBI_AREAS, SERVICE_CATEGORIES } from "@/lib/utils";
-import { ArrowRight, Check, Instagram, MapPin, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Instagram, MapPin, Sparkles, User, Scissors, Megaphone } from "lucide-react";
 
 type Role = "customer" | "stylist";
 
@@ -62,37 +62,60 @@ export default function Waitlist() {
             Be first in the chair when{" "}
             <em className="not-italic text-terracotta-600">Kichana</em> opens.
           </h1>
-          <p className="mt-5 text-lg text-mute max-w-md">
-            We're launching in Nairobi soon. Sign up to get early access — customers get{" "}
-            <span className="font-semibold text-ink">10% off their first booking</span>,
-            stylists get priority onboarding.
-          </p>
+          {role === "customer" ? (
+            <p className="mt-5 text-lg text-mute max-w-md">
+              We're launching in Nairobi soon. Sign up for early access and{" "}
+              <span className="font-semibold text-ink">10% off your first booking</span>{" "}
+              on the day we open.
+            </p>
+          ) : (
+            <p className="mt-5 text-lg text-mute max-w-md">
+              We're launching in Nairobi soon. Stylists who join the waitlist get our{" "}
+              <span className="font-semibold text-ink">launch offer</span>: 0% commission
+              for your first 30 days, featured placement at launch, and a feature on{" "}
+              <span className="font-semibold text-ink">@kichana</span> on Instagram.
+            </p>
+          )}
 
-          <div className="mt-8 inline-flex rounded-2xl border border-line bg-white p-1">
-            <RoleTab active={role === "customer"} onClick={() => setRole("customer")}>
-              I'm a customer
-            </RoleTab>
-            <RoleTab active={role === "stylist"} onClick={() => setRole("stylist")}>
-              I'm a stylist
-            </RoleTab>
+          <p className="mt-8 text-sm font-semibold text-ink">Two ways to join. Pick the one that's you.</p>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
+            <RoleCard
+              active={role === "customer"}
+              onClick={() => setRole("customer")}
+              icon={<User className="h-5 w-5" />}
+              title="I'm a customer"
+              desc="Book Nairobi's best stylists."
+            />
+            <RoleCard
+              active={role === "stylist"}
+              onClick={() => setRole("stylist")}
+              icon={<Scissors className="h-5 w-5" />}
+              title="I'm a stylist"
+              desc="Get booked. Grow your business."
+            />
           </div>
 
           <ul className="mt-8 space-y-3 text-sm text-mute max-w-md">
             <Perk icon={<Sparkles className="h-4 w-4" />}>
               {role === "customer"
                 ? "10% off your first booking on launch day."
-                : "Free verified-stylist badge for early signups."}
+                : "0% commission for your first 30 days."}
             </Perk>
             <Perk icon={<MapPin className="h-4 w-4" />}>
               {role === "customer"
                 ? "Book Nairobi's best — salon or at-home."
-                : "Get matched with clients in your area first."}
+                : "Featured placement at launch + a feature on @kichana."}
             </Perk>
             <Perk icon={<Check className="h-4 w-4" />}>
               {role === "customer"
                 ? "We'll email you the moment we open."
                 : "M-Pesa payouts and a verified portfolio from day one."}
             </Perk>
+            {role === "stylist" && (
+              <Perk icon={<Megaphone className="h-4 w-4" />}>
+                We market your chair: paid ads + Instagram features keep it full.
+              </Perk>
+            )}
           </ul>
         </div>
 
@@ -106,25 +129,41 @@ export default function Waitlist() {
   );
 }
 
-function RoleTab({
+function RoleCard({
   active,
   onClick,
-  children,
+  icon,
+  title,
+  desc,
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={
-        "rounded-xl px-4 py-2 text-sm font-semibold transition " +
-        (active ? "bg-ink text-cream" : "text-mute hover:text-ink")
+        "rounded-2xl border-2 p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-300 " +
+        (active
+          ? "border-terracotta-500 bg-terracotta-50 shadow-card"
+          : "border-line bg-white hover:border-terracotta-200")
       }
     >
-      {children}
+      <div
+        className={
+          "grid h-9 w-9 place-items-center rounded-xl " +
+          (active ? "bg-terracotta-600 text-cream" : "bg-terracotta-50 text-terracotta-600")
+        }
+      >
+        {icon}
+      </div>
+      <div className="mt-3 font-semibold">{title}</div>
+      <div className="text-xs text-mute mt-1">{desc}</div>
     </button>
   );
 }
@@ -162,6 +201,20 @@ function friendlyError(err: { code?: string; message?: string } | null) {
   return err.message || "Something went wrong. Please try again.";
 }
 
+async function sendConfirmation(args: { role: Role; email: string; full_name: string }) {
+  // Fire-and-forget: the waitlist row is already saved, so a failed
+  // confirmation email must not block the success UI. Errors are logged
+  // but never surfaced to the user.
+  try {
+    const { error } = await supabase.functions.invoke("send-waitlist-confirmation", {
+      body: args,
+    });
+    if (error) console.warn("send-waitlist-confirmation failed", error);
+  } catch (err) {
+    console.warn("send-waitlist-confirmation threw", err);
+  }
+}
+
 function CustomerForm() {
   const [full_name, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -192,6 +245,11 @@ function CustomerForm() {
       toast.error(friendlyError(error));
       return;
     }
+    void sendConfirmation({
+      role: "customer",
+      email: parsed.data.email.toLowerCase(),
+      full_name: parsed.data.full_name,
+    });
     toast.success("You're on the list — 10% off coming your way.");
     setDone(true);
   };
@@ -321,6 +379,11 @@ function StylistForm() {
       toast.error(friendlyError(error));
       return;
     }
+    void sendConfirmation({
+      role: "stylist",
+      email: parsed.data.email.toLowerCase(),
+      full_name: parsed.data.full_name,
+    });
     toast.success("Welcome — we'll be in touch before launch.");
     setDone(true);
   };
@@ -330,7 +393,8 @@ function StylistForm() {
       <div>
         <h2 className="font-display text-2xl">Stylist waitlist</h2>
         <p className="text-sm text-mute mt-1">
-          Tell us about you and we'll prioritise your onboarding before launch day.
+          Your launch offer: 0% commission for 30 days, featured placement at launch,
+          and a feature on @kichana.
         </p>
       </div>
 

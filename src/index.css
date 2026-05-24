@@ -57,6 +57,15 @@ h1, h2, h3, h4 {
   .nav-bottom {
     @apply fixed bottom-0 inset-x-0 z-40 mx-auto max-w-md border-t border-line bg-cream/95 backdrop-blur lg:hidden;
   }
+  /* Single source of truth for bottom-nav clearance on mobile.
+     Nav rows are ~64px (py-3 + icon + label); add safe-area inset for notched
+     devices and a small breathing buffer. Desktop uses the side nav so the
+     padding collapses to 0 above lg. */
+  .pb-nav { padding-bottom: calc(env(safe-area-inset-bottom) + 5.5rem); }
+  @screen lg { .pb-nav { padding-bottom: 0; } }
+  /* Pages with a sticky CTA above the bottom nav need extra room. */
+  .pb-nav-cta { padding-bottom: calc(env(safe-area-inset-bottom) + 8rem); }
+  @screen lg { .pb-nav-cta { padding-bottom: 0; } }
   .nav-side {
     @apply hidden lg:flex fixed left-0 top-0 bottom-0 z-40 w-60 flex-col border-r border-line bg-cream/95 backdrop-blur px-4 py-6;
   }
