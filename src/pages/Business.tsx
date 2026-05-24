@@ -181,13 +181,13 @@ export default function Business() {
   const reachable = customers.filter((c) => c.optIn).length;
 
   return (
-    <div className="pb-28 lg:pb-12 min-h-screen with-sidenav">
+    <div className="pb-nav-cta lg:pb-12 min-h-screen with-sidenav">
       <PageHeader
         title="Business"
         subtitle={stylist?.display_name || profile?.full_name || "Your business"}
         right={
           isDemo ? (
-            <span className="hidden lg:inline chip text-[10px]">Sample data</span>
+            <span className="hidden lg:inline chip text-[11px]">Sample data</span>
           ) : undefined
         }
       />
@@ -316,7 +316,7 @@ export default function Business() {
             Customer database
           </SectionTitle>
           <div className="card mt-3 overflow-hidden">
-            <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-3 border-b border-line text-[10px] uppercase tracking-wider text-mute font-semibold">
+            <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-mute font-semibold">
               <span>Customer</span>
               <span className="text-right">Visits</span>
               <span className="text-right">Spent</span>
@@ -325,7 +325,7 @@ export default function Business() {
             {customers.map((c) => (
               <div
                 key={c.id}
-                className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-3 border-b border-line last:border-0 items-center"
+                className="flex flex-col gap-2 px-4 py-3 border-b border-line last:border-0 sm:grid sm:grid-cols-[1fr_auto_auto_auto] sm:gap-3 sm:items-center"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar src={c.avatar} name={c.name} size={32} />
@@ -336,15 +336,21 @@ export default function Business() {
                         <Cake className="h-3.5 w-3.5 text-terracotta-600" />
                       )}
                     </div>
-                    <div className="text-[11px] text-mute truncate">
+                    <div className="text-xs text-mute truncate">
                       {c.optIn ? "Reachable" : "Not opted in"}
                       {c.phone ? ` · ${c.phone}` : ""}
                     </div>
                   </div>
                 </div>
-                <span className="text-sm text-right">{c.visits}</span>
-                <span className="text-sm text-right font-medium">{KES(c.spent)}</span>
-                <span className="text-xs text-mute text-right">
+                {/* Mobile: meta strip; sm+ each becomes its own column */}
+                <span className="text-xs text-mute sm:hidden flex items-center gap-3 pl-10">
+                  <span><span className="font-medium text-ink">{c.visits}</span> visits</span>
+                  <span><span className="font-medium text-ink">{KES(c.spent)}</span></span>
+                  <span>{c.lastDays === 0 ? "Today" : `${c.lastDays}d ago`}</span>
+                </span>
+                <span className="hidden sm:inline text-sm text-right">{c.visits}</span>
+                <span className="hidden sm:inline text-sm text-right font-medium">{KES(c.spent)}</span>
+                <span className="hidden sm:inline text-xs text-mute text-right">
                   {c.lastDays === 0 ? "Today" : `${c.lastDays}d ago`}
                 </span>
               </div>
@@ -657,7 +663,7 @@ function Kpi({
     <div className={cn("card p-4", accent && "bg-aubergine-700 text-cream")}>
       <div
         className={cn(
-          "text-[10px] uppercase tracking-wider",
+          "text-[11px] uppercase tracking-wider",
           accent ? "text-cream/70" : "text-mute"
         )}
       >
@@ -709,7 +715,7 @@ function OfferCard({
   return (
     <div className="card p-5 flex flex-col">
       <div className="flex items-start justify-between gap-2">
-        <span className="chip text-[10px]">{offer.tag}</span>
+        <span className="chip text-[11px]">{offer.tag}</span>
         <span className="font-display text-lg text-terracotta-600">
           {offer.discount}% off
         </span>
