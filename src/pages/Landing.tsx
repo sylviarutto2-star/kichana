@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { SmartImage } from "@/components/SmartImage";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin } from "lucide-react";
+import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin, Megaphone, BadgeCheck, Wallet } from "lucide-react";
 
 const STYLES = [
   { label: "Knotless braids", desc: "Box · boho · jumbo", src: "/landing/style-braids.webp" },
@@ -52,10 +52,27 @@ export default function Landing() {
         <HeroComposition />
       </main>
 
-      <section className="container-wide pb-16 grid md:grid-cols-3 gap-4">
+      <section className="container-wide pb-10 grid md:grid-cols-3 gap-4">
         <Feature icon={<Calendar className="h-5 w-5" />} title="Book in 30 seconds" body="Pick a stylist, pick a slot, pay your deposit on M-Pesa." />
         <Feature icon={<Sparkles className="h-5 w-5" />} title="Real work, honest reviews" body="Portfolios from actual bookings. Reviews from women who actually sat in the chair." />
         <Feature icon={<Shield className="h-5 w-5" />} title="Held in trust" body="ID-verified stylists. Refund-protected deposits. Your data stays yours." />
+      </section>
+
+      <section className="container-wide pb-16">
+        <div className="flex items-end justify-between mb-5">
+          <div>
+            <p className="h-eyebrow mb-2">For stylists</p>
+            <h2 className="font-display text-3xl md:text-4xl">We bring you the clients.</h2>
+          </div>
+          <Link to="/waitlist?role=stylist" className="btn-ghost text-sm hidden sm:inline-flex">
+            Join as a stylist <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          <Feature icon={<Megaphone className="h-5 w-5" />} title="We market you" body="Paid ads, Instagram features, and a launch spotlight — so your chair stays full." />
+          <Feature icon={<BadgeCheck className="h-5 w-5" />} title="Verified badge" body="ID and portfolio verification builds trust before clients even message you." />
+          <Feature icon={<Wallet className="h-5 w-5" />} title="M-Pesa payouts" body="Deposits land in your wallet on day one. No waiting on bank transfers." />
+        </div>
       </section>
 
       <section className="container-wide pb-20">
