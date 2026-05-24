@@ -134,45 +134,48 @@ function HeroComposition() {
         </div>
       </div>
 
-      {/* Vault USP card */}
-      <div className="sm:col-span-5 card p-4 flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-xl bg-terracotta-50 text-terracotta-600">
-            <Bookmark className="h-4 w-4" />
+      {/* Right column: Vault + M-Pesa split the featured card's height */}
+      <div className="sm:col-span-5 sm:row-span-2 grid sm:grid-rows-2 gap-3 md:gap-4 min-h-0">
+        {/* Vault USP card */}
+        <div className="card p-4 flex flex-col gap-2 min-h-0 overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-terracotta-50 text-terracotta-600">
+              <Bookmark className="h-4 w-4" />
+            </div>
+            <span className="text-xs h-eyebrow">Hair Vault</span>
           </div>
-          <span className="text-xs h-eyebrow">Hair Vault</span>
+          <p className="text-sm leading-snug">
+            Save the looks you want. <span className="text-mute">Your stylist sees them before the appointment.</span>
+          </p>
+          <div className="mt-auto grid grid-cols-3 gap-1.5">
+            {STYLES.map((s) => (
+              <SmartImage
+                key={s.src}
+                src={s.src}
+                fallbackKey={s.label}
+                alt={s.label}
+                className="aspect-[4/3] rounded-lg"
+              />
+            ))}
+          </div>
         </div>
-        <p className="text-sm leading-snug">
-          Save the looks you want. <span className="text-mute">Your stylist sees them before the appointment — no Pinterest scroll in the chair.</span>
-        </p>
-        <div className="mt-1 grid grid-cols-3 gap-1.5">
-          {STYLES.map((s) => (
-            <SmartImage
-              key={s.src}
-              src={s.src}
-              fallbackKey={s.label}
-              alt={s.label}
-              className="aspect-square rounded-lg"
-            />
-          ))}
-        </div>
-      </div>
 
-      {/* M-Pesa USP */}
-      <div className="sm:col-span-5 card p-4">
-        <div className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-xl bg-sage/20 text-sage">
-            <span className="font-bold text-xs">M</span>
+        {/* M-Pesa USP */}
+        <div className="card p-4 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-sage/20 text-sage">
+              <span className="font-bold text-xs">M</span>
+            </div>
+            <span className="text-xs h-eyebrow">M-Pesa</span>
           </div>
-          <span className="text-xs h-eyebrow">M-Pesa</span>
-        </div>
-        <p className="text-sm leading-snug mt-2">
-          One-tap deposit. Balance after the service.
-        </p>
-        <div className="mt-3 rounded-xl bg-ink text-cream p-3">
-          <div className="text-[11px] uppercase tracking-wider text-cream/60">STK Push</div>
-          <div className="font-display text-lg mt-0.5">KES 1,500</div>
-          <div className="text-[11px] text-cream/60">Pay 0712 345 678</div>
+          <p className="text-sm leading-snug mt-2">
+            One-tap deposit. Balance after the service.
+          </p>
+          <div className="mt-auto rounded-xl bg-ink text-cream p-3">
+            <div className="text-[11px] uppercase tracking-wider text-cream/60">STK Push</div>
+            <div className="font-display text-lg mt-0.5">KES 150</div>
+            <div className="text-[11px] text-cream/60">Pay 0712 345 678</div>
+          </div>
         </div>
       </div>
 
