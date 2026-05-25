@@ -42,12 +42,24 @@ Deno.serve(async (req) => {
 
     const { data: booking, error: bErr } = await sb
       .from("bookings")
-      .select("id, customer_id, status, scheduled_for, created_at, deposit_kes, payment_status, paystack_reference, refund_status")
+      .select("id, customer_id, stylist_id, status, scheduled_for, created_at, deposit_kes, payment_status, paystack_reference, refund_status")
       .eq("id", booking_id)
       .maybeSingle();
 
     if (bErr || !booking) return json({ error: "Booking not found" }, 404);
-    if (booking.customer_id !== user.id) return json({ error: "Not your booking" }, 403);
+
+    const isCustomer = booking.customer_id === user.id;
+    let isStylist = false;
+    if (!isCustomer) {
+      const { data: stylistRow } = await sb
+        .from("stylists")
+        .select("profile_id")
+        .eq("id", booking.stylist_id)
+        .maybeSingle();
+      isStylist = stylistRow?.profile_id === user.id;
+    }
+    if (!isCustomer && !isStylist) return json({ error: "Not your booking" }, 403);
+
     if (booking.status === "cancelled") return json({ error: "Already cancelled" }, 409);
     if (booking.status === "completed" || booking.status === "in_progress") {
       return json({ error: "Can't cancel an appointment that's started or completed" }, 409);
@@ -58,18 +70,17 @@ Deno.serve(async (req) => {
     const scheduledMs = new Date(booking.scheduled_for).getTime();
     const inGrace = now - createdMs <= GRACE_AFTER_CREATE_MS;
     const beforeWindow = scheduledMs - now >= REFUND_WINDOW_BEFORE_MS;
-    const eligible = inGrace || beforeWindow;
+    // Stylist-initiated cancels always refund the customer in full — it's
+    // the stylist who broke the appointment, not the customer.
+    const eligible = isStylist ? true : (inGrace || beforeWindow);
 
     const wasPaid = booking.payment_status === "deposit_paid" || booking.payment_status === "paid";
     const shouldRefund = eligible && wasPaid;
 
-    // Always mark cancelled first — even if Paystack refund fails, the
-    // booking should free the slot. Refund state is tracked separately so
-    // we can retry/dispute without losing the cancellation.
     const { error: cErr } = await sb.from("bookings").update({
       status: "cancelled",
       cancelled_at: new Date().toISOString(),
-      cancelled_by: "customer",
+      cancelled_by: isStylist ? "stylist" : "customer",
     }).eq("id", booking_id);
     if (cErr) return json({ error: "Cancel failed", details: cErr.message }, 500);
 

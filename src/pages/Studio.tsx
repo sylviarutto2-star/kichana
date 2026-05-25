@@ -214,6 +214,29 @@ function TodayTab({
 }: { bookings: any[]; upcoming: any[]; onChange: (b: any[]) => void }) {
   const setStatus = async (id: string, status: string) => {
     try {
+      // Cancellations go through cancel-booking so a paid client gets a
+      // refund (stylist-initiated cancels always refund in full). Other
+      // status transitions (confirm / complete) are direct updates.
+      if (status === "cancelled") {
+        const { data, error } = await withTimeout(
+          supabase.functions.invoke("cancel-booking", { body: { booking_id: id } }),
+          20000, "Cancelling booking",
+        );
+        if (error) throw error;
+        const res = data as any;
+        onChange(bookings.map((b) => (b.id === id
+          ? { ...b, status: "cancelled", refund_status: res?.refunded ? "refunded" : res?.pending ? "pending" : "none" }
+          : b)));
+        if (res?.refunded) {
+          toast.success(res.simulated ? "Declined. Deposit refunded (demo)." : "Declined. Deposit refunded to the client.");
+        } else if (res?.pending) {
+          toast.success("Declined. We'll process the client's refund within 48 hours.");
+        } else {
+          toast.success("Booking declined.");
+        }
+        return;
+      }
+
       const { error } = await withTimeout(
         supabase.from("bookings" as any).update({ status }).eq("id", id),
         15000, "Updating booking",
