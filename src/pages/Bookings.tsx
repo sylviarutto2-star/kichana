@@ -46,6 +46,10 @@ export default function Bookings() {
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [disputeForId, setDisputeForId] = useState<string | null>(null);
+  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [reDate, setReDate] = useState("");
+  const [reTime, setReTime] = useState("");
+  const [reSaving, setReSaving] = useState(false);
 
   useEffect(() => {
     if (profile?.role === "stylist") nav("/studio", { replace: true });
@@ -152,6 +156,42 @@ export default function Bookings() {
   });
 
   const confirmFor = confirmCancelId ? rows.find((r) => r.id === confirmCancelId) : null;
+  const rescheduleFor = rescheduleId ? rows.find((r) => r.id === rescheduleId) : null;
+
+  const openReschedule = (b: Row) => {
+    const d = new Date(b.scheduled_for);
+    setReDate(format(d, "yyyy-MM-dd"));
+    setReTime(format(d, "HH:mm"));
+    setRescheduleId(b.id);
+  };
+
+  const saveReschedule = async () => {
+    if (!rescheduleFor) return;
+    if (!reDate || !reTime) {
+      toast.error("Pick a date and time.");
+      return;
+    }
+    const newWhen = new Date(`${reDate}T${reTime}:00`);
+    if (isNaN(newWhen.getTime()) || newWhen.getTime() < Date.now()) {
+      toast.error("Pick a time in the future.");
+      return;
+    }
+    setReSaving(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("bookings")
+        .update({ scheduled_for: newWhen.toISOString() })
+        .eq("id", rescheduleFor.id);
+      if (error) throw error;
+      setRows((rs) => rs.map((r) => r.id === rescheduleFor.id ? { ...r, scheduled_for: newWhen.toISOString() } : r));
+      toast.success("Booking rescheduled. Your stylist has been notified.");
+      setRescheduleId(null);
+    } catch (e: any) {
+      toast.error(e.message || "Couldn't reschedule. Try again.");
+    } finally {
+      setReSaving(false);
+    }
+  };
 
   return (
     <div className="pb-nav-cta min-h-screen">
@@ -216,12 +256,20 @@ export default function Bookings() {
                   </button>
                 )}
                 {isUpcomingOpen && (
-                  <button
-                    onClick={() => setConfirmCancelId(b.id)}
-                    className="btn-outline w-full mt-3"
-                  >
-                    Cancel booking
-                  </button>
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <button
+                      onClick={() => openReschedule(b)}
+                      className="btn-outline"
+                    >
+                      Reschedule
+                    </button>
+                    <button
+                      onClick={() => setConfirmCancelId(b.id)}
+                      className="btn-outline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 )}
                 {canDispute && (
                   <button
@@ -262,6 +310,33 @@ export default function Bookings() {
               </button>
               <button className="btn-primary" onClick={() => cancelBooking(confirmFor)} disabled={cancellingId === confirmFor.id}>
                 {cancellingId === confirmFor.id ? "Cancelling…" : "Cancel booking"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rescheduleFor && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/40" onClick={() => setRescheduleId(null)}>
+          <div className="card w-full max-w-md p-5 rounded-t-3xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="font-display text-xl mb-2">Reschedule</div>
+            <p className="text-sm text-mute mb-4">Pick a new date and time. Your stylist will be notified.</p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <label className="block">
+                <div className="text-[11px] text-mute uppercase tracking-wider mb-1">Date</div>
+                <input type="date" className="input" value={reDate} onChange={(e) => setReDate(e.target.value)} />
+              </label>
+              <label className="block">
+                <div className="text-[11px] text-mute uppercase tracking-wider mb-1">Time</div>
+                <input type="time" className="input" value={reTime} onChange={(e) => setReTime(e.target.value)} />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button className="btn-outline" onClick={() => setRescheduleId(null)} disabled={reSaving}>
+                Keep current
+              </button>
+              <button className="btn-primary" onClick={saveReschedule} disabled={reSaving}>
+                {reSaving ? "Saving…" : "Save change"}
               </button>
             </div>
           </div>

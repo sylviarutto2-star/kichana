@@ -1,13 +1,12 @@
-// Admin-triggered refund for a dispute the team approved in SQL.
+// Admin-triggered refund for a dispute the team approved.
 //
-// Usage (from Supabase SQL editor or dashboard):
-//   1. UPDATE disputes SET status='approved', approved_refund_kes=<amount>,
-//      admin_note='...' WHERE id='<dispute_id>';
-//   2. Invoke this function with { dispute_id: '<uuid>' } from the
-//      Functions dashboard (or curl with the service-role JWT).
+// Auth: either the project service-role key OR a signed-in admin user
+// (email allow-listed in the public.is_admin() Postgres function).
 //
-// We require the service-role key in the Authorization header — this is a
-// staff-only function, not a customer-facing one.
+// Usage from the admin UI:
+//   1. PATCH disputes SET status='approved', approved_refund_kes=<amount>
+//      (RLS allows this only for admins)
+//   2. Invoke this function with { dispute_id: '<uuid>' }
 //
 // Required secret: PAYSTACK_SECRET_KEY.
 
@@ -23,16 +22,24 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
+    const url = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const auth = req.headers.get("Authorization") || "";
-    if (auth !== `Bearer ${serviceKey}`) {
-      return json({ error: "Service-role key required" }, 401);
+
+    let authorized = auth === `Bearer ${serviceKey}`;
+    if (!authorized && auth.startsWith("Bearer ")) {
+      const anonClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: auth } },
+      });
+      const { data } = await anonClient.rpc("is_admin");
+      authorized = data === true;
     }
+    if (!authorized) return json({ error: "Admin only" }, 403);
 
     const { dispute_id } = await req.json();
     if (!dispute_id) return json({ error: "dispute_id required" }, 400);
 
-    const sb = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+    const sb = createClient(url, serviceKey);
 
     const { data: dispute, error: dErr } = await sb
       .from("disputes")

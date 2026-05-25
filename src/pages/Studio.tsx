@@ -291,9 +291,16 @@ function TodayTab({
                 </>
               )}
               {b.status === "confirmed" && (
-                <button onClick={() => setStatus(b.id, "completed")} className="btn-dark !py-2 !px-3 text-xs">
-                  Mark complete
-                </button>
+                <>
+                  <button onClick={() => setStatus(b.id, "completed")} className="btn-dark !py-2 !px-3 text-xs">
+                    Mark complete
+                  </button>
+                  {new Date(b.scheduled_for).getTime() < Date.now() && (
+                    <button onClick={() => setStatus(b.id, "no_show")} className="btn-outline !py-2 !px-3 text-xs">
+                      Mark no-show
+                    </button>
+                  )}
+                </>
               )}
               <span className="ml-auto chip text-[11px] uppercase tracking-wider">{b.status}</span>
             </div>

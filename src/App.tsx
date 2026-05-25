@@ -26,6 +26,7 @@ const Studio = lazy(() => import("@/pages/Studio"));
 const Business = lazy(() => import("@/pages/Business"));
 const PostCreate = lazy(() => import("@/pages/PostCreate"));
 const GroupBooking = lazy(() => import("@/pages/GroupBooking"));
+const AdminDisputes = lazy(() => import("@/pages/AdminDisputes"));
 
 const Privacy = lazy(() => import("@/pages/legal/Privacy"));
 const Terms = lazy(() => import("@/pages/legal/Terms"));
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/business" element={<RequireAuth><Business /></RequireAuth>} />
           <Route path="/post" element={<RequireAuth><PostCreate /></RequireAuth>} />
           <Route path="/group/:stylistId" element={<RequireAuth><GroupBooking /></RequireAuth>} />
+          <Route path="/admin/disputes" element={<RequireAuth><AdminDisputes /></RequireAuth>} />
 
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
