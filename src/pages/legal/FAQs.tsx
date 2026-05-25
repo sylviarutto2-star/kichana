@@ -3,10 +3,10 @@ import { MarketingShell } from "@/components/MarketingShell";
 import { Plus, Minus } from "lucide-react";
 
 const FAQS: { q: string; a: string }[] = [
-  { q: "How do I book?", a: "Sign up, browse Discover, pick a stylist, choose a service and time, and pay your deposit on M-Pesa. The whole flow takes about 30 seconds." },
-  { q: "How does payment work?", a: "You pay a 30% deposit (minimum KES 500) on M-Pesa to confirm. The balance is paid directly to the stylist on completion. We never store your M-Pesa PIN." },
-  { q: "Can I cancel?", a: "Cancel for free up to 24 hours before your appointment. Within 24 hours, the deposit goes to the stylist for the time held." },
-  { q: "What if my stylist cancels?", a: "Full refund of your deposit, plus a KES 200 inconvenience credit applied to your next booking." },
+  { q: "How do I book?", a: "Sign up, browse Discover, pick a stylist, choose a service and time, and pay your deposit. The whole flow takes about 30 seconds." },
+  { q: "How does payment work?", a: "You pay a 30% deposit (minimum KES 500) to confirm. We accept M-Pesa or card through our payment partner, Paystack. The balance is paid directly to the stylist on completion." },
+  { q: "Can I cancel?", a: "Yes — from \"My bookings\". You get an automatic full deposit refund if you cancel within 1 hour of booking (change of mind grace), or more than 4 hours before the appointment. Cancel closer than that and the booking is cancelled but the deposit isn't auto-refunded. You can file a dispute on the same screen if something's wrong." },
+  { q: "What if my stylist doesn't show up, or the service goes wrong?", a: "File a dispute from the cancelled booking. Pick a reason, tell us what happened, add up to four photos. We review every dispute within 48 hours and refund the deposit when the situation warrants it." },
   { q: "Are stylists verified?", a: "Yes. Every stylist on Kichana is ID-verified before going live, and their portfolio builds from real completed bookings — not stock photos." },
   { q: "What's the Hair Vault?", a: "Your saved inspirations. Tap Save on any look in the feed and it lands in your Vault. When you book, your stylist can see your Vault — so they know exactly what you want before you arrive." },
   { q: "What's a group booking?", a: "Book the whole crew at once for a wedding, birthday or holiday. The host creates a group, shares the code, and everyone pays their own deposit." },

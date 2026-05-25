@@ -10,6 +10,20 @@ import { LogOut, Award, Languages, Phone, MapPin, Settings, Scissors } from "luc
 import { NAIROBI_AREAS, isValidPhone, withTimeout } from "@/lib/utils";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
+function AdminLink() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase as any).rpc("is_admin");
+      if (!cancelled) setShow(data === true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  if (!show) return null;
+  return <Link to="/admin/disputes" className="btn-outline w-full mt-2">Admin · disputes</Link>;
+}
+
 export default function Profile() {
   const { profile, signOut, refreshProfile, user, loading } = useAuth();
   const nav = useNavigate();
@@ -152,6 +166,8 @@ export default function Profile() {
         {profile.role === "stylist" && (
           <Link to="/studio" className="btn-dark w-full mt-4">Open Studio</Link>
         )}
+
+        <AdminLink />
 
         <button
           onClick={async () => { await signOut(); nav("/"); }}

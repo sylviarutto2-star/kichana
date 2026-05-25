@@ -10,7 +10,7 @@ export default function HowItWorks() {
       <ol className="not-prose space-y-3 mt-4">
         <Step n={1} icon={<Search className="h-4 w-4" />} title="Discover">Browse stylists by neighbourhood, service or rating. Save looks you love to your Hair Vault.</Step>
         <Step n={2} icon={<Calendar className="h-4 w-4" />} title="Book">Pick a service and time. Choose at-the-salon or come-to-me. Add notes. Done in 30 seconds.</Step>
-        <Step n={3} icon={<Smartphone className="h-4 w-4" />} title="Pay">Confirm your booking with a 30% deposit on M-Pesa. Pay the balance to your stylist on completion.</Step>
+        <Step n={3} icon={<Smartphone className="h-4 w-4" />} title="Pay">Confirm your booking with a 30% deposit — M-Pesa or card. Pay the balance to your stylist on completion.</Step>
         <Step n={4} icon={<Sparkles className="h-4 w-4" />} title="Show up & glow up">Your stylist already has your Vault. You both know exactly what to expect.</Step>
       </ol>
 
