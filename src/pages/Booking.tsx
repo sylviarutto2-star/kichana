@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { demoServices, demoStylists, isDemo } from "@/lib/demoData";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { KES, cn, withTimeout } from "@/lib/utils";
@@ -33,12 +33,6 @@ export default function Booking() {
     let cancelled = false;
     (async () => {
       try {
-        if (isDemo(stylistId)) {
-          if (cancelled) return;
-          setStylist(demoStylists.find((x) => x.id === stylistId) as any);
-          setServices(demoServices[stylistId] || []);
-          return;
-        }
         const [sRes, svcRes] = await Promise.all([
           supabase.from("stylists").select("*").eq("id", stylistId).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", stylistId).eq("active", true),
@@ -80,10 +74,6 @@ export default function Booking() {
 
   const confirm = async () => {
     if (!user || !service || !stylist) return;
-    if (isDemo(stylist.id)) {
-      toast.error("This is a demo stylist. Please pick a real, onboarded stylist to book.");
-      return;
-    }
     if (locationType === "home" && !address.trim()) {
       toast.error("Please add an address for the home call.");
       return;

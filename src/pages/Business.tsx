@@ -9,13 +9,13 @@ import { KES, cn } from "@/lib/utils";
 import { format, differenceInCalendarDays } from "date-fns";
 import {
   TrendingUp, Calendar, Users, Award, Gift,
-  Sparkles, Cake, Check, Megaphone, Clock,
+  Cake, Check, Megaphone, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
 /* ------------------------------------------------------------------ */
-/* Types & demo fallback                                              */
+/* Types                                                               */
 /* ------------------------------------------------------------------ */
 
 type Booking = {
@@ -34,47 +34,6 @@ type Booking = {
   } | null;
 };
 
-const DEMO_NAMES = [
-  "Wanjiku K.", "Faith O.", "Akinyi M.", "Joy W.", "Tasha L.",
-  "Brenda N.", "Cynthia A.", "Mercy W.", "Diana K.", "Sharon M.",
-];
-const DEMO_SERVICES = [
-  { title: "Knotless Braids — Medium", price: 4500, category: "braids" },
-  { title: "Silk Press", price: 3500, category: "natural" },
-  { title: "Wig Install — HD Lace", price: 4500, category: "wigs" },
-  { title: "Boho Braids", price: 6500, category: "braids" },
-  { title: "Retwist", price: 2800, category: "locs" },
-];
-
-function buildDemoBookings(): Booking[] {
-  const out: Booking[] = [];
-  const now = Date.now();
-  for (let i = 0; i < 32; i++) {
-    const svc = DEMO_SERVICES[i % DEMO_SERVICES.length];
-    const customerIdx = i % 7; // 7 customers, repeats baked in
-    const past = i < 24;
-    const offsetDays = past ? -(i * 2 + 1) : i - 22;
-    out.push({
-      id: `demo-b${i}`,
-      customer_id: `demo-c${customerIdx}`,
-      scheduled_for: new Date(now + offsetDays * 86400000).toISOString(),
-      status: past ? "completed" : i % 3 === 0 ? "pending" : "confirmed",
-      amount_kes: svc.price,
-      service: { title: svc.title, category: svc.category },
-      customer: {
-        full_name: DEMO_NAMES[customerIdx],
-        phone: `07${10 + customerIdx} ${100 + customerIdx} ${200 + customerIdx}`,
-        avatar_url: null,
-        birthday: customerIdx < 3
-          ? new Date(1996, new Date().getMonth(), 5 + customerIdx * 4).toISOString()
-          : null,
-        marketing_opt_in: customerIdx !== 4,
-      },
-    });
-  }
-  return out;
-}
-
 /* ------------------------------------------------------------------ */
 /* Page                                                               */
 /* ------------------------------------------------------------------ */
@@ -84,7 +43,6 @@ export default function Business() {
   const nav = useNavigate();
   const [stylist, setStylist] = useState<any>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activated, setActivated] = useState<Record<string, boolean>>({});
 
@@ -125,16 +83,9 @@ export default function Business() {
             customer: r.profiles,
           }));
         }
-        if (rows.length === 0) {
-          rows = buildDemoBookings();
-          if (!cancelled) setIsDemo(true);
-        }
         if (!cancelled) setBookings(rows);
       } catch {
-        if (!cancelled) {
-          setBookings(buildDemoBookings());
-          setIsDemo(true);
-        }
+        if (!cancelled) setBookings([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -147,9 +98,8 @@ export default function Business() {
   const offers = useMemo(() => buildOffers(customers), [customers]);
 
   const activate = async (offer: SuggestedOffer) => {
-    if (isDemo || !stylist) {
-      setActivated((a) => ({ ...a, [offer.id]: true }));
-      toast.success(`"${offer.title}" is live — opted-in customers will see it.`);
+    if (!stylist) {
+      toast.error("Set up your studio profile first.");
       return;
     }
     try {
@@ -185,21 +135,13 @@ export default function Business() {
       <PageHeader
         title="Business"
         subtitle={stylist?.display_name || profile?.full_name || "Your business"}
-        right={
-          isDemo ? (
-            <span className="hidden lg:inline chip text-[11px]">Sample data</span>
-          ) : undefined
-        }
       />
 
       <div className="container-shell space-y-8">
-        {isDemo && (
-          <div className="card p-4 bg-aubergine-700 text-cream flex items-start gap-3">
-            <Sparkles className="h-5 w-5 shrink-0 mt-0.5" />
-            <p className="text-sm">
-              This is a preview with sample numbers. As real bookings come in,
-              your dashboard fills with your own revenue, customers, and pipeline.
-            </p>
+        {bookings.length === 0 && (
+          <div className="card p-6 text-center text-mute">
+            <p className="font-display text-xl text-ink">No bookings yet</p>
+            <p className="text-sm mt-1">Share your profile link to get your first client. Stats appear here as bookings come in.</p>
           </div>
         )}
 

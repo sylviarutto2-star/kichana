@@ -6,13 +6,39 @@ import { StylistCard } from "@/components/StylistCard";
 import { StylistMap } from "@/components/StylistMap";
 import { NAIROBI_AREAS, SERVICE_CATEGORIES, cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 import type { Stylist } from "@/lib/database.types";
-import { demoStylists } from "@/lib/demoData";
 
 type Row = Stylist & {
   profile?: { full_name: string | null; avatar_url: string | null };
   from_kes?: number;
+  next_slot?: string | null;
 };
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function slotLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const h = d.getHours();
+  const ampm = h >= 12 ? "pm" : "am";
+  const hour = h % 12 || 12;
+  const dayStr = d.toDateString() === today.toDateString()
+    ? "Today"
+    : d.toDateString() === tomorrow.toDateString()
+      ? "Tomorrow"
+      : d.toLocaleDateString("en-KE", { weekday: "short" });
+  return `${dayStr} ${hour}${ampm}`;
+}
 
 type SortKey = "rating" | "nearest" | "price_asc" | "price_desc" | "next";
 
@@ -55,13 +81,21 @@ export default function Discover() {
   const [me, setMe] = useState<{ lat: number; lng: number } | null>(null);
 
   const locateMe = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      toast.error("Location not supported in this browser.");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => setMe({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {},
+      () => toast.error("Location access denied — results sorted by rating instead."),
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
+
+  useEffect(() => {
+    if (sort === "nearest" && !me) locateMe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
 
   // Persist filters in URL
   useEffect(() => {
@@ -97,9 +131,7 @@ export default function Discover() {
           .limit(120);
         if (error) {
           console.error("Discover: stylists query failed", error);
-          // Surface the error in dev — falling silently to demo data is what
-          // was hiding real profiles from the admin in production.
-          if (!cancelled) setRows(demoStylists as any);
+          if (!cancelled) setRows([]);
           return;
         }
         const live: Row[] = (data || []).map((s: any) => {
@@ -110,16 +142,29 @@ export default function Discover() {
             from_kes: prices.length ? Math.min(...prices) : undefined,
           };
         });
-        // Always show real stylists when they exist. Pad with demos only if
-        // the live set is too thin to fill a page, so we never hide a real
-        // profile behind demo data.
-        const next: Row[] = live.length >= 12
-          ? live
-          : [...live, ...(demoStylists as any[])];
-        if (!cancelled) setRows(next);
+        if (!cancelled) setRows(live);
+
+        // Enrich with next available slot (non-blocking)
+        if (live.length > 0) {
+          const ids = live.map((r) => r.id);
+          const { data: slots } = await supabase.rpc("next_available_per_stylist", {
+            stylist_ids: ids,
+          });
+          if (!cancelled && slots) {
+            const slotMap = new Map<string, string>(
+              (slots as { stylist_id: string; next_slot: string }[]).map((s) => [
+                s.stylist_id,
+                slotLabel(s.next_slot),
+              ])
+            );
+            setRows((prev) =>
+              prev.map((r) => ({ ...r, next_slot: slotMap.get(r.id) ?? null }))
+            );
+          }
+        }
       } catch (e) {
         console.error("Discover: stylists fetch threw", e);
-        if (!cancelled) setRows(demoStylists as any);
+        if (!cancelled) setRows([]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -128,6 +173,12 @@ export default function Discover() {
   }, []);
 
   const filtered = useMemo(() => {
+    const today = new Date();
+    const todayStr = today.toDateString();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowStr = tomorrow.toDateString();
+
     const out = rows.filter((s) => {
       if (area !== "all" && !(s.neighborhoods || []).includes(area)) return false;
       if (cat !== "all" && !(s.specialties || []).some((x) => x.toLowerCase().includes(cat))) return false;
@@ -137,16 +188,26 @@ export default function Discover() {
       if (minRating > 0 && s.rating_avg < minRating) return false;
       const price = s.from_kes ?? Infinity;
       if (Number.isFinite(price) && (price < minPrice || price > maxPrice)) return false;
-      // Hair type / language / vibe: weak match against specialties + bio so
-      // selecting one of these chips actually narrows results until those
-      // attributes are first-class columns on `stylists`.
       const haystack = `${(s.specialties || []).join(" ")} ${s.bio || ""}`.toLowerCase();
       if (hairTypes.length && !hairTypes.some((h) => haystack.includes(h.toLowerCase()))) return false;
       if (langs.length && !langs.some((l) => haystack.includes(l.toLowerCase()))) return false;
       if (vibes.length && !vibes.some((v) => haystack.includes(v.toLowerCase()))) return false;
-      // Availability chip is informational until live availability lands;
-      // including it in deps keeps the count + URL state in sync.
-      void avail;
+      // Availability filter — uses real next_slot from the RPC
+      if (avail !== "Any" && s.next_slot) {
+        // next_slot is already a human label ("Today 3pm", "Tomorrow 10am", etc.)
+        if (avail === "Today" && !s.next_slot.startsWith("Today")) return false;
+        if (avail === "Tomorrow" && !s.next_slot.startsWith("Tomorrow")) return false;
+        if (avail === "This weekend") {
+          const day = new Date(todayStr);
+          const isWeekend = (label: string) =>
+            label.startsWith("Sat") || label.startsWith("Sun") ||
+            (label.startsWith("Today") && (day.getDay() === 0 || day.getDay() === 6)) ||
+            (label.startsWith("Tomorrow") && (tomorrow.getDay() === 0 || tomorrow.getDay() === 6));
+          if (!isWeekend(s.next_slot)) return false;
+        }
+      } else if (avail !== "Any" && !s.next_slot) {
+        return false;
+      }
       return true;
     });
 
@@ -162,16 +223,29 @@ export default function Discover() {
         sorted.sort((a, b) => (b.from_kes ?? 0) - (a.from_kes ?? 0));
         break;
       case "nearest":
-        // Placeholder — true distance lands when geolocation does.
-        sorted.sort((a, b) => a.display_name.localeCompare(b.display_name));
+        if (me) {
+          sorted.sort((a, b) => {
+            const da = a.lat != null && a.lng != null
+              ? haversineKm(me.lat, me.lng, a.lat, a.lng) : Infinity;
+            const db = b.lat != null && b.lng != null
+              ? haversineKm(me.lat, me.lng, b.lat, b.lng) : Infinity;
+            return da - db;
+          });
+        } else {
+          sorted.sort((a, b) => b.rating_avg - a.rating_avg);
+        }
         break;
       case "next":
-        // Placeholder — real next-slot derives from bookings in Phase 3.
-        sorted.sort((a, b) => b.rating_count - a.rating_count);
+        sorted.sort((a, b) => {
+          if (a.next_slot && !b.next_slot) return -1;
+          if (!a.next_slot && b.next_slot) return 1;
+          if (!a.next_slot && !b.next_slot) return b.rating_avg - a.rating_avg;
+          return (a.next_slot ?? "").localeCompare(b.next_slot ?? "");
+        });
         break;
     }
     return sorted;
-  }, [rows, area, cat, q, verifiedOnly, travelsOnly, minRating, minPrice, maxPrice, sort, hairTypes, langs, vibes, avail]);
+  }, [rows, area, cat, q, verifiedOnly, travelsOnly, minRating, minPrice, maxPrice, sort, me, hairTypes, langs, vibes, avail]);
 
   const activeCount =
     (area !== "all" ? 1 : 0) +
