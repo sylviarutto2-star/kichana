@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Star, MapPin, Clock, Verified, Users, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { demoStylists, demoServices, isDemo } from "@/lib/demoData";
+
 import { Avatar } from "@/components/Avatar";
 import { SmartImage } from "@/components/SmartImage";
 import { StylistMap } from "@/components/StylistMap";
@@ -39,15 +39,6 @@ export default function StylistProfile() {
         return;
       }
       try {
-        if (isDemo(id)) {
-          const s = demoStylists.find((x) => x.id === id);
-          if (cancelled) return;
-          setStylist(s as any);
-          setServices(demoServices[id] || []);
-          setPortfolio([]);
-          setLoading(false);
-          return;
-        }
         const [sRes, svcRes, pfRes, revRes] = await Promise.all([
           supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),

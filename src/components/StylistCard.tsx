@@ -7,10 +7,7 @@ import { KES } from "@/lib/utils";
 
 type Extra = {
   profile?: { full_name?: string | null; avatar_url?: string | null };
-  // Optional pre-computed fields (P3+ will populate these for real)
-  repeat_pct?: number;
-  response_time?: string;
-  next_slot?: string;
+  next_slot?: string | null;
 };
 
 export function StylistCard({
@@ -20,14 +17,6 @@ export function StylistCard({
   s: Stylist & Extra;
   fromKes?: number;
 }) {
-  // Derive sensible faux signals from existing data so the desktop card feels
-  // alive even before the real metrics ship in Phase 3.
-  const repeat =
-    s.repeat_pct ??
-    Math.min(95, Math.max(40, Math.round(((s.rating_avg || 4.5) - 3) * 30 + 55)));
-  const response = s.response_time ?? (s.verified ? "<1h" : "<3h");
-  const nextSlot = s.next_slot ?? pickNextSlot(s.id);
-
   return (
     <Link to={`/stylist/${s.id}`} className="card overflow-hidden block group">
       <div className="relative">
@@ -49,7 +38,6 @@ export function StylistCard({
           {s.rating_avg.toFixed(1)}
           <span className="text-mute font-normal">({s.rating_count})</span>
         </div>
-        {/* Face avatar overlay — portfolio leads, face stays present */}
         <div className="absolute left-3 bottom-3 z-10">
           <Avatar
             src={s.profile?.avatar_url}
@@ -57,10 +45,11 @@ export function StylistCard({
             size={36}
           />
         </div>
-        {/* Next-available pill */}
-        <div className="absolute right-3 bottom-3 z-10 rounded-full bg-ink/85 text-cream text-[11px] font-semibold px-2.5 py-1 flex items-center gap-1 backdrop-blur">
-          <Clock className="h-3 w-3" /> {nextSlot}
-        </div>
+        {s.next_slot && (
+          <div className="absolute right-3 bottom-3 z-10 rounded-full bg-ink/85 text-cream text-[11px] font-semibold px-2.5 py-1 flex items-center gap-1 backdrop-blur">
+            <Clock className="h-3 w-3" /> {s.next_slot}
+          </div>
+        )}
       </div>
 
       <div className="p-4">
@@ -84,15 +73,8 @@ export function StylistCard({
           )}
         </div>
 
-        {/* Trust stack */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-mute">
-          {s.verified && <span className="text-ink/80">Verified</span>}
-          <span>{repeat}% rebook</span>
-          <span>Replies {response}</span>
-        </div>
-
         {s.specialties?.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="mt-3 flex flex-wrap gap-1">
             {s.specialties.slice(0, 3).map((sp) => (
               <span
                 key={sp}
@@ -106,13 +88,4 @@ export function StylistCard({
       </div>
     </Link>
   );
-}
-
-// Stable pseudo-random slot label per stylist (placeholder until real
-// availability lands in Phase 3).
-function pickNextSlot(id: string) {
-  const slots = ["Today 3pm", "Today 5pm", "Tomorrow 10am", "Tomorrow 2pm", "Sat 11am", "Sat 4pm"];
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return slots[h % slots.length];
 }
