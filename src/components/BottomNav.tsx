@@ -8,6 +8,7 @@ import {
   User,
   Scissors,
   BarChart3,
+  Bell,
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { cn } from "@/lib/utils";
@@ -17,8 +18,8 @@ import { supabase } from "@/lib/supabase";
 type Item = { to: string; label: string; Icon: typeof Home };
 
 const CUSTOMER_NAV: Item[] = [
-  { to: "/home", label: "Home", Icon: Home },
   { to: "/discover", label: "Discover", Icon: Search },
+  { to: "/home", label: "Home", Icon: Home },
   { to: "/bookings", label: "Bookings", Icon: Calendar },
   { to: "/vault", label: "Vault", Icon: Bookmark },
   { to: "/profile", label: "Me", Icon: User },
@@ -36,6 +37,7 @@ export function BottomNav() {
   const { user, profile } = useAuth();
   const items = profile?.role === "stylist" ? STYLIST_NAV : CUSTOMER_NAV;
   const [hasActiveBooking, setHasActiveBooking] = useState(false);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
 
   useEffect(() => {
     if (!user || profile?.role === "stylist") { setHasActiveBooking(false); return; }
@@ -55,13 +57,45 @@ export function BottomNav() {
     return () => { cancelled = true; };
   }, [user, profile?.role]);
 
+  useEffect(() => {
+    if (!user) { setUnreadNotifs(0); return; }
+    let cancelled = false;
+    (async () => {
+      const { count } = await (supabase as any)
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
+      if (!cancelled) setUnreadNotifs(count || 0);
+    })();
+
+    const channel = (supabase as any)
+      .channel(`notifs-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
+        (supabase as any)
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("read", false)
+          .then(({ count }: { count: number | null }) => {
+            if (!cancelled) setUnreadNotifs(count || 0);
+          });
+      })
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      (supabase as any).removeChannel(channel);
+    };
+  }, [user]);
+
   return (
     <>
       {/* Mobile bottom nav */}
       <nav className="nav-bottom" aria-label="Primary">
         <ul className="grid grid-cols-5">
           {items.map(({ to, label, Icon }) => {
-            const showDot = hasActiveBooking && to === "/bookings";
+            const showBookingDot = hasActiveBooking && to === "/bookings";
             return (
             <li key={to}>
               <NavLink
@@ -75,7 +109,7 @@ export function BottomNav() {
               >
                 <span className="relative inline-flex">
                   <Icon className="h-5 w-5" />
-                  {showDot && (
+                  {showBookingDot && (
                     <span
                       aria-hidden="true"
                       className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-terracotta-600"
@@ -98,7 +132,7 @@ export function BottomNav() {
         </div>
         <ul className="flex flex-col gap-1">
           {items.map(({ to, label, Icon }) => {
-            const showDot = hasActiveBooking && to === "/bookings";
+            const showBookingDot = hasActiveBooking && to === "/bookings";
             return (
             <li key={to}>
               <NavLink
@@ -114,7 +148,7 @@ export function BottomNav() {
               >
                 <Icon className="h-4 w-4" />
                 <span>{label}</span>
-                {showDot && (
+                {showBookingDot && (
                   <span
                     aria-hidden="true"
                     className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-terracotta-600"
@@ -124,6 +158,29 @@ export function BottomNav() {
             </li>
             );
           })}
+          {user && (
+            <li>
+              <NavLink
+                to="/notifications"
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition",
+                    isActive
+                      ? "bg-terracotta-50 text-terracotta-700"
+                      : "text-mute hover:text-ink hover:bg-line/40"
+                  )
+                }
+              >
+                <Bell className="h-4 w-4" />
+                <span>Notifications</span>
+                {unreadNotifs > 0 && (
+                  <span className="ml-auto inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-terracotta-600 px-1 text-[10px] font-bold text-cream">
+                    {unreadNotifs > 9 ? "9+" : unreadNotifs}
+                  </span>
+                )}
+              </NavLink>
+            </li>
+          )}
         </ul>
         <div className="mt-auto text-[11px] text-mute px-3">
           {profile?.role === "stylist"

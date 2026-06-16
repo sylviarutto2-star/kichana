@@ -9,6 +9,7 @@ import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin, 
 const STYLES = [
   { label: "Knotless braids", desc: "Box · boho · jumbo", src: "/landing/style-braids.webp" },
   { label: "Feed-in cornrows", desc: "Stitch · sleek · ponytail", src: "/landing/style-cornrows.webp" },
+  { label: "Cuts & fades", desc: "Taper · lineup · barber", src: "/landing/style-cuts.webp" },
   { label: "Colour braids", desc: "Ombré · pop · statement", src: "/landing/style-color.webp" },
 ];
 
@@ -31,9 +32,9 @@ export default function Landing() {
             Hair, <em className="not-italic text-terracotta-600">brilliantly</em> booked.
           </h1>
           <p className="mt-5 text-lg text-mute max-w-md">
-            The trusted network of hair and beauty specialists in Kenya — built by women, for women.
+            The trusted network of hair and beauty specialists in Kenya — built for everyone who cares about their look.
             Verified portfolios, honest reviews, M-Pesa deposits.
-            Braids, wigs, locs, naturals, nails, barber. Salon or at-home.
+            Braids, wigs, locs, naturals, nails, cuts, fades. Salon or at-home.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/waitlist" className="btn-primary">
@@ -85,7 +86,7 @@ export default function Landing() {
             See all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {STYLES.map((s) => (
             <Link key={s.src} to="/waitlist" className="group card p-0 overflow-hidden">
               <SmartImage
@@ -196,16 +197,15 @@ function HeroComposition() {
         </div>
       </div>
 
-      {/* Group booking USP */}
-      <div className="sm:col-span-12 card p-4 flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/20 text-gold-500">
+      {/* Service category strip */}
+      <div className="sm:col-span-12 card p-4 flex items-center gap-3 overflow-x-auto no-scrollbar">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/20 text-gold-500 shrink-0">
           <Heart className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs h-eyebrow">Group bookings</div>
-          <p className="text-sm leading-snug">Pre-weddings, birthdays, holidays. Book the whole group at once.</p>
+          <div className="text-xs h-eyebrow">For everyone</div>
+          <p className="text-sm leading-snug">Braids · Wigs · Locs · Naturals · Nails · Cuts & Fades · Barber · Group bookings</p>
         </div>
-        <span className="chip text-xs">NEW</span>
       </div>
     </div>
   );

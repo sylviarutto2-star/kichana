@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Star, MapPin, Clock, Verified, Users, ArrowLeft } from "lucide-react";
+import { Star, MapPin, Clock, Verified, Users, ArrowLeft, Instagram, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 import { Avatar } from "@/components/Avatar";
@@ -15,19 +15,28 @@ type Review = {
   rating: number;
   body: string | null;
   created_at: string;
-  reply: string | null;
-  reply_at: string | null;
+  photo_urls?: string[] | null;
   profiles: { full_name: string | null; avatar_url: string | null } | null;
+};
+
+type Promotion = {
+  id: string;
+  title: string;
+  kind: string;
+  discount_percent: number | null;
+  audience: string | null;
 };
 
 export default function StylistProfile() {
   const { id } = useParams();
-  const [stylist, setStylist] = useState<(Stylist & { profile?: any }) | null>(null);
+  const [stylist, setStylist] = useState<(Stylist & { profile?: any; instagram?: string | null; whatsapp?: string | null; tiktok?: string | null }) | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [portfolio, setPortfolio] = useState<{ id: string; image_url: string }[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,16 +48,22 @@ export default function StylistProfile() {
         return;
       }
       try {
-        const [sRes, svcRes, pfRes, revRes] = await Promise.all([
+        const [sRes, svcRes, pfRes, revRes, promoRes] = await Promise.all([
           supabase.from("stylists").select("*, profiles:profiles!stylists_profile_id_fkey(full_name, avatar_url)").eq("id", id).maybeSingle(),
           supabase.from("services").select("*").eq("stylist_id", id).eq("active", true),
           supabase.from("portfolio_images").select("id, image_url").eq("stylist_id", id).order("sort_order").limit(12),
           (supabase as any)
             .from("reviews")
-            .select("id, rating, body, created_at, reply, reply_at, profiles:profiles!reviews_customer_id_fkey(full_name, avatar_url)")
+            .select("id, rating, body, created_at, photo_urls, profiles:profiles!reviews_customer_id_fkey(full_name, avatar_url)")
             .eq("stylist_id", id)
             .order("created_at", { ascending: false })
             .limit(20),
+          (supabase as any)
+            .from("promotions")
+            .select("id, title, kind, discount_percent, audience")
+            .eq("stylist_id", id)
+            .eq("active", true)
+            .or(`ends_on.is.null,ends_on.gte.${new Date().toISOString().slice(0, 10)}`),
         ]);
         if (cancelled) return;
         if (sRes.error) console.error("StylistProfile: stylist query failed", sRes.error);
@@ -59,6 +74,7 @@ export default function StylistProfile() {
         setServices((svcRes.data as Service[]) || []);
         setPortfolio((pfRes.data as any) || []);
         setReviews((revRes.data as Review[]) || []);
+        setPromotions((promoRes.data as Promotion[]) || []);
       } catch (e) {
         console.error("StylistProfile: fetch threw", e);
         if (!cancelled) setError(true);
@@ -79,6 +95,10 @@ export default function StylistProfile() {
       </div>
     );
   }
+
+  const instagram = (stylist as any).instagram;
+  const whatsapp = (stylist as any).whatsapp;
+  const tiktok = (stylist as any).tiktok;
 
   return (
     <div className="pb-nav min-h-screen">
@@ -105,22 +125,89 @@ export default function StylistProfile() {
                 {stylist.verified && <Verified className="h-5 w-5 text-terracotta-600" />}
               </div>
               <div className="text-sm text-mute mt-1 flex items-center gap-3 flex-wrap">
-                <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-gold-500 text-gold-500" /> {(stylist.rating_avg ?? 0).toFixed(1)} ({stylist.rating_count ?? 0})</span>
+                {(stylist.rating_count ?? 0) > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-gold-500 text-gold-500" />
+                    {(stylist.rating_avg ?? 0).toFixed(1)} ({stylist.rating_count})
+                  </span>
+                )}
                 <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {stylist.neighborhoods?.join(", ")}</span>
                 <span className="flex items-center gap-1"><Users className="h-4 w-4" /> {stylist.bookings_count} done</span>
               </div>
             </div>
           </div>
           {stylist.bio && <p className="text-sm text-mute mt-4">{stylist.bio}</p>}
+          {(instagram || whatsapp || tiktok) && (
+            <div className="mt-3 flex items-center gap-3">
+              {instagram && (
+                <a
+                  href={`https://instagram.com/${instagram.replace(/^@/, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-mute hover:text-ink transition"
+                >
+                  <Instagram className="h-4 w-4" />
+                  {instagram.startsWith("@") ? instagram : `@${instagram}`}
+                </a>
+              )}
+              {whatsapp && (
+                <a
+                  href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-mute hover:text-ink transition"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              )}
+              {tiktok && (
+                <a
+                  href={`https://tiktok.com/@${tiktok.replace(/^@/, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-mute hover:text-ink transition"
+                >
+                  <span className="text-xs font-bold">TT</span>
+                  {tiktok.startsWith("@") ? tiktok : `@${tiktok}`}
+                </a>
+              )}
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap gap-1">
             {stylist.specialties?.map((sp) => <span key={sp} className="chip">{sp}</span>)}
           </div>
         </div>
 
+        {promotions.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {promotions.map((p) => (
+              <div key={p.id} className="card p-4 bg-terracotta-50 border-terracotta-200">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🎉</span>
+                  <div>
+                    <div className="font-semibold text-sm">{p.title}</div>
+                    {p.discount_percent && (
+                      <div className="text-xs text-terracotta-700">{p.discount_percent}% off</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <h2 className="font-display text-2xl mt-8 mb-3">Services</h2>
         <div className="grid gap-3">
           {services.map((s) => (
             <div key={s.id} className="card p-4 flex items-center gap-4">
+              {(s as any).cover_url && (
+                <img
+                  src={(s as any).cover_url}
+                  alt={s.title}
+                  className="h-16 w-16 rounded-xl object-cover shrink-0"
+                />
+              )}
               <div className="flex-1 min-w-0">
                 <div className="font-semibold">{s.title}</div>
                 {s.description && <p className="text-xs text-mute mt-0.5">{s.description}</p>}
@@ -143,7 +230,11 @@ export default function StylistProfile() {
         </div>
         <div className="grid grid-cols-3 gap-2">
           {portfolio.length > 0 ? (
-            portfolio.map((p) => <img key={p.id} src={p.image_url} className="aspect-square rounded-xl object-cover" />)
+            portfolio.map((p) => (
+              <button key={p.id} onClick={() => setLightbox(p.image_url)} className="block">
+                <img src={p.image_url} className="aspect-square rounded-xl object-cover w-full" alt="" />
+              </button>
+            ))
           ) : (
             <div className="col-span-3 text-mute text-sm">No portfolio images yet.</div>
           )}
@@ -153,6 +244,7 @@ export default function StylistProfile() {
           reviews={reviews}
           ratingAvg={Number(stylist.rating_avg ?? 0)}
           ratingCount={Number(stylist.rating_count ?? 0)}
+          onLightbox={setLightbox}
         />
 
         {stylist.lat != null && stylist.lng != null && (
@@ -176,6 +268,15 @@ export default function StylistProfile() {
           </>
         )}
       </div>
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-ink/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <img src={lightbox} className="max-h-[90vh] max-w-full rounded-2xl object-contain" alt="" />
+        </div>
+      )}
     </div>
   );
 }
@@ -184,15 +285,16 @@ function ReviewsBlock({
   reviews,
   ratingAvg,
   ratingCount,
+  onLightbox,
 }: {
   reviews: Review[];
   ratingAvg: number;
   ratingCount: number;
+  onLightbox: (url: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? reviews : reviews.slice(0, 5);
 
-  // Distribution count per star (1..5)
   const dist = [1, 2, 3, 4, 5].map((star) => ({
     star,
     count: reviews.filter((r) => r.rating === star).length,
@@ -232,10 +334,7 @@ function ReviewsBlock({
                     <span className="w-3 text-mute">{star}</span>
                     <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
                     <div className="flex-1 h-1.5 rounded-full bg-line overflow-hidden">
-                      <div
-                        className="h-full bg-gold-500"
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className="h-full bg-gold-500" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="w-8 text-right text-mute">{count}</span>
                   </div>
@@ -274,12 +373,13 @@ function ReviewsBlock({
                         {r.body}
                       </p>
                     )}
-                    {r.reply && (
-                      <div className="mt-3 ml-1 pl-3 border-l-2 border-line">
-                        <div className="text-[11px] font-semibold text-mute uppercase tracking-wider">
-                          Reply from the stylist
-                        </div>
-                        <p className="text-sm text-mute mt-1 whitespace-pre-line">{r.reply}</p>
+                    {r.photo_urls && r.photo_urls.length > 0 && (
+                      <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar">
+                        {r.photo_urls.map((url, i) => (
+                          <button key={i} onClick={() => onLightbox(url)} className="shrink-0">
+                            <img src={url} className="h-20 w-20 rounded-xl object-cover" alt="" />
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
