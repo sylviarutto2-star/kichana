@@ -858,6 +858,9 @@ function ProfileTab({ stylist, onChange }: { stylist: any; onChange: (s: any) =>
     home_service_enabled: !!stylist.home_service_enabled,
     transport_fee: stylist.transport_fee || 0,
     deposit_percentage: stylist.deposit_percentage || 50,
+    instagram: stylist.instagram || "",
+    whatsapp: stylist.whatsapp || "",
+    tiktok: stylist.tiktok || "",
   });
   const [busy, setBusy] = useState(false);
 
@@ -942,6 +945,28 @@ function ProfileTab({ stylist, onChange }: { stylist: any; onChange: (s: any) =>
           checked={form.home_service_enabled}
           onChange={(e) => setForm({ ...form, home_service_enabled: e.target.checked, travels: e.target.checked })} />
       </label>
+
+      <div className="border-t border-line pt-4">
+        <div className="font-display text-base mb-3">Online presence</div>
+        <div className="space-y-3">
+          <Field label="Instagram handle (e.g. @mybusiness)">
+            <input className="input" value={form.instagram}
+              onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+              placeholder="@yourbusiness" />
+          </Field>
+          <Field label="WhatsApp number (with country code, e.g. 254712345678)">
+            <input className="input" value={form.whatsapp}
+              onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+              placeholder="254712345678" />
+          </Field>
+          <Field label="TikTok handle (e.g. @mybusiness)">
+            <input className="input" value={form.tiktok}
+              onChange={(e) => setForm({ ...form, tiktok: e.target.value })}
+              placeholder="@yourbusiness" />
+          </Field>
+        </div>
+      </div>
+
       <button onClick={save} disabled={busy} className="btn-primary w-full">
         {busy && <Loader2 className="h-4 w-4 animate-spin" />} Save profile
       </button>

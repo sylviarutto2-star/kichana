@@ -17,10 +17,13 @@ type Row = Stylist & {
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -92,6 +95,7 @@ export default function Discover() {
     );
   };
 
+  // Auto-trigger geolocation when user picks nearest sort
   useEffect(() => {
     if (sort === "nearest" && !me) locateMe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -289,9 +293,9 @@ export default function Discover() {
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="h-eyebrow">Discover</p>
-            <h1 className="font-display text-3xl lg:text-5xl mt-1">Nairobi's best, ranked.</h1>
+            <h1 className="font-display text-3xl lg:text-5xl mt-1">Find your perfect stylist.</h1>
             <p className="text-mute text-sm mt-1">
-              {loading ? "Loading…" : `${filtered.length} stylists match your filters`}
+              {loading ? "Loading…" : `${filtered.length} stylists near you`}
             </p>
           </div>
           <div className="hidden lg:flex items-center gap-3">

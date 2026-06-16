@@ -9,7 +9,7 @@ import { KES, cn } from "@/lib/utils";
 import { format, differenceInCalendarDays } from "date-fns";
 import {
   TrendingUp, Calendar, Users, Award, Gift,
-  Cake, Check, Megaphone, Clock,
+  Cake, Check, Megaphone, Clock, Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -34,6 +34,8 @@ type Booking = {
   } | null;
 };
 
+type CrmFilter = "all" | "vip" | "inactive" | "birthday" | "new" | "optin";
+
 /* ------------------------------------------------------------------ */
 /* Page                                                               */
 /* ------------------------------------------------------------------ */
@@ -45,6 +47,8 @@ export default function Business() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activated, setActivated] = useState<Record<string, boolean>>({});
+  const [searchQ, setSearchQ] = useState("");
+  const [crmFilter, setCrmFilter] = useState<CrmFilter>("all");
 
   useEffect(() => {
     if (authLoading) return;
@@ -257,6 +261,51 @@ export default function Business() {
           <SectionTitle icon={<Users className="h-4 w-4" />}>
             Customer database
           </SectionTitle>
+
+          {/* Search */}
+          <div className="mt-3 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-mute" />
+            <input
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              placeholder="Search by name or phone…"
+              className="input pl-9 w-full"
+            />
+          </div>
+
+          {/* Filter chips */}
+          <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {(
+              [
+                { id: "all", label: "All", count: customers.length },
+                { id: "vip", label: "VIP", count: customers.filter((c) => c.spent > 10000 && c.visits >= 3).length },
+                { id: "inactive", label: "Inactive", count: customers.filter((c) => c.lapsed).length },
+                { id: "birthday", label: "Birthday soon", count: customers.filter((c) => c.birthdaySoon).length },
+                { id: "new", label: "New", count: customers.filter((c) => c.visits === 1).length },
+                { id: "optin", label: "Opted in", count: customers.filter((c) => c.optIn).length },
+              ] as { id: CrmFilter; label: string; count: number }[]
+            ).map(({ id, label, count }) => (
+              <button
+                key={id}
+                onClick={() => setCrmFilter(id)}
+                className={cn(
+                  "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                  crmFilter === id
+                    ? "bg-terracotta-600 text-cream border-terracotta-600"
+                    : "bg-white text-ink border-line hover:border-terracotta-300"
+                )}
+              >
+                {label}
+                <span className={cn(
+                  "inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px]",
+                  crmFilter === id ? "bg-cream/20 text-cream" : "bg-line text-mute"
+                )}>
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
+
           <div className="card mt-3 overflow-hidden">
             <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-3 border-b border-line text-[11px] uppercase tracking-wider text-mute font-semibold">
               <span>Customer</span>
@@ -264,7 +313,18 @@ export default function Business() {
               <span className="text-right">Spent</span>
               <span className="text-right">Last seen</span>
             </div>
-            {customers.map((c) => (
+            {customers
+              .filter((c) => {
+                const q = searchQ.toLowerCase();
+                if (q && !c.name.toLowerCase().includes(q) && !(c.phone || "").toLowerCase().includes(q)) return false;
+                if (crmFilter === "vip") return c.spent > 10000 && c.visits >= 3;
+                if (crmFilter === "inactive") return c.lapsed;
+                if (crmFilter === "birthday") return c.birthdaySoon;
+                if (crmFilter === "new") return c.visits === 1;
+                if (crmFilter === "optin") return c.optIn;
+                return true;
+              })
+              .map((c) => (
               <div
                 key={c.id}
                 className="flex flex-col gap-2 px-4 py-3 border-b border-line last:border-0 sm:grid sm:grid-cols-[1fr_auto_auto_auto] sm:gap-3 sm:items-center"
@@ -277,6 +337,9 @@ export default function Business() {
                       {c.birthdaySoon && (
                         <Cake className="h-3.5 w-3.5 text-terracotta-600" />
                       )}
+                      {c.spent > 10000 && c.visits >= 3 && (
+                        <span className="text-[10px] font-bold text-gold-600 uppercase tracking-wider">VIP</span>
+                      )}
                     </div>
                     <div className="text-xs text-mute truncate">
                       {c.optIn ? "Reachable" : "Not opted in"}
@@ -284,7 +347,6 @@ export default function Business() {
                     </div>
                   </div>
                 </div>
-                {/* Mobile: meta strip; sm+ each becomes its own column */}
                 <span className="text-xs text-mute sm:hidden flex items-center gap-3 pl-10">
                   <span><span className="font-medium text-ink">{c.visits}</span> visits</span>
                   <span><span className="font-medium text-ink">{KES(c.spent)}</span></span>
@@ -299,7 +361,7 @@ export default function Business() {
             ))}
             {customers.length === 0 && (
               <div className="p-6 text-center text-sm text-mute">
-                No customers yet.
+                No customers yet. Share your profile link to get your first booking.
               </div>
             )}
           </div>

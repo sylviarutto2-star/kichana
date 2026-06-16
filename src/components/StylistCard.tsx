@@ -33,11 +33,13 @@ export function StylistCard({
             Featured
           </span>
         )}
-        <div className="absolute right-3 top-3 rounded-full bg-cream/95 px-2.5 py-1 text-xs font-semibold flex items-center gap-1 z-10">
-          <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
-          {s.rating_avg.toFixed(1)}
-          <span className="text-mute font-normal">({s.rating_count})</span>
-        </div>
+        {s.rating_count > 0 && (
+          <div className="absolute right-3 top-3 rounded-full bg-cream/95 px-2.5 py-1 text-xs font-semibold flex items-center gap-1 z-10">
+            <Star className="h-3 w-3 fill-gold-500 text-gold-500" />
+            {s.rating_avg.toFixed(1)}
+            <span className="text-mute font-normal">({s.rating_count})</span>
+          </div>
+        )}
         <div className="absolute left-3 bottom-3 z-10">
           <Avatar
             src={s.profile?.avatar_url}

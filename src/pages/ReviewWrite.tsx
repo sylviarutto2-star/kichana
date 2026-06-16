@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
-import { Loader2, Star } from "lucide-react";
+import { Loader2, Star, Image as ImageIcon, X } from "lucide-react";
 import { withTimeout, cn } from "@/lib/utils";
 
 type Booking = {
@@ -32,6 +32,8 @@ export default function ReviewWrite() {
   const [hover, setHover] = useState(0);
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user || !bookingId) return;
@@ -89,6 +91,20 @@ export default function ReviewWrite() {
     return ["", "Disappointing", "Below expectations", "Good", "Great", "Loved it"][v] || "Tap a star to rate";
   }, [hover, rating]);
 
+  const addPhotos = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files).slice(0, 3 - photos.length);
+    setPhotos((prev) => [...prev, ...newFiles]);
+    const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
+    setPhotoUrls((prev) => [...prev, ...newPreviews]);
+  };
+
+  const removePhoto = (i: number) => {
+    URL.revokeObjectURL(photoUrls[i]);
+    setPhotos((prev) => prev.filter((_, idx) => idx !== i));
+    setPhotoUrls((prev) => prev.filter((_, idx) => idx !== i));
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rating || !booking || !user) {
@@ -97,16 +113,28 @@ export default function ReviewWrite() {
     }
     setSubmitting(true);
     try {
+      // Upload photos
+      const uploadedUrls: string[] = [];
+      for (const file of photos) {
+        const ext = file.name.split(".").pop();
+        const path = `reviews/${booking.stylist_id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("feed").upload(path, file, { upsert: true });
+        if (upErr) { console.error("Photo upload failed:", upErr); continue; }
+        const { data: { publicUrl } } = supabase.storage.from("feed").getPublicUrl(path);
+        uploadedUrls.push(publicUrl);
+      }
+
       const payload = {
         booking_id: booking.id,
         stylist_id: booking.stylist_id,
         customer_id: user.id,
         rating,
         body: body.trim() || null,
+        photo_urls: uploadedUrls.length > 0 ? uploadedUrls : null,
       };
       const result = (await withTimeout(
         existing
-          ? (supabase as any).from("reviews").update({ rating, body: body.trim() || null }).eq("booking_id", booking.id)
+          ? (supabase as any).from("reviews").update({ rating, body: body.trim() || null, photo_urls: uploadedUrls.length > 0 ? uploadedUrls : null }).eq("booking_id", booking.id)
           : (supabase as any).from("reviews").insert(payload),
         15000,
         "Submit review",
@@ -195,9 +223,39 @@ export default function ReviewWrite() {
             <div className="text-[11px] text-mute mt-1">{body.length}/1000</div>
           </div>
 
+          <div>
+            <label className="label">Add photos <span className="text-mute font-normal">(up to 3, optional)</span></label>
+            <div className="mt-2 flex gap-2 flex-wrap">
+              {photoUrls.map((url, i) => (
+                <div key={i} className="relative h-20 w-20">
+                  <img src={url} className="h-20 w-20 rounded-xl object-cover" alt="" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(i)}
+                    className="absolute -top-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-ink text-cream"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              {photos.length < 3 && (
+                <label className="grid h-20 w-20 cursor-pointer place-items-center rounded-xl border-2 border-dashed border-line bg-white hover:border-terracotta-300 transition">
+                  <ImageIcon className="h-6 w-6 text-mute" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => addPhotos(e.target.files)}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
           <div className="text-xs text-mute leading-relaxed">
             Honest reviews are how Kichana stays trustworthy. Be specific, be fair —
-            and never post anything you wouldn't say to her face.
+            and never post anything you wouldn't say to their face.
           </div>
 
           <button disabled={submitting || !rating} className="btn-primary w-full">
