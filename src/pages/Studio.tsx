@@ -588,6 +588,10 @@ function PortfolioTab({
       const { data, error } = await supabase.from("portfolio_images" as any).insert(rows).select();
       if (error) throw error;
       onChange([...items, ...(data as any[])]);
+      // If this is the first upload, the first image becomes cover — sync to hero_image_url.
+      if (items.length === 0 && uploads.length > 0) {
+        await supabase.from("stylists" as any).update({ hero_image_url: uploads[0] }).eq("id", stylistId);
+      }
       toast.success(`${uploads.length} image${uploads.length > 1 ? "s" : ""} added`);
     } catch (e: any) {
       toast.error(e.message || "Upload failed");
@@ -611,6 +615,14 @@ function PortfolioTab({
       onChange(prev);
       toast.error("Couldn't update cover.");
       return;
+    }
+    const coverUrl = items.find((it) => it.id === id)?.image_url;
+    if (coverUrl) {
+      const { error: heroErr } = await supabase
+        .from("stylists" as any)
+        .update({ hero_image_url: coverUrl })
+        .eq("id", stylistId);
+      if (heroErr) console.error("setCover: failed to sync hero_image_url", heroErr);
     }
     toast.success("Cover updated");
   };

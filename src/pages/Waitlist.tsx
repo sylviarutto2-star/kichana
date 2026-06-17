@@ -73,7 +73,7 @@ export default function Waitlist() {
               We're launching in Nairobi soon. Stylists who join the waitlist get our{" "}
               <span className="font-semibold text-ink">launch offer</span>: 0% commission
               for your first 30 days, featured placement at launch, and a feature on{" "}
-              <span className="font-semibold text-ink">@kichana</span> on Instagram.
+              <span className="font-semibold text-ink">@kichana.co.ke</span> on Instagram.
             </p>
           )}
 

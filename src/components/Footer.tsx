@@ -4,7 +4,7 @@ import { Logo } from "./Logo";
 
 // Official Kichana social channels.
 export const SOCIAL = {
-  instagram: "https://www.instagram.com/kichana.app/",
+  instagram: "https://www.instagram.com/kichana.co.ke/",
   tiktok: "https://www.tiktok.com/@kichana.official",
   facebook: "https://web.facebook.com/kichana.co.ke",
   email: "mailto:hello@kichana.co.ke",
