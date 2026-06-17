@@ -239,6 +239,7 @@ export default function Studio() {
         {tab === "portfolio" && (
           <PortfolioTab
             stylistId={stylist.id}
+            userId={user!.id}
             services={services}
             items={portfolio}
             onChange={setPortfolio}
@@ -561,8 +562,8 @@ function ServicesTab({
 /* ------------------------------------------------------------------ */
 
 function PortfolioTab({
-  stylistId, services, items, onChange,
-}: { stylistId: string; services: any[]; items: any[]; onChange: (i: any[]) => void }) {
+  stylistId, userId, services, items, onChange,
+}: { stylistId: string; userId: string; services: any[]; items: any[]; onChange: (i: any[]) => void }) {
   const [uploading, setUploading] = useState(false);
 
   const upload = async (files: FileList | null) => {
@@ -571,7 +572,7 @@ function PortfolioTab({
     try {
       const uploads = await Promise.all(
         Array.from(files).map(async (f, i) => {
-          const path = `${stylistId}/${Date.now()}-${i}-${f.name.replace(/[^a-z0-9.]/gi, "_")}`;
+          const path = `${userId}/${Date.now()}-${i}-${f.name.replace(/[^a-z0-9.]/gi, "_")}`;
           const { error } = await supabase.storage.from("portfolio").upload(path, f, { upsert: false });
           if (error) throw error;
           const { data: pub } = supabase.storage.from("portfolio").getPublicUrl(path);
