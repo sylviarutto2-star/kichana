@@ -9,14 +9,14 @@ import { ArrowRight, Calendar, Sparkles, Shield, Heart, Bookmark, Star, MapPin, 
 const STYLES = [
   { label: "Knotless braids", desc: "Box · boho · jumbo", src: "/landing/style-braids.webp" },
   { label: "Feed-in cornrows", desc: "Stitch · sleek · ponytail", src: "/landing/style-cornrows.webp" },
-  { label: "Cuts & fades", desc: "Taper · lineup · barber", src: "/landing/style-cuts.webp" },
+  { label: "Cuts & fades", desc: "Taper · lineup · barber", src: "/landing/style-cuts.svg" },
   { label: "Colour braids", desc: "Ombré · pop · statement", src: "/landing/style-color.webp" },
 ];
 
 export default function Landing() {
   const { session, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (session) return <Navigate to="/home" replace />;
+  if (session) return <Navigate to="/discover" replace />;
 
   return (
     <div className="min-h-screen flex flex-col bg-cream">
@@ -37,10 +37,10 @@ export default function Landing() {
             Braids, wigs, locs, naturals, nails, cuts, fades. Salon or at-home.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/waitlist" className="btn-primary">
-              Join the waitlist <ArrowRight className="h-4 w-4" />
+            <Link to="/auth" className="btn-primary">
+              Get started free <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/waitlist?role=stylist" className="btn-outline">I'm a stylist</Link>
+            <Link to="/auth?role=stylist" className="btn-outline">I'm a stylist</Link>
           </div>
 
           <div className="mt-10 grid grid-cols-3 gap-4 max-w-md">
@@ -65,7 +65,7 @@ export default function Landing() {
             <p className="h-eyebrow mb-2">For stylists</p>
             <h2 className="font-display text-3xl md:text-4xl">We bring you the clients.</h2>
           </div>
-          <Link to="/waitlist?role=stylist" className="btn-ghost text-sm hidden sm:inline-flex">
+          <Link to="/auth?role=stylist" className="btn-ghost text-sm hidden sm:inline-flex">
             Join as a stylist <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -82,13 +82,13 @@ export default function Landing() {
             <p className="h-eyebrow mb-2">Find your look</p>
             <h2 className="font-display text-3xl md:text-4xl">Browse by style</h2>
           </div>
-          <Link to="/waitlist" className="btn-ghost text-sm hidden sm:inline-flex">
+          <Link to="/discover" className="btn-ghost text-sm hidden sm:inline-flex">
             See all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {STYLES.map((s) => (
-            <Link key={s.src} to="/waitlist" className="group card p-0 overflow-hidden">
+            <Link key={s.src} to="/discover" className="group card p-0 overflow-hidden">
               <SmartImage
                 src={s.src}
                 fallbackKey={s.label}
@@ -109,13 +109,13 @@ export default function Landing() {
         <div className="card relative overflow-hidden bg-aubergine-700 text-cream p-8 md:p-12">
           <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_85%_20%,rgba(216,168,90,0.5),transparent_50%)]" />
           <div className="relative max-w-lg">
-            <h2 className="font-display text-3xl md:text-4xl">We're saving you a seat.</h2>
+            <h2 className="font-display text-3xl md:text-4xl">Start booking today.</h2>
             <p className="mt-3 text-cream/80">
-              Join the Nairobi waitlist — 10% off your first booking when we open. Stylists, get priority onboarding and M-Pesa payouts from day one.
+              Join thousands of clients already discovering Kenya's best stylists. Verified portfolios, honest reviews, M-Pesa deposits.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/waitlist" className="btn-primary">Join the waitlist <ArrowRight className="h-4 w-4" /></Link>
-              <Link to="/waitlist?role=stylist" className="rounded-full bg-cream/10 text-cream px-4 py-2 text-sm font-semibold ring-1 ring-cream/25 hover:bg-cream/15">I'm a stylist</Link>
+              <Link to="/auth" className="btn-primary">Get started free <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/auth?role=stylist" className="rounded-full bg-cream/10 text-cream px-4 py-2 text-sm font-semibold ring-1 ring-cream/25 hover:bg-cream/15">I'm a stylist</Link>
             </div>
           </div>
         </div>
