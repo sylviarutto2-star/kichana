@@ -31,6 +31,9 @@ export default function Studio() {
   const [policies, setPolicies] = useState<any>(null);
   const [tab, setTab] = useState<Tab>("today");
   const [loading, setLoading] = useState(true);
+  const [createName, setCreateName] = useState("");
+  const [createBio, setCreateBio] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -98,13 +101,65 @@ export default function Studio() {
   if (authLoading) return <LoadingScreen />;
   if (loading) return <div className="container-app py-10"><div className="skeleton h-32" /></div>;
   if (!stylist) {
+    const createStudio = async () => {
+      if (!user || !createName.trim()) return toast.error("Display name is required");
+      setCreating(true);
+      try {
+        const { data, error } = await withTimeout(
+          supabase.from("stylists" as any).insert({
+            profile_id: user.id,
+            display_name: createName.trim(),
+            bio: createBio.trim() || null,
+            specialties: [],
+            travels: false,
+            neighborhoods: [(profile as any)?.neighborhood || "Westlands"],
+            base_location: (profile as any)?.neighborhood || "Westlands",
+          }).select().single(),
+          15000,
+          "Creating studio",
+        );
+        if (error) { console.error("createStudio:", error); return toast.error(error.message); }
+        setStylist(data);
+        toast.success("Studio created. Add your services to go live.");
+      } catch (e: any) {
+        console.error("createStudio threw:", e);
+        toast.error(e?.message || "Couldn't create studio. Please try again.");
+      } finally {
+        setCreating(false);
+      }
+    };
+
     return (
       <div className="container-app py-10 with-sidenav">
-        <div className="card p-8 text-center">
-          <Sparkles className="h-8 w-8 mx-auto text-terracotta-600" />
-          <h2 className="font-display text-2xl mt-2">Finish setting up your studio</h2>
-          <p className="text-mute text-sm mt-1">Complete onboarding to add services, portfolio, hours, and policies.</p>
-          <button onClick={() => nav("/onboarding?role=stylist")} className="btn-primary mt-5">Finish setup</button>
+        <div className="card p-8 max-w-md mx-auto space-y-4">
+          <div className="text-center">
+            <Sparkles className="h-8 w-8 mx-auto text-terracotta-600" />
+            <h2 className="font-display text-2xl mt-2">Set up your studio</h2>
+            <p className="text-mute text-sm mt-1">Add your details to start taking bookings.</p>
+          </div>
+          <div>
+            <label className="label">Display name</label>
+            <input
+              className="input"
+              placeholder="e.g. Amani Braids Studio"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label">Short bio (optional)</label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="What you specialise in. Years of experience."
+              value={createBio}
+              onChange={(e) => setCreateBio(e.target.value)}
+            />
+          </div>
+          <button onClick={createStudio} disabled={creating || !createName.trim()} className="btn-primary w-full">
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Create studio
+          </button>
         </div>
         <BottomNav />
       </div>
