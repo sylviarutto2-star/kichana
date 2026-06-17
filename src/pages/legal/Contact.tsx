@@ -9,7 +9,7 @@ export default function Contact() {
       <div className="not-prose grid sm:grid-cols-2 gap-3 mt-6">
         <Card icon={<MessageCircle className="h-5 w-5" />} title="WhatsApp" href="https://wa.me/254700000000" subtitle="+254 700 000 000" />
         <Card icon={<Mail className="h-5 w-5" />} title="Email" href="mailto:hello@kichana.co.ke" subtitle="hello@kichana.co.ke" />
-        <Card icon={<Instagram className="h-5 w-5" />} title="Instagram" href="https://instagram.com/kichana" subtitle="@kichana" />
+        <Card icon={<Instagram className="h-5 w-5" />} title="Instagram" href="https://www.instagram.com/kichana.co.ke/" subtitle="@kichana.co.ke" />
         <Card icon={<MapPin className="h-5 w-5" />} title="Office" subtitle="Westlands, Nairobi, Kenya" />
       </div>
 
