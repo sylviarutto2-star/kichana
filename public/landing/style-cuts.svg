@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000" role="img" aria-label="Man with a fresh fade haircut">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C4663F"/>
+      <stop offset="0.55" stop-color="#A8512E"/>
+      <stop offset="1" stop-color="#3F2233"/>
+    </linearGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7A4A30"/>
+      <stop offset="1" stop-color="#5E3622"/>
+    </linearGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B1410"/>
+      <stop offset="0.62" stop-color="#241a13"/>
+      <stop offset="1" stop-color="#5E3622"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect width="800" height="1000" fill="url(#glow)"/>
+  <circle cx="610" cy="180" r="150" fill="#D8A85A" opacity="0.18"/>
+
+  <!-- shoulders / shirt -->
+  <path d="M170 1000 C 180 820 300 740 400 740 C 500 740 620 820 630 1000 Z" fill="#FBF6EE"/>
+  <path d="M330 760 C 360 815 440 815 470 760 L 470 700 L 330 700 Z" fill="url(#skin)"/>
+
+  <!-- neck shading -->
+  <path d="M338 752 C 365 795 435 795 462 752 L 462 712 L 338 712 Z" fill="#4a2b1a" opacity="0.45"/>
+
+  <!-- ears -->
+  <ellipse cx="278" cy="470" rx="30" ry="46" fill="url(#skin)"/>
+  <ellipse cx="522" cy="470" rx="30" ry="46" fill="url(#skin)"/>
+
+  <!-- head / face -->
+  <path d="M290 360 C 290 250 340 195 400 195 C 460 195 510 250 510 360 C 510 470 470 565 400 565 C 330 565 290 470 290 360 Z" fill="url(#skin)"/>
+
+  <!-- jaw/beard -->
+  <path d="M300 405 C 312 520 350 575 400 575 C 450 575 488 520 500 405 C 500 405 486 470 400 470 C 314 470 300 405 300 405 Z" fill="#1B1410"/>
+  <path d="M300 400 C 300 360 320 350 320 350 L 300 360 Z" fill="#1B1410"/>
+  <path d="M500 400 C 500 360 480 350 480 350 L 500 360 Z" fill="#1B1410"/>
+  <!-- sideburns connecting beard to fade -->
+  <path d="M300 350 L 300 430 C 290 420 286 380 300 350 Z" fill="#1B1410"/>
+  <path d="M500 350 L 500 430 C 510 420 514 380 500 350 Z" fill="#1B1410"/>
+
+  <!-- hair: high-top fade with clean lineup -->
+  <path d="M294 372 C 286 232 338 158 400 158 C 462 158 514 232 506 372 C 506 372 506 300 488 280 C 470 262 470 250 470 250 C 470 250 440 238 400 238 C 360 238 330 250 330 250 C 330 250 330 262 312 280 C 294 300 294 372 294 372 Z" fill="url(#fade)"/>
+  <!-- sharp hairline / lineup -->
+  <path d="M322 268 C 350 244 450 244 478 268 L 478 252 C 450 232 350 232 322 252 Z" fill="#0f0b08"/>
+
+  <!-- eyebrows -->
+  <path d="M330 372 C 350 360 378 360 392 368 L 392 380 C 376 374 350 374 332 384 Z" fill="#1B1410"/>
+  <path d="M470 372 C 450 360 422 360 408 368 L 408 380 C 424 374 450 374 468 384 Z" fill="#1B1410"/>
+
+  <!-- eyes -->
+  <ellipse cx="356" cy="402" rx="20" ry="11" fill="#FBF6EE"/>
+  <ellipse cx="444" cy="402" rx="20" ry="11" fill="#FBF6EE"/>
+  <circle cx="358" cy="403" r="7.5" fill="#1B1410"/>
+  <circle cx="442" cy="403" r="7.5" fill="#1B1410"/>
+
+  <!-- nose -->
+  <path d="M400 410 L 388 460 C 388 472 412 472 412 460 Z" fill="#4a2b1a" opacity="0.55"/>
+
+  <!-- mouth -->
+  <path d="M372 502 C 388 514 412 514 428 502 C 412 496 388 496 372 502 Z" fill="#3a2014"/>
+
+  <!-- barber cape hint on shoulders -->
+  <path d="M170 1000 C 176 880 250 800 300 790 L 305 1000 Z" fill="#2A1622" opacity="0.25"/>
+  <path d="M630 1000 C 624 880 550 800 500 790 L 495 1000 Z" fill="#2A1622" opacity="0.25"/>
+</svg>
