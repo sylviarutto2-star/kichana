@@ -99,6 +99,24 @@ export default function Onboarding() {
       );
       if (pErr) throw pErr;
 
+      if (role === "stylist") {
+        const { error: sErr } = await withTimeout(
+          supabase.from("stylists" as any).insert({
+            profile_id: user.id,
+            display_name: displayName,
+            bio: bio || null,
+            specialties,
+            travels,
+            home_service_enabled: travels,
+            neighborhoods: [neighborhood],
+            base_location: neighborhood,
+          }),
+          15000,
+          "Creating your studio",
+        );
+        if (sErr) throw sErr;
+      }
+
       void refreshProfile();
       toast.success("You're in. Welcome to Kichana 💛");
       nav(role === "stylist" ? "/studio" : "/home", { replace: true });
