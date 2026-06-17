@@ -612,6 +612,14 @@ function PortfolioTab({
       toast.error("Couldn't update cover.");
       return;
     }
+    const coverUrl = items.find((it) => it.id === id)?.image_url;
+    if (coverUrl) {
+      const { error: heroErr } = await supabase
+        .from("stylists" as any)
+        .update({ hero_image_url: coverUrl })
+        .eq("id", stylistId);
+      if (heroErr) console.error("setCover: failed to sync hero_image_url", heroErr);
+    }
     toast.success("Cover updated");
   };
 
