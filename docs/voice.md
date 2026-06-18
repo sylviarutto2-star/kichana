@@ -52,4 +52,4 @@ lives in product chrome.**
   signature line of the brand.
 - `src/pages/Auth.tsx` — "Built by women, for women." manifesto line.
 - `src/pages/Home.tsx` — Swahili greetings (`Habari ya asubuhi/mchana/jioni`).
-- `src/pages/Landing.tsx` — "Hair, brilliantly booked." hero.
+- `src/pages/Landing.tsx` — "Beauty Booked Brilliantly." hero.
