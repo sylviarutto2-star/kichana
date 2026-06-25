@@ -29,7 +29,7 @@ export default function Landing() {
         <div className="animate-fade-up">
           <p className="h-eyebrow mb-4">Built for Nairobi</p>
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl leading-[1.02] tracking-tight">
-            Hair, <em className="not-italic text-terracotta-600">brilliantly</em> booked.
+            Beauty <em className="not-italic text-terracotta-600">Booked</em> Brilliantly.
           </h1>
           <p className="mt-5 text-lg text-mute max-w-md">
             The trusted network of hair and beauty specialists in Kenya — built for everyone who cares about their look.
@@ -37,10 +37,10 @@ export default function Landing() {
             Braids, wigs, locs, naturals, nails, cuts, fades. Salon or at-home.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/waitlist" className="btn-primary">
-              Join the waitlist <ArrowRight className="h-4 w-4" />
+            <Link to="/auth" className="btn-primary">
+              Get started <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link to="/waitlist?role=stylist" className="btn-outline">I'm a stylist</Link>
+            <Link to="/auth?role=stylist" className="btn-outline">I'm a stylist</Link>
           </div>
 
           <div className="mt-10 grid grid-cols-3 gap-4 max-w-md">
@@ -65,7 +65,7 @@ export default function Landing() {
             <p className="h-eyebrow mb-2">For stylists</p>
             <h2 className="font-display text-3xl md:text-4xl">We bring you the clients.</h2>
           </div>
-          <Link to="/waitlist?role=stylist" className="btn-ghost text-sm hidden sm:inline-flex">
+          <Link to="/auth?role=stylist" className="btn-ghost text-sm hidden sm:inline-flex">
             Join as a stylist <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -82,13 +82,13 @@ export default function Landing() {
             <p className="h-eyebrow mb-2">Find your look</p>
             <h2 className="font-display text-3xl md:text-4xl">Browse by style</h2>
           </div>
-          <Link to="/waitlist" className="btn-ghost text-sm hidden sm:inline-flex">
+          <Link to="/auth" className="btn-ghost text-sm hidden sm:inline-flex">
             See all <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {STYLES.map((s) => (
-            <Link key={s.src} to="/waitlist" className="group card p-0 overflow-hidden">
+            <Link key={s.src} to="/auth" className="group card p-0 overflow-hidden">
               <SmartImage
                 src={s.src}
                 fallbackKey={s.label}
@@ -109,13 +109,13 @@ export default function Landing() {
         <div className="card relative overflow-hidden bg-aubergine-700 text-cream p-8 md:p-12">
           <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_85%_20%,rgba(216,168,90,0.5),transparent_50%)]" />
           <div className="relative max-w-lg">
-            <h2 className="font-display text-3xl md:text-4xl">We're saving you a seat.</h2>
+            <h2 className="font-display text-3xl md:text-4xl">Your chair is ready.</h2>
             <p className="mt-3 text-cream/80">
-              Join the Nairobi waitlist — 10% off your first booking when we open. Stylists, get priority onboarding and M-Pesa payouts from day one.
+              Sign up in seconds — 10% off your first booking. Stylists, get your verified profile live today with M-Pesa payouts from day one.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/waitlist" className="btn-primary">Join the waitlist <ArrowRight className="h-4 w-4" /></Link>
-              <Link to="/waitlist?role=stylist" className="rounded-full bg-cream/10 text-cream px-4 py-2 text-sm font-semibold ring-1 ring-cream/25 hover:bg-cream/15">I'm a stylist</Link>
+              <Link to="/auth" className="btn-primary">Get started <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/auth?role=stylist" className="rounded-full bg-cream/10 text-cream px-4 py-2 text-sm font-semibold ring-1 ring-cream/25 hover:bg-cream/15">I'm a stylist</Link>
             </div>
           </div>
         </div>
