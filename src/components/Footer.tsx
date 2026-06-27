@@ -17,7 +17,7 @@ export function Footer() {
         <div className="md:col-span-2">
           <Logo />
           <p className="text-sm text-mute mt-4 max-w-xs">
-            Hair, brilliantly booked. Built in Nairobi for Nairobi — and growing across East Africa.
+            Beauty Booked Brilliantly. Built in Nairobi for Nairobi — and growing across East Africa.
           </p>
           <div className="mt-5 flex items-center gap-2">
             <Social href={SOCIAL.instagram} label="Instagram"><Instagram className="h-4 w-4" /></Social>

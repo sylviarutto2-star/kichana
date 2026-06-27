@@ -1,6 +1,6 @@
 # Kichana
 
-Hair, brilliantly booked. A Nairobi-first booking platform for hairstylists and the women who love them — with a community feed, Hair Vault, Paystack deposits, group bookings, and a stylist studio.
+Beauty Booked Brilliantly. A Nairobi-first booking platform for hairstylists and the women who love them — with a community feed, Hair Vault, Paystack deposits, group bookings, and a stylist studio.
 
 ## Stack
 
